@@ -37,7 +37,7 @@ function print_tokens() {
 	reset()
 }
 
-/^[A-Za-z_]+[?+]?=/ {
+/^[A-Za-z0-9_]+[?+]?=/ {
 	print_tokens()
 }
 
@@ -61,12 +61,17 @@ function print_tokens() {
 /^[A-Z_]+_DESC[+?]?=/ ||
 /^FLAVORS[+?]?=/ ||
 /^LLD_UNSAFE[+?]?=/ ||
+/^CARGO_FEATURES[+?]?=/ ||
 /^MAKE_JOBS_UNSAFE[+?]?=/ {
 	sorted = 0
 }
 
+/^([A-Z_]+_)?MASTER_SITES[+?]?=/ ||
 /^[a-zA-Z_]+_DEPENDS[+?]?=/ ||
-/^[A-Z_]+_ARGS[+?]?=/ ||
+/^CARGO_CRATES?[+?]?=/ ||
+/^[A-Z_]+_ARGS(_OFF)?[+?]?=/ ||
+/^[A-Z_]+_ENV(_OFF)?[+?]?=/ ||
+/^[A-Z_]+_VARS(_OFF)?[+?]?=/ ||
 /^[A-Z_]+_CMAKE_OFF[+?]?=/ ||
 /^[A-Z_]+_CMAKE_ON[+?]?=/ ||
 /^[A-Z_]+_CONFIGURE_OFF[+?]?=/ ||
@@ -75,7 +80,7 @@ function print_tokens() {
 }
 
 !skip {
-	if (match($0, /^[A-Z_+?]+=/)) {
+	if (match($0, /^[a-zA-Z0-9_+?]+=/)) {
 		# Handle lines like: VAR=xyz
 		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "") {
 			tokens[tokens_len++] = arrtemp[2]
