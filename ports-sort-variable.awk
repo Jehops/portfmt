@@ -9,6 +9,7 @@ function reset() {
 	empty_lines_before_len = 1
 	empty_lines_after_len = 1
 	sorted = 1
+	in_target = 0
 }
 
 function print_tokens() {
@@ -40,8 +41,18 @@ function print_tokens() {
 	print_tokens()
 }
 
-/^#/ || /^[ \t]*$/ {
+/^#/ || /^\./ || in_target {
 	skip = 1
+}
+
+/^[ \t]*$/ { # empty line
+	skip = 1
+	in_target = 0
+}
+
+/^[a-zA-Z-]+:/ {
+	skip = 1
+	in_target = 1
 }
 
 # Sanitize whitespace but do *not* sort tokens
