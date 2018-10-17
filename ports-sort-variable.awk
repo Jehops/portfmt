@@ -56,6 +56,7 @@ function print_tokens() {
 }
 
 # Sanitize whitespace but do *not* sort tokens
+/^CATEGORIES[+?]?=/ ||
 /^COMMENT[+?]?=/ ||
 /^[A-Z_]+_DESC[+?]?=/ ||
 /^FLAVORS[+?]?=/ ||
@@ -75,8 +76,12 @@ function print_tokens() {
 
 !skip {
 	if (match($0, /^[A-Z_+?]+=/)) {
-# TODO: Handle lines like: DOCS_ALL_TARGET=docs
-		varname = substr($0, RSTART, RLENGTH - 1)
+		# Handle lines like: VAR=xyz
+		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "") {
+			tokens[tokens_len++] = arrtemp[2]
+		}
+		varname = arrtemp[1]
+
 		empty_lines_before_len = 1
 		empty_lines_after_len = 1
 		i = 2
