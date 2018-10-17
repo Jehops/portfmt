@@ -64,7 +64,7 @@ function print_tokens() {
 	sorted = 0
 }
 
-/^[a-zA-Z_]+_DEPENDS[+?]=/ ||
+/^[a-zA-Z_]+_DEPENDS[+?]?=/ ||
 /^[A-Z_]+_ARGS[+?]?=/ ||
 /^[A-Z_]+_CMAKE_OFF[+?]?=/ ||
 /^[A-Z_]+_CMAKE_ON[+?]?=/ ||
