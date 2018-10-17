@@ -45,6 +45,10 @@ function print_tokens() {
 	skip = 1
 }
 
+/^COMMENT=/ {
+	skip = 1
+}
+
 /^[a-zA-Z_]+_DEPENDS[+?]=/ {
 	print_as_tokens = 0
 }
