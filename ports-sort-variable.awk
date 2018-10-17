@@ -41,7 +41,7 @@ function print_tokens() {
 	print_tokens()
 }
 
-/^#/ || /^\./ || in_target {
+/^#/ || /^\./ || /^[A-Z_]+!=/ || in_target {
 	skip = 1
 }
 
@@ -75,6 +75,7 @@ function print_tokens() {
 
 !skip {
 	if (match($0, /^[A-Z_+?]+=/)) {
+# TODO: Handle lines like: DOCS_ALL_TARGET=docs
 		varname = substr($0, RSTART, RLENGTH - 1)
 		empty_lines_before_len = 1
 		empty_lines_after_len = 1
