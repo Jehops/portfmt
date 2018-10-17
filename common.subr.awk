@@ -2,15 +2,15 @@ function indent_level(s) {
 	return length(s) / 8
 }
 
-function repeat(s, n) {
+function repeat(s, n,	temp, i) {
 	temp = ""
-	for (j = 0; j < n; j++) {
+	for (i = 0; i < n; i++) {
 		temp = sprintf("%s%s", s, temp)
 	}
 	return temp
 }
 
-function print_newline_array(start, arr, arrlen) {
+function print_newline_array(start, arr, arrlen,	sep, end, i) {
 	sep = sprintf("%s\t", start)
 	end = " \\\n"
 	for (i = 1; i < arrlen; i++) {
@@ -24,7 +24,7 @@ function print_newline_array(start, arr, arrlen) {
 	}
 }
 
-function print_token_array(start, tokens, tokenslen) {
+function print_token_array(start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i) {
 	wrapcol = 80 - length(start) - 8
 	arrlen = 1
 	row = ""
@@ -48,7 +48,7 @@ function print_token_array(start, tokens, tokenslen) {
 
 # Case insensitive Bubble sort because it's super easy and we don't
 # need anything better here ;-)
-function sort_array(arr, arrlen) {
+function sort_array(arr, arrlen,	i, j, temp) {
 	for (i = 1; i < arrlen; i++) {
 		for (j = i + 1; j < arrlen; j++) {
 			if (arr[i] > arr[j]) {

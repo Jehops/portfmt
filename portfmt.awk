@@ -12,7 +12,7 @@ function reset() {
 	in_target = 0
 }
 
-function print_tokens() {
+function print_tokens(	i) {
 	for (i = 1; i < empty_lines_before_len; i++) {
 		print empty_lines_before[i]
 	}
@@ -80,6 +80,8 @@ function print_tokens() {
 }
 
 !skip {
+	portfmt_no_skip()
+} function portfmt_no_skip(	i, arrtemp) {
 	if (match($0, /^[a-zA-Z0-9_+?]+=/)) {
 		# Handle lines like: VAR=xyz
 		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "") {
