@@ -60,6 +60,8 @@ function print_tokens() {
 !skip {
 	if (match($0, /^[A-Z_+?]+=/)) {
 		varname = substr($0, RSTART, RLENGTH - 1)
+		empty_lines_before_len = 1
+		empty_lines_after_len = 1
 		i = 2
 	} else {
 		i = 1
