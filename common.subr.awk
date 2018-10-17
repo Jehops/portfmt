@@ -1,16 +1,26 @@
+function indent_level(s) {
+	return length(s) / 8
+}
+
+function repeat(s, n) {
+	temp = ""
+	for (j = 0; j < n; j++) {
+		temp = sprintf("%s%s", s, temp)
+	}
+	return temp
+}
+
 function print_newline_array(start, arr, arrlen) {
-	startsep = start
-	sep = "\t"
+	sep = sprintf("%s\t", start)
 	end = " \\\n"
 	for (i = 1; i < arrlen; i++) {
 		if (i == arrlen - 1) {
 			end = "\n"
 		}
-		printf "%s%s%s%s", startsep, sep, arr[i], end
-		if (length(start) < 8) {
-			sep = ""
+		printf "%s%s%s", sep, arr[i], end
+		if (i == 1) {
+			sep = repeat("\t", indent_level(start))
 		}
-		startsep = "\t"
 	}
 }
 
