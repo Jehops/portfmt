@@ -8,6 +8,7 @@ function reset() {
 	print_as_tokens = 1
 	empty_lines_before_len = 1
 	empty_lines_after_len = 1
+	sorted = 1
 }
 
 function print_tokens() {
@@ -19,7 +20,9 @@ function print_tokens() {
 		return;
 	}
 
-	sort_array(tokens, tokens_len)
+	if (sorted) {
+		sort_array(tokens, tokens_len)
+	}
 	if (print_as_tokens == 1) {
 		print_token_array(sprintf("%s=", varname), tokens, tokens_len)
 	} else {
@@ -37,23 +40,25 @@ function print_tokens() {
 	print_tokens()
 }
 
-/^#/ {
+/^#/ || /^[ \t]*$/ {
 	skip = 1
 }
 
-/^[ \t]*$/ {
-	skip = 1
+# Sanitize whitespace but do *not* sort tokens
+/^COMMENT[+?]?=/ ||
+/^[A-Z_]+_DESC[+?]?=/ ||
+/^FLAVORS[+?]?=/ ||
+/^LLD_UNSAFE[+?]?=/ ||
+/^MAKE_JOBS_UNSAFE[+?]?=/ {
+	sorted = 0
 }
 
-/^COMMENT=/ {
-	skip = 1
-}
-
-/^[a-zA-Z_]+_DEPENDS[+?]=/ {
-	print_as_tokens = 0
-}
-
-/^[A-Z_]+_ARGS[+?]?=/ {
+/^[a-zA-Z_]+_DEPENDS[+?]=/ ||
+/^[A-Z_]+_ARGS[+?]?=/ ||
+/^[A-Z_]+_CMAKE_OFF[+?]?=/ ||
+/^[A-Z_]+_CMAKE_ON[+?]?=/ ||
+/^[A-Z_]+_CONFIGURE_OFF[+?]?=/ ||
+/^[A-Z_]+_CONFIGURE_ON[+?]?=/ {
 	print_as_tokens = 0
 }
 
