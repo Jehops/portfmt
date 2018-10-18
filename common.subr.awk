@@ -1,5 +1,10 @@
+function ceil(n,	i) {
+	for (i = int(n); i < n; i++) { }
+	return i;
+}
+
 function indent_level(s) {
-	return length(s) / 8
+	return ceil(length(s) / 8)
 }
 
 function repeat(s, n,	temp, i) {
