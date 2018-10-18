@@ -1,0 +1,3 @@
+COMMENT=	Small audio and MIDI framework from the OpenBSD project
+
+LICENSE=	ISCL
