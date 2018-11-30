@@ -1,4 +1,34 @@
 #!/usr/bin/awk -f
+#
+# Copyright (c) 2018, Tobias Kortkamp
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# THIS SOFTWARE IS PROVIDED BY ``AS IS'' AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
+# NO EVENT SHALL I BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# $FreeBSD$
+#
+# MAINTAINER=	tobik@FreeBSD.org
+#
+# Format port Makefiles.  Best used via your editor and piping
+# only parts of the Makefile to it.
+#
+# Usage: ${PORTSDIR}/Tools/scripts/portfmt.awk < Makefile
+#
 
 ### Utility functions
 
@@ -111,7 +141,7 @@ function print_tokens(	i) {
 	reset()
 }
 
-/^[A-Za-z0-9_]+[?+]?=/ {
+/^[A-Za-z0-9_]+[?+:]?=/ {
 	print_tokens()
 }
 
@@ -124,41 +154,48 @@ function print_tokens(	i) {
 	in_target = 0
 }
 
-/^[a-zA-Z-]+:/ {
+/^[a-zA-Z_-]+:/ {
 	skip = 1
 	in_target = 1
 }
 
 # Sanitize whitespace but do *not* sort tokens
-/^CATEGORIES[+?]?=/ ||
-/^COMMENT[+?]?=/ ||
-/^[A-Z_]+_DESC[+?]?=/ ||
-/^FLAVORS[+?]?=/ ||
-/^LLD_UNSAFE[+?]?=/ ||
-/^CARGO_FEATURES[+?]?=/ ||
-/^MAKE_JOBS_UNSAFE[+?]?=/ {
+/^BROKEN_[A-Za-z_0-9]+?[+?:]?=/ ||
+/^DEPRECATED[+?:]?=/ ||
+/^EXPIRATION_DATE[+?:]?=/ ||
+/^CATEGORIES[+?:]?=/ ||
+/^COMMENT[+?:]?=/ ||
+/^LICENSE_NAME[+?:]?=/ ||
+/^[A-Z_]+_DESC[+?:]?=/ ||
+/^FLAVORS[+?:]?=/ ||
+/^LLD_UNSAFE[+?:]?=/ ||
+/^CARGO_FEATURES[+?:]?=/ ||
+/^MAKE_JOBS_UNSAFE[+?:]?=/ {
 	sorted = 0
 }
 
-/^([A-Z_]+_)?MASTER_SITES[+?]?=/ ||
-/^[a-zA-Z_]+_DEPENDS[+?]?=/ ||
-/^CARGO_CRATES?[+?]?=/ ||
-/^[A-Z_]+_ARGS(_OFF)?[+?]?=/ ||
-/^[A-Z_]+_ENV(_OFF)?[+?]?=/ ||
-/^[A-Z_]+_VARS(_OFF)?[+?]?=/ ||
-/^[A-Z_]+_CMAKE_OFF[+?]?=/ ||
-/^[A-Z_]+_CMAKE_ON[+?]?=/ ||
-/^[A-Z_]+_CONFIGURE_OFF[+?]?=/ ||
-/^[A-Z_]+_CONFIGURE_ON[+?]?=/ {
+/^([A-Z_]+_)?MASTER_SITES[+?:]?=/ ||
+/^[a-zA-Z0-9_]+_DEPENDS[+?:]?=/ ||
+/^[a-zA-Z0-9_]+_C(XX|PP)?FLAGS[+?:]?=/ ||
+/^C(XX|PP)?FLAGS[+?:]?=/ ||
+/^CARGO_CRATES?[+?:]?=/ ||
+/^OPTIONS_EXCLUDE:=/ ||
+/^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
+/^[A-Z0-9_]+_ENV(_OFF)?[+?:]?=/ ||
+/^[A-Z0-9_]+_VARS(_OFF)?[+?:]?=/ ||
+/^[A-Z0-9_]+_CMAKE_OFF[+?:]?=/ ||
+/^[A-Z0-9_]+_CMAKE_ON[+?:]?=/ ||
+/^[A-Z0-9_]+_CONFIGURE_OFF[+?:]?=/ ||
+/^[A-Z0-9_]+_CONFIGURE_ON[+?:]?=/ {
 	print_as_tokens = 0
 }
 
 !skip {
 	portfmt_no_skip()
-} function portfmt_no_skip(	i, arrtemp) {
-	if (match($0, /^[a-zA-Z0-9_+?]+=/)) {
-		# Handle lines like: VAR=xyz
-		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "") {
+} function portfmt_no_skip(	i, arrtemp, quoted, token) {
+	if (match($0, /^[a-zA-Z0-9_]+[+?:]?=/)) {
+		# Handle special lines like: VAR=xyz
+		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
 			tokens[tokens_len++] = arrtemp[2]
 		}
 		varname = arrtemp[1]
@@ -169,11 +206,22 @@ function print_tokens(	i) {
 	} else {
 		i = 1
 	}
+
+	quoted = 0
 	for (; i <= NF; i++) {
 		if ($i == "\\") {
 			break
 		}
-		tokens[tokens_len++] = $i
+
+		if (quoted && tokens_len > 0) {
+			token = tokens[tokens_len - 1]
+			tokens[tokens_len - 1] = sprintf("%s %s", token, $i)
+		} else {
+			tokens[tokens_len++] = $i
+		}
+		if (match($i, /"/) && !match($i, /""/)) {
+			quoted = !quoted
+		}
 	}
 }
 
