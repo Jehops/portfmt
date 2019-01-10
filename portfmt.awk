@@ -179,7 +179,12 @@ maybe_in_target {
 /^IGNORE[+?:]?=/ ||
 /^DEPRECATED[+?:]?=/ ||
 /^EXPIRATION_DATE[+?:]?=/ ||
+/^EXTRACT_AFTER_ARGS[+?:]?=/ ||
+/^EXTRACT_BEFORE_ARGS[+?:]?=/ ||
+/^EXTRACT_CMD[+?:]?=/ ||
 /^CATEGORIES[+?:]?=/ ||
+/^DESKTOP_ENTRIES[+?:]?=/ ||
+/^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
 /^COMMENT[+?:]?=/ ||
 /^LICENSE_NAME[+?:]?=/ ||
 /^[A-Z_]+_DESC[+?:]?=/ ||
@@ -195,8 +200,10 @@ maybe_in_target {
 /^[a-zA-Z0-9_]+_C(XX|PP)?FLAGS[+?:]?=/ ||
 /^C(XX|PP)?FLAGS[+?:]?=/ ||
 /^CARGO_CRATES?[+?:]?=/ ||
+/^DESKTOP_ENTRIES[+?:]?=/ ||
 /^OPTIONS_EXCLUDE:=/ ||
 /^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
+/^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
 /^[A-Z0-9_]+_ENV(_OFF)?[+?:]?=/ ||
 /^[A-Z0-9_]+_VARS(_OFF)?[+?:]?=/ ||
 /^[A-Z0-9_]+_CMAKE_OFF[+?:]?=/ ||
