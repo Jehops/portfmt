@@ -117,6 +117,15 @@ function reset() {
 	maybe_in_target = 0
 }
 
+function assign_variable(var) {
+# Some variables are usually indented with an extra tab by porters.
+	if (var == "USES" || var == "USERS" || var == "GROUPS") {
+		return sprintf("%s=\t", var)
+	} else {
+		return sprintf("%s=", var)
+	}
+}
+
 function print_tokens(	i) {
 	for (i = 1; i < empty_lines_before_len; i++) {
 		print empty_lines_before[i]
@@ -130,9 +139,9 @@ function print_tokens(	i) {
 		sort_array(tokens, tokens_len)
 	}
 	if (print_as_tokens == 1) {
-		print_token_array(sprintf("%s=", varname), tokens, tokens_len)
+		print_token_array(assign_variable(varname), tokens, tokens_len)
 	} else {
-		print_newline_array(sprintf("%s=", varname), tokens, tokens_len)
+		print_newline_array(assign_variable(varname), tokens, tokens_len)
 	}
 
 	for (i = 1; i < empty_lines_after_len; i++) {
