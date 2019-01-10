@@ -114,6 +114,7 @@ function reset() {
 	empty_lines_after_len = 1
 	sorted = 1
 	in_target = 0
+	maybe_in_target = 0
 }
 
 function print_tokens(	i) {
@@ -145,6 +146,17 @@ function print_tokens(	i) {
 	print_tokens()
 }
 
+# If we were in a target previously, but there was an empty line,
+# then we are actually still in the same target as before if the
+# current line begins with a tab.
+maybe_in_target && /^\t/ {
+	in_target = 1
+}
+
+maybe_in_target {
+	maybe_in_target = 0
+}
+
 /^#/ || /^\./ || /^[A-Z_]+!=/ || in_target {
 	skip = 1
 }
@@ -152,6 +164,7 @@ function print_tokens(	i) {
 /^[ \t]*$/ { # empty line
 	skip = 1
 	in_target = 0
+	maybe_in_target = 1
 }
 
 /^[a-zA-Z_-]+:/ {
@@ -161,6 +174,9 @@ function print_tokens(	i) {
 
 # Sanitize whitespace but do *not* sort tokens
 /^BROKEN_[A-Za-z_0-9]+?[+?:]?=/ ||
+/^IGNORE_[A-Za-z_0-9]+?[+?:]?=/ ||
+/^BROKEN[+?:]?=/ ||
+/^IGNORE[+?:]?=/ ||
 /^DEPRECATED[+?:]?=/ ||
 /^EXPIRATION_DATE[+?:]?=/ ||
 /^CATEGORIES[+?:]?=/ ||
