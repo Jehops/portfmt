@@ -85,12 +85,38 @@ function print_token_array(start, tokens, tokenslen,	wrapcol, arr, arrlen, row, 
 	print_newline_array(start, arr, arrlen)
 }
 
+function greater(a, b,	i, ai, bi) {
+	if (order == "license-perms") {
+		ai = -1;
+		bi = -1;
+		for(i = 1; i <= license_perms_rel_len; i++) {
+			if (a == license_perms_rel[i]) {
+				ai = i
+			}
+			if (b == license_perms_rel[i]) {
+				bi = i
+			}
+		}
+		if (ai == -1 && bi == -1) {
+			return a > b;
+		} else if (ai == -1) {
+			return false;
+		} else if (bi == -1) {
+			return true;
+		} else {
+			return ai > bi;
+		}
+	} else {
+		return a > b;
+	}
+}
+
 # Case insensitive Bubble sort because it's super easy and we don't
 # need anything better here ;-)
 function sort_array(arr, arrlen,	i, j, temp) {
 	for (i = 1; i < arrlen; i++) {
 		for (j = i + 1; j < arrlen; j++) {
-			if (arr[i] > arr[j]) {
+			if (greater(arr[i], arr[j])) {
 				temp = arr[j]
 				arr[j] = arr[i]
 				arr[i] = temp
@@ -103,7 +129,23 @@ function sort_array(arr, arrlen,	i, j, temp) {
 ### Script starts here
 
 BEGIN {
+	setup_relations()
 	reset()
+}
+
+function setup_relations(	n) {
+	n = 0
+	license_perms_rel[++n] = "dist-mirror"
+	license_perms_rel[++n] = "no-dist-mirror"
+	license_perms_rel[++n] = "dist-sell"
+	license_perms_rel[++n] = "no-dist-sell"
+	license_perms_rel[++n] = "pkg-mirror"
+	license_perms_rel[++n] = "no-pkg-mirror"
+	license_perms_rel[++n] = "pkg-sell"
+	license_perms_rel[++n] = "no-pkg-sell"
+	license_perms_rel[++n] = "auto-accept"
+	license_perms_rel[++n] = "no-auto-accept"
+	license_perms_rel_len = n
 }
 
 function reset() {
@@ -115,6 +157,7 @@ function reset() {
 	sorted = 1
 	in_target = 0
 	maybe_in_target = 0
+	order = "default"
 }
 
 function assign_variable(var) {
@@ -122,7 +165,11 @@ function assign_variable(var) {
 	if (var == "USES" || var == "USERS" || var == "GROUPS") {
 		return sprintf("%s=\t", var)
 	} else {
-		return sprintf("%s=", var)
+		if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
+			return sprintf("%s =", varname)
+		} else {
+			return sprintf("%s=", var)
+		}
 	}
 }
 
@@ -196,12 +243,18 @@ maybe_in_target {
 /^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
 /^COMMENT[+?:]?=/ ||
 /^LICENSE_NAME[+?:]?=/ ||
+/^LICENSE_NAME_[A-Z0-9._-+ ]+[+?:]?=/ ||
 /^[A-Z_]+_DESC[+?:]?=/ ||
 /^FLAVORS[+?:]?=/ ||
 /^LLD_UNSAFE[+?:]?=/ ||
 /^CARGO_FEATURES[+?:]?=/ ||
 /^MAKE_JOBS_UNSAFE[+?:]?=/ {
 	sorted = 0
+}
+
+/^LICENSE_PERMS_[A-Z0-9._-+ ]+[+?:]?=/ ||
+/^LICENSE_PERMS[+?:]?=/ {
+	order = "license-perms"
 }
 
 /^([A-Z_]+_)?MASTER_SITES[+?:]?=/ ||
@@ -225,7 +278,7 @@ maybe_in_target {
 !skip {
 	portfmt_no_skip()
 } function portfmt_no_skip(	i, arrtemp, quoted, token) {
-	if (match($0, /^[a-zA-Z0-9_]+[+?:]?=/)) {
+	if (match($0, /^[a-zA-Z0-9._-+ ]+[+?:]?=/)) {
 		# Handle special lines like: VAR=xyz
 		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
 			tokens[tokens_len++] = arrtemp[2]
@@ -237,6 +290,10 @@ maybe_in_target {
 		i = 2
 	} else {
 		i = 1
+	}
+
+	if ($2 == "=") {
+		$2 = ""
 	}
 
 	quoted = 0
