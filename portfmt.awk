@@ -85,29 +85,25 @@ function print_token_array(start, tokens, tokenslen,	wrapcol, arr, arrlen, row, 
 	print_newline_array(start, arr, arrlen)
 }
 
-function greater(a, b,	i, ai, bi) {
-	if (order == "license-perms") {
-		ai = -1;
-		bi = -1;
-		for(i = 1; i <= license_perms_rel_len; i++) {
-			if (a == license_perms_rel[i]) {
-				ai = i
-			}
-			if (b == license_perms_rel[i]) {
-				bi = i
-			}
-		}
-		if (ai == -1 && bi == -1) {
-			return a > b;
-		} else if (ai == -1) {
-			return false;
-		} else if (bi == -1) {
-			return true;
-		} else {
-			return ai > bi;
-		}
+function greater_helper(rel, a, b,	ai, bi) {
+	ai = rel[a]
+	bi = rel[b]
+	if (ai == 0 && bi == 0) {
+		return a > b
+	} else if (ai == 0) {
+		return false # b > a
+	} else if (bi == 0) {
+		return true # a > b
 	} else {
-		return a > b;
+		return ai > bi
+	}
+}
+
+function greater(a, b) {
+	if (order == "license-perms") {
+		return greater_helper(license_perms_rel, a, b)
+	} else {
+		return a > b
 	}
 }
 
@@ -133,19 +129,17 @@ BEGIN {
 	reset()
 }
 
-function setup_relations(	n) {
-	n = 0
-	license_perms_rel[++n] = "dist-mirror"
-	license_perms_rel[++n] = "no-dist-mirror"
-	license_perms_rel[++n] = "dist-sell"
-	license_perms_rel[++n] = "no-dist-sell"
-	license_perms_rel[++n] = "pkg-mirror"
-	license_perms_rel[++n] = "no-pkg-mirror"
-	license_perms_rel[++n] = "pkg-sell"
-	license_perms_rel[++n] = "no-pkg-sell"
-	license_perms_rel[++n] = "auto-accept"
-	license_perms_rel[++n] = "no-auto-accept"
-	license_perms_rel_len = n
+function setup_relations() {
+	license_perms_rel["dist-mirror"] = 1
+	license_perms_rel["no-dist-mirror"] = 2
+	license_perms_rel["dist-sell"] = 3
+	license_perms_rel["no-dist-sell"] = 4
+	license_perms_rel["pkg-mirror"] = 5
+	license_perms_rel["no-pkg-mirror"] = 6
+	license_perms_rel["pkg-sell"] = 7
+	license_perms_rel["no-pkg-sell"] = 8
+	license_perms_rel["auto-accept"] = 9
+	license_perms_rel["no-auto-accept"] = 10
 }
 
 function reset() {
