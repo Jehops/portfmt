@@ -258,8 +258,10 @@ maybe_in_target {
 /^CARGO_CRATES?[+?:]?=/ ||
 /^DESKTOP_ENTRIES[+?:]?=/ ||
 /^OPTIONS_EXCLUDE:=/ ||
+/^PLIST_FILES[+?:]?=/ ||
 /^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
 /^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
+/^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
 /^[A-Z0-9_]+_ENV(_OFF)?[+?:]?=/ ||
 /^[A-Z0-9_]+_VARS(_OFF)?[+?:]?=/ ||
 /^[A-Z0-9_]+_CMAKE_OFF[+?:]?=/ ||
