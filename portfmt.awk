@@ -68,7 +68,7 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 		printf "%s%s%s", sep, arr[i], end
 		if (i == 1) {
 			level = indent_level(start)
-			if (indent_twice[var]) {
+			if (indent_twice[strip_modifier(var)]) {
 				level++
 			}
 			sep = repeat("\t", level)
@@ -77,7 +77,7 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 }
 
 function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i) {
-	if (ignore_wrap_col[var]) {
+	if (ignore_wrap_col[strip_modifier(var)]) {
 		wrapcol = 1000
 	} else {
 		wrapcol = 80 - length(start) - 8
@@ -293,8 +293,13 @@ function reset() {
 	order = "default"
 }
 
+function strip_modifier(var) {
+	gsub(/[?\+]$/, "", var)
+	return var
+}
+
 function assign_variable(var) {
-	if (indent_twice[var]) {
+	if (indent_twice[strip_modifier(var)]) {
 		return sprintf("%s=\t", var)
 	} else {
 		if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
@@ -374,6 +379,7 @@ maybe_in_target {
 /^CARGO_CRATES[+?:]?=/ ||
 /^CARGO_CARGO_RUN[+?:]?=/ ||
 /^MOZ_SED_ARGS[+?:]?=/ ||
+/^MOZCONFIG_SED[+?:]?=/ ||
 /^GH_TUPLE[+?:]?=/ ||
 /^DESKTOP_ENTRIES[+?:]?=/ ||
 /^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
@@ -411,6 +417,7 @@ maybe_in_target {
 /^SUB_LIST[+?:]?=/ ||
 /^PLIST_SUB[+?:]?=/ ||
 /^GH_TUPLE[+?:]?=/ ||
+/^MOZ_OPTIONS[+?:]?=/ ||
 /^CARGO_GH_CARGOTOML[+?:]?=/ ||
 /^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
 /^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
