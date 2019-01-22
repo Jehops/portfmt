@@ -33,6 +33,7 @@
 # map global user 1 '|/usr/ports/Tools/scripts/portfmt.awk<ret>;' -docstring "portfmt on selection"
 #
 # TODO: Handle end of line comments!
+# TODO: Don't swallow variables with empty values!
 
 ### Utility functions
 
@@ -54,6 +55,11 @@ function repeat(s, n,	temp, i) {
 }
 
 function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
+	# Handle variables with empty values
+	if (arrlen == 2 && arr[1] == "") {
+		printf "%s\n", start
+		return
+	}
 	sep = sprintf("%s\t", start)
 	end = " \\\n"
 	for (i = 1; i < arrlen; i++) {
@@ -306,7 +312,7 @@ function print_tokens(	i) {
 	}
 
 	if (tokens_len <= 1) {
-		return;
+		return
 	}
 
 	if (sorted) {
@@ -445,6 +451,12 @@ maybe_in_target {
 
 	if ($2 == "=") {
 		$2 = ""
+	}
+
+	if (NF == 1) {
+		# Do not remove variables with empty values
+		tokens[tokens_len++] = ""
+		return
 	}
 
 	quoted = 0
