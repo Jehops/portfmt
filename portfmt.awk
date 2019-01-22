@@ -32,7 +32,6 @@
 # Editor setup for Kakoune in ~/.config/kak/kakrc mapped to ,1
 # map global user 1 '|/usr/ports/Tools/scripts/portfmt.awk<ret>;' -docstring "portfmt on selection"
 #
-# TODO: Handle end of line comments!
 
 ### Utility functions
 
@@ -434,7 +433,7 @@ maybe_in_target {
 
 !skip {
 	portfmt_no_skip()
-} function portfmt_no_skip(	i, arrtemp, quoted, single_quoted, token) {
+} function portfmt_no_skip(	i, arrtemp, quoted, single_quoted, token, eol_comment, eol_comment_tokens) {
 	if (match($0, /^[a-zA-Z0-9._-+ ]+[+?:]?=/)) {
 		# Handle special lines like: VAR=xyz
 		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
@@ -461,9 +460,20 @@ maybe_in_target {
 
 	quoted = 0
 	single_quoted = 0
+	eol_comment = 0
 	for (; i <= NF; i++) {
 		if ($i == "\\") {
 			break
+		}
+
+		# Try to push end of line comments out of the way
+		# above the variable as a way to preserve them.
+		# They clash badly with sorting tokens in variables.
+		# We could add more special cases for this, but
+		# often having them at the top is just as good.
+		if ($i == "#" || eol_comment) {
+			eol_comment_tokens[eol_comment++] = $i
+			continue
 		}
 
 		if ((single_quoted || quoted) && tokens_len > 0) {
@@ -480,7 +490,16 @@ maybe_in_target {
 		}
 	}
 
-	if (NF == 1 && tokens_len == 1) {
+	if (eol_comment) {
+		token = ""
+		for (i = 0; i <= eol_comment; i++) {
+			token = sprintf("%s %s", token, eol_comment_tokens[i])
+		}
+		gsub(/(^ | $)/, "", token)
+		empty_lines_before[empty_lines_before_len++] = token
+	}
+
+	if (tokens_len == 1) {
 		tokens[tokens_len++] = "<<<empty-value>>>"
 	}
 }
