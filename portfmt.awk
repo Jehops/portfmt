@@ -1,6 +1,6 @@
 #!/usr/bin/awk -f
 #
-# Copyright (c) 2018, Tobias Kortkamp
+# Copyright (c) 2019, Tobias Kortkamp <tobik@FreeBSD.org>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ function repeat(s, n,	temp, i) {
 	return temp
 }
 
-function print_newline_array(start, arr, arrlen,	sep, end, i) {
+function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 	sep = sprintf("%s\t", start)
 	end = " \\\n"
 	for (i = 1; i < arrlen; i++) {
@@ -58,13 +58,21 @@ function print_newline_array(start, arr, arrlen,	sep, end, i) {
 		}
 		printf "%s%s%s", sep, arr[i], end
 		if (i == 1) {
-			sep = repeat("\t", indent_level(start))
+			level = indent_level(start)
+			if (indent_twice[var]) {
+				level++
+			}
+			sep = repeat("\t", level)
 		}
 	}
 }
 
-function print_token_array(start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i) {
-	wrapcol = 80 - length(start) - 8
+function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i) {
+	if (ignore_wrap_col[var]) {
+		wrapcol = 1000
+	} else {
+		wrapcol = 80 - length(start) - 8
+	}
 	arrlen = 1
 	row = ""
 	col = 0
@@ -82,7 +90,7 @@ function print_token_array(start, tokens, tokenslen,	wrapcol, arr, arrlen, row, 
 		}
 	}
 	arr[arrlen++] = row
-	print_newline_array(start, arr, arrlen)
+	print_newline_array(var, start, arr, arrlen)
 }
 
 function greater_helper(rel, a, b,	ai, bi) {
@@ -102,6 +110,8 @@ function greater_helper(rel, a, b,	ai, bi) {
 function greater(a, b) {
 	if (order == "license-perms") {
 		return greater_helper(license_perms_rel, a, b)
+	} else if (order == "use-qt") {
+		return greater_helper(use_qt_rel, a, b)
 	} else {
 		return a > b
 	}
@@ -129,17 +139,107 @@ BEGIN {
 	reset()
 }
 
-function setup_relations() {
-	license_perms_rel["dist-mirror"] = 1
-	license_perms_rel["no-dist-mirror"] = 2
-	license_perms_rel["dist-sell"] = 3
-	license_perms_rel["no-dist-sell"] = 4
-	license_perms_rel["pkg-mirror"] = 5
-	license_perms_rel["no-pkg-mirror"] = 6
-	license_perms_rel["pkg-sell"] = 7
-	license_perms_rel["no-pkg-sell"] = 8
-	license_perms_rel["auto-accept"] = 9
-	license_perms_rel["no-auto-accept"] = 10
+function setup_relations(	i) {
+	i = 0
+	license_perms_rel["dist-mirror"] = i++
+	license_perms_rel["no-dist-mirror"] = i++
+	license_perms_rel["dist-sell"] = i++
+	license_perms_rel["no-dist-sell"] = i++
+	license_perms_rel["pkg-mirror"] = i++
+	license_perms_rel["no-pkg-mirror"] = i++
+	license_perms_rel["pkg-sell"] = i++
+	license_perms_rel["no-pkg-sell"] = i++
+	license_perms_rel["auto-accept"] = i++
+	license_perms_rel["no-auto-accept"] = i++
+
+	i = 0
+	use_qt_rel["3d"] = i++
+	use_qt_rel["assistant"] = i++
+	use_qt_rel["buildtools"] = i++
+	use_qt_rel["canvas3d"] = i++
+	use_qt_rel["charts"] = i++
+	use_qt_rel["concurrent"] = i++
+	use_qt_rel["connectivity"] = i++
+	use_qt_rel["core"] = i++
+	use_qt_rel["datavis3d"] = i++
+	use_qt_rel["dbus"] = i++
+	use_qt_rel["declarative"] = i++
+	use_qt_rel["designer"] = 4 
+	use_qt_rel["diag"] = i++
+	use_qt_rel["doc"] = i++
+	use_qt_rel["examples"] = i++
+	use_qt_rel["gamepad"] = i++
+	use_qt_rel["graphicaleffects"] = i++
+	use_qt_rel["gui"] = i++
+	use_qt_rel["help"] = i++
+	use_qt_rel["imageformats"] = i++
+	use_qt_rel["l1x++n"] = i++
+	use_qt_rel["linguist"] = i++
+	use_qt_rel["linguisttools"] = i++
+	use_qt_rel["location"] = i++
+	use_qt_rel["multimedia"] = i++
+	use_qt_rel["network"] = i++
+	use_qt_rel["networkauth"] = i++
+	use_qt_rel["opengl"] = i++
+	use_qt_rel["paths"] = i++
+	use_qt_rel["phonon4"] = i++
+	use_qt_rel["pixeltool"] = i++
+	use_qt_rel["plugininfo"] = i++
+	use_qt_rel["printsupport"] = i++
+	use_qt_rel["qdbus"] = i++
+	use_qt_rel["qdbusviewer"] = i++
+	use_qt_rel["qdoc-data"] = i++
+	use_qt_rel["qdoc"] = i++
+	use_qt_rel["qev"] = i++
+	use_qt_rel["qmake"] = i++
+	use_qt_rel["quickcontrols"] = i++
+	use_qt_rel["quickcontrols2"] = i++
+	use_qt_rel["remoteobjects"] = i++
+	use_qt_rel["script"] = i++
+	use_qt_rel["scripttools"] = i++
+	use_qt_rel["scxml"] = i++
+	use_qt_rel["sensors"] = i++
+	use_qt_rel["serialbus"] = i++
+	use_qt_rel["serialport"] = i++
+	use_qt_rel["speech"] = i++
+	use_qt_rel["sql-ibase"] = i++
+	use_qt_rel["sql-mysql"] = i++
+	use_qt_rel["sql-odbc"] = i++
+	use_qt_rel["sql-pgsql"] = i++
+	use_qt_rel["sql-sqlite2"] = i++
+	use_qt_rel["sql-sqlite3"] = i++
+	use_qt_rel["sql-tds"] = i++
+	use_qt_rel["sql"] = i++
+	use_qt_rel["svg"] = i++
+	use_qt_rel["testlib"] = i++
+	use_qt_rel["uiplugin"] = i++
+	use_qt_rel["uitools"] = i++
+	use_qt_rel["virtualkeyboard"] = i++
+	use_qt_rel["wayland"] = i++
+	use_qt_rel["webchannel"] = i++
+	use_qt_rel["webengine"] = i++
+	use_qt_rel["webkit"] = i++
+	use_qt_rel["websockets-qml"] = i++
+	use_qt_rel["websockets"] = i++
+	use_qt_rel["webview"] = i++
+	use_qt_rel["widgets"] = i++
+	use_qt_rel["x11extras"] = i++
+	use_qt_rel["xml"] = i++
+	use_qt_rel["xmlpatterns"] = i++
+	for (i in use_qt_rel) {
+		use_qt_rel[sprintf("%s_run", i)] = use_qt_rel[i] + 1000
+		use_qt_rel[sprintf("%s_build", i)] = use_qt_rel[i] + 2000
+	}
+
+# Some variables are usually indented with an extra tab by porters.
+	indent_twice["OPTIONS_DEFINE"] = 1
+	indent_twice["USES"] = 1
+	indent_twice["USE_GL"] = 1
+	indent_twice["USE_QT"] = 1
+	indent_twice["USERS"] = 1
+	indent_twice["GROUPS"] = 1
+
+	ignore_wrap_col["GH_TUPLE"] = 1
 }
 
 function reset() {
@@ -155,8 +255,7 @@ function reset() {
 }
 
 function assign_variable(var) {
-# Some variables are usually indented with an extra tab by porters.
-	if (var == "USES" || var == "USERS" || var == "GROUPS") {
+	if (indent_twice[var]) {
 		return sprintf("%s=\t", var)
 	} else {
 		if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
@@ -180,9 +279,9 @@ function print_tokens(	i) {
 		sort_array(tokens, tokens_len)
 	}
 	if (print_as_tokens == 1) {
-		print_token_array(assign_variable(varname), tokens, tokens_len)
+		print_token_array(varname, assign_variable(varname), tokens, tokens_len)
 	} else {
-		print_newline_array(assign_variable(varname), tokens, tokens_len)
+		print_newline_array(varname, assign_variable(varname), tokens, tokens_len)
 	}
 
 	for (i = 1; i < empty_lines_after_len; i++) {
@@ -233,6 +332,8 @@ maybe_in_target {
 /^EXTRACT_BEFORE_ARGS[+?:]?=/ ||
 /^EXTRACT_CMD[+?:]?=/ ||
 /^CATEGORIES[+?:]?=/ ||
+/^CARGO_CRATES[+?:]?=/ ||
+/^GH_TUPLE[+?:]?=/ ||
 /^DESKTOP_ENTRIES[+?:]?=/ ||
 /^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
 /^COMMENT[+?:]?=/ ||
@@ -251,6 +352,10 @@ maybe_in_target {
 	order = "license-perms"
 }
 
+/^USE_QT[+?:]?=/ {
+	order = "use-qt"
+}
+
 /^([A-Z_]+_)?MASTER_SITES[+?:]?=/ ||
 /^[a-zA-Z0-9_]+_DEPENDS[+?:]?=/ ||
 /^[a-zA-Z0-9_]+_C(XX|PP)?FLAGS[+?:]?=/ ||
@@ -259,8 +364,11 @@ maybe_in_target {
 /^DESKTOP_ENTRIES[+?:]?=/ ||
 /^OPTIONS_EXCLUDE:=/ ||
 /^PLIST_FILES[+?:]?=/ ||
+/^GH_TUPLE[+?:]?=/ ||
+/^CARGO_GH_CARGOTOML[+?:]?=/ ||
 /^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
 /^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
+/^[A-Z0-9_]+_GH_TUPLE[+?:]?=/ ||
 /^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
 /^[A-Z0-9_]+_ENV(_OFF)?[+?:]?=/ ||
 /^[A-Z0-9_]+_VARS(_OFF)?[+?:]?=/ ||
