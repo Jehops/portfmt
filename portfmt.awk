@@ -29,6 +29,9 @@
 #
 # Usage: ${PORTSDIR}/Tools/scripts/portfmt.awk < Makefile
 #
+# Editor setup for Kakoune in ~/.config/kak/kakrc mapped to ,1
+# map global user 1 '|/usr/ports/Tools/scripts/portfmt.awk<ret>;' -docstring "portfmt on selection"
+#
 
 ### Utility functions
 
@@ -364,6 +367,8 @@ maybe_in_target {
 /^DESKTOP_ENTRIES[+?:]?=/ ||
 /^OPTIONS_EXCLUDE:=/ ||
 /^PLIST_FILES[+?:]?=/ ||
+/^SUB_LIST[+?:]?=/ ||
+/^PLIST_SUB[+?:]?=/ ||
 /^GH_TUPLE[+?:]?=/ ||
 /^CARGO_GH_CARGOTOML[+?:]?=/ ||
 /^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
