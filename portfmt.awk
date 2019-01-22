@@ -249,8 +249,12 @@ function setup_relations(	i, broken) {
 # especially don't wrap BROKEN and IGNORE with \ or it introduces
 # some spurious extra spaces when the message is displayed to users
 	ignore_wrap_col["BROKEN"] = 1
-	ignore_wrap_col["IGNORE"] = 1
+	ignore_wrap_col["CARGO_CARGO_RUN"] = 1
+	ignore_wrap_col["DEV_ERROR"] = 1
+	ignore_wrap_col["DEV_WARNING"] = 1
+	ignore_wrap_col["DISTFILES"] = 1
 	ignore_wrap_col["GH_TUPLE"] = 1
+	ignore_wrap_col["IGNORE"] = 1
 	ignore_wrap_col["MASTER_SITES"] = 1
 
 	broken["FreeBSD_11"] = 0
@@ -363,6 +367,8 @@ maybe_in_target {
 /^EXTRACT_CMD[+?:]?=/ ||
 /^CATEGORIES[+?:]?=/ ||
 /^CARGO_CRATES[+?:]?=/ ||
+/^CARGO_CARGO_RUN[+?:]?=/ ||
+/^MOZ_SED_ARGS[+?:]?=/ ||
 /^GH_TUPLE[+?:]?=/ ||
 /^DESKTOP_ENTRIES[+?:]?=/ ||
 /^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
@@ -392,6 +398,9 @@ maybe_in_target {
 /^C(XX|PP)?FLAGS[+?:]?=/ ||
 /^CARGO_CRATES?[+?:]?=/ ||
 /^DESKTOP_ENTRIES[+?:]?=/ ||
+/^DISTFILES[+?:]?=/ ||
+/^DEV_ERROR[+?:]?=/ ||
+/^DEV_WARNING[+?:]?=/ ||
 /^OPTIONS_EXCLUDE:=/ ||
 /^PLIST_FILES[+?:]?=/ ||
 /^SUB_LIST[+?:]?=/ ||
