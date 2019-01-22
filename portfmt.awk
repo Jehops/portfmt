@@ -294,7 +294,7 @@ function reset() {
 }
 
 function strip_modifier(var) {
-	gsub(/[?\+]$/, "", var)
+	gsub(/[:?\+]$/, "", var)
 	return var
 }
 
@@ -360,7 +360,7 @@ maybe_in_target {
 	maybe_in_target = 1
 }
 
-/^[A-Za-z0-9_-]+:/ {
+/^[A-Za-z0-9_-]+:/ && !/:=/ {
 	skip = 1
 	in_target = 1
 }
