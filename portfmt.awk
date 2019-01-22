@@ -54,6 +54,11 @@ function repeat(s, n,	temp, i) {
 }
 
 function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
+	# Handle variables with empty values
+	if (arrlen == 2 && arr[1] == "<<<empty-value>>>") {
+		printf "%s\n", start
+		return
+	}
 	sep = sprintf("%s\t", start)
 	end = " \\\n"
 	for (i = 1; i < arrlen; i++) {
@@ -277,7 +282,7 @@ function setup_relations(	i, broken) {
 }
 
 function reset() {
-	varname = "<unknown>"
+	varname = "<<<unknown>>>"
 	tokens_len = 1
 	print_as_tokens = 1
 	empty_lines_before_len = 1
@@ -306,7 +311,7 @@ function print_tokens(	i) {
 	}
 
 	if (tokens_len <= 1) {
-		return;
+		return
 	}
 
 	if (sorted) {
@@ -466,6 +471,10 @@ maybe_in_target {
 		if (match($i, /'/) && !match($i, /''/)) {
 			single_quoted = !single_quoted
 		}
+	}
+
+	if (NF == 1 && tokens_len == 1) {
+		tokens[tokens_len++] = "<<<empty-value>>>"
 	}
 }
 
