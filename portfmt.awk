@@ -32,6 +32,7 @@
 # Editor setup for Kakoune in ~/.config/kak/kakrc mapped to ,1
 # map global user 1 '|/usr/ports/Tools/scripts/portfmt.awk<ret>;' -docstring "portfmt on selection"
 #
+# TODO: Handle end of line comments!
 
 ### Utility functions
 
@@ -142,7 +143,7 @@ BEGIN {
 	reset()
 }
 
-function setup_relations(	i) {
+function setup_relations(	i, broken) {
 	i = 0
 	license_perms_rel["dist-mirror"] = i++
 	license_perms_rel["no-dist-mirror"] = i++
@@ -236,13 +237,39 @@ function setup_relations(	i) {
 
 # Some variables are usually indented with an extra tab by porters.
 	indent_twice["OPTIONS_DEFINE"] = 1
+	indent_twice["OPTIONS_GROUP"] = 1
+	indent_twice["OPTIONS_MULTI"] = 1
 	indent_twice["USES"] = 1
 	indent_twice["USE_GL"] = 1
 	indent_twice["USE_QT"] = 1
 	indent_twice["USERS"] = 1
 	indent_twice["GROUPS"] = 1
 
+# Lines that are best not wrapped to 80 columns
+# especially don't wrap BROKEN and IGNORE with \ or it introduces
+# some spurious extra spaces when the message is displayed to users
+	ignore_wrap_col["BROKEN"] = 1
+	ignore_wrap_col["IGNORE"] = 1
 	ignore_wrap_col["GH_TUPLE"] = 1
+	ignore_wrap_col["MASTER_SITES"] = 1
+
+	broken["FreeBSD_11"] = 0
+	broken["FreeBSD_12"] = 0
+	broken["FreeBSD_13"] = 0
+	broken["DragonFly"] = 0
+	broken["aarch64"] = 0
+	broken["amd64"] = 0
+	broken["armv6"] = 0
+	broken["armv7"] = 0
+	broken["mips"] = 0
+	broken["mips64"] = 0
+	broken["powerpc"] = 0
+	broken["powerpc64"] = 0
+	for (i in broken) {
+		ignore_wrap_col[sprintf("BROKEN_%s", i)] = 1
+		ignore_wrap_col[sprintf("IGNORE_%s", i)] = 1
+	}
+
 }
 
 function reset() {
@@ -319,7 +346,7 @@ maybe_in_target {
 	maybe_in_target = 1
 }
 
-/^[a-zA-Z_-]+:/ {
+/^[A-Za-z0-9_-]+:/ {
 	skip = 1
 	in_target = 1
 }
@@ -386,11 +413,17 @@ maybe_in_target {
 
 !skip {
 	portfmt_no_skip()
-} function portfmt_no_skip(	i, arrtemp, quoted, token) {
+} function portfmt_no_skip(	i, arrtemp, quoted, single_quoted, token) {
 	if (match($0, /^[a-zA-Z0-9._-+ ]+[+?:]?=/)) {
 		# Handle special lines like: VAR=xyz
 		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
-			tokens[tokens_len++] = arrtemp[2]
+			token = arrtemp[2]
+			for (i = 3; i <= length(arrtemp); i++) {
+				if (arrtemp[i] != "" && arrtemp[i] != "\\") {
+					token = sprintf("%s=%s", token, arrtemp[i])
+				}
+			}
+			tokens[tokens_len++] = token
 		}
 		varname = arrtemp[1]
 
@@ -406,12 +439,13 @@ maybe_in_target {
 	}
 
 	quoted = 0
+	single_quoted = 0
 	for (; i <= NF; i++) {
 		if ($i == "\\") {
 			break
 		}
 
-		if (quoted && tokens_len > 0) {
+		if ((single_quoted || quoted) && tokens_len > 0) {
 			token = tokens[tokens_len - 1]
 			tokens[tokens_len - 1] = sprintf("%s %s", token, $i)
 		} else {
@@ -419,6 +453,9 @@ maybe_in_target {
 		}
 		if (match($i, /"/) && !match($i, /""/)) {
 			quoted = !quoted
+		}
+		if (match($i, /'/) && !match($i, /''/)) {
+			single_quoted = !single_quoted
 		}
 	}
 }
