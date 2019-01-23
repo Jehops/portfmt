@@ -271,9 +271,11 @@ function setup_relations(	i, broken) {
 	leave_unsorted["GH_TUPLE"] = 1
 	leave_unsorted["IGNORE"] = 1
 	leave_unsorted["LICENSE_NAME"] = 1
+	leave_unsorted["MASTER_SITES"] = 1
 	leave_unsorted["MAKE_JOBS_UNSAFE"] = 1
 	leave_unsorted["MOZ_SED_ARGS"] = 1
 	leave_unsorted["MOZCONFIG_SED"] = 1
+	leave_unsorted["RESTRICTED"] = 1
 
 # Lines that are best not wrapped to 80 columns
 # especially don't wrap BROKEN and IGNORE with \ or it introduces
@@ -286,6 +288,7 @@ function setup_relations(	i, broken) {
 	ignore_wrap_col["GH_TUPLE"] = 1
 	ignore_wrap_col["IGNORE"] = 1
 	ignore_wrap_col["MASTER_SITES"] = 1
+	ignore_wrap_col["RESTRICTED"] = 1
 
 	print_as_newlines["CARGO_CRATES"] = 1
 	print_as_newlines["CARGO_GH_CARGOTOML"] = 1
@@ -505,7 +508,8 @@ skip {
 }
 
 /^LICENSE_NAME_[A-Z0-9._-+ ]+[+?:]?=/ ||
-/^[A-Z_]+_DESC[+?:]?=/ {
+/^[A-Z0-9_]+_MASTER_SITES[+?:]?=/ ||
+/^[A-Z0-9_]+_DESC[+?:]?=/ {
 	leave_unsorted[varname] = 1
 }
 
