@@ -116,6 +116,13 @@ function greater_helper(rel, a, b,	ai, bi) {
 }
 
 function greater(a, b) {
+	# Hack to treat something like ${PYTHON_PKGNAMEPREFIX} or
+	# ${RUST_DEFAULT} as if they were PYTHON_PKGNAMEPREFIX or
+	# RUST_DEFAULT for the sake of approximately sorting them
+	# correctly in *_DEPENDS.
+	gsub(/[\$\{\}]/, "", a)
+	gsub(/[\$\{\}]/, "", b)
+
 	if (order == "license-perms") {
 		return greater_helper(license_perms_rel, a, b)
 	} else if (order == "use-qt") {
