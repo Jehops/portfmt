@@ -149,7 +149,10 @@ function indent_twice(varname,	var) {
 
 function leave_unsorted(varname,	var) {
 	var = strip_modifier(varname)
-	if (leave_unsorted_[var]) {
+	if (leave_unsorted_[var] ||
+            var ~ /^LICENSE_NAME_[A-Z0-9._-+ ]$/ ||
+	    var ~ /^[A-Z0-9_]+_MASTER_SITES$/ ||
+	    var ~ /^[A-Z0-9_]+_DESC$/) {
 		return 1
 	}
 	return 0
@@ -165,7 +168,20 @@ function ignore_wrap_col(varname,	var) {
 
 function print_as_newlines(varname,	var) {
 	var = strip_modifier(varname)
-	if (print_as_newlines_[var]) {
+	if (print_as_newlines_[var] ||
+	    var ~ /^([A-Z_]+_)?MASTER_SITES$/ ||
+	    var ~ /^[a-zA-Z0-9_]+_DEPENDS$/ ||
+	    var ~ /^[a-zA-Z0-9_]+_C(XX|PP)?FLAGS$/ ||
+	    var ~ /^[CM][A-Z_]+_ARGS(_OFF)?$/ ||
+	    var ~ /^[A-Z0-9_]+_DESKTOP_ENTRIES$/ ||
+	    var ~ /^[A-Z0-9_]+_GH_TUPLE$/ ||
+	    var ~ /^[A-Z0-9_]+_PLIST_FILES$/ ||
+	    var ~ /^[A-Z0-9_]+_ENV(_OFF)?$/ ||
+	    var ~ /^[A-Z0-9_]+_VARS(_OFF)?$/ ||
+	    var ~ /^[A-Z0-9_]+_CMAKE_OFF$/ ||
+	    var ~ /^[A-Z0-9_]+_CMAKE_ON$/ ||
+	    var ~ /^[A-Z0-9_]+_CONFIGURE_OFF$/ ||
+	    var ~ /^[A-Z0-9_]+_CONFIGURE_ON$/) {
 		return 1
 	}
 	return 0
@@ -182,7 +198,7 @@ BEGIN {
 	reset()
 }
 
-function setup_relations(	i, broken) {
+function setup_relations(	i, archs) {
 	i = 0
 	license_perms_rel["dist-mirror"] = i++
 	license_perms_rel["no-dist-mirror"] = i++
@@ -274,6 +290,10 @@ function setup_relations(	i, broken) {
 		use_qt_rel[sprintf("%s_build", i)] = use_qt_rel[i] + 2000
 	}
 
+# Special handling of some variables.  More complicated patterns,
+# i.e., for options helpers, should go into the respective functions
+# instead.
+
 # Some variables are usually indented with an extra tab by porters.
 	indent_twice_["OPTIONS_DEFINE"] = 1
 	indent_twice_["OPTIONS_GROUP"] = 1
@@ -340,19 +360,19 @@ function setup_relations(	i, broken) {
 	print_as_newlines_["PLIST_SUB"] = 1
 	print_as_newlines_["SUB_LIST"] = 1
 
-	broken["FreeBSD_11"] = 0
-	broken["FreeBSD_12"] = 0
-	broken["FreeBSD_13"] = 0
-	broken["DragonFly"] = 0
-	broken["aarch64"] = 0
-	broken["amd64"] = 0
-	broken["armv6"] = 0
-	broken["armv7"] = 0
-	broken["mips"] = 0
-	broken["mips64"] = 0
-	broken["powerpc"] = 0
-	broken["powerpc64"] = 0
-	for (i in broken) {
+	archs["FreeBSD_11"] = 0
+	archs["FreeBSD_12"] = 0
+	archs["FreeBSD_13"] = 0
+	archs["DragonFly"] = 0
+	archs["aarch64"] = 0
+	archs["amd64"] = 0
+	archs["armv6"] = 0
+	archs["armv7"] = 0
+	archs["mips"] = 0
+	archs["mips64"] = 0
+	archs["powerpc"] = 0
+	archs["powerpc64"] = 0
+	for (i in archs) {
 		leave_unsorted_[sprintf("BROKEN_%s", i)] = 1
 		ignore_wrap_col_[sprintf("BROKEN_%s", i)] = 1
 		leave_unsorted_[sprintf("IGNORE_%s", i)] = 1
@@ -524,10 +544,6 @@ skip {
 	skip = 0
 }
 
-# Special handling of some variables.  This is for more complicated
-# patterns, i.e., options helpers.  For simple variables add something
-# to the arrays in setup_relations() above instead.
-
 /^LICENSE_PERMS_[A-Z0-9._-+ ]+[+?:]?=/ ||
 /^LICENSE_PERMS[+?:]?=/ {
 	order = "license-perms"
@@ -535,28 +551,6 @@ skip {
 
 /^USE_QT[+?:]?=/ {
 	order = "use-qt"
-}
-
-/^LICENSE_NAME_[A-Z0-9._-+ ]+[+?:]?=/ ||
-/^[A-Z0-9_]+_MASTER_SITES[+?:]?=/ ||
-/^[A-Z0-9_]+_DESC[+?:]?=/ {
-	leave_unsorted_[varname] = 1
-}
-
-/^([A-Z_]+_)?MASTER_SITES[+?:]?=/ ||
-/^[a-zA-Z0-9_]+_DEPENDS[+?:]?=/ ||
-/^[a-zA-Z0-9_]+_C(XX|PP)?FLAGS[+?:]?=/ ||
-/^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
-/^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
-/^[A-Z0-9_]+_GH_TUPLE[+?:]?=/ ||
-/^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
-/^[A-Z0-9_]+_ENV(_OFF)?[+?:]?=/ ||
-/^[A-Z0-9_]+_VARS(_OFF)?[+?:]?=/ ||
-/^[A-Z0-9_]+_CMAKE_OFF[+?:]?=/ ||
-/^[A-Z0-9_]+_CMAKE_ON[+?:]?=/ ||
-/^[A-Z0-9_]+_CONFIGURE_OFF[+?:]?=/ ||
-/^[A-Z0-9_]+_CONFIGURE_ON[+?:]?=/ {
-	print_as_newlines_[varname] = 1
 }
 
 END {
