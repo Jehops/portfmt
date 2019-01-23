@@ -86,7 +86,7 @@ function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, 
 	col = 0
 	for (i = 1; i < tokenslen; i++) {
 		col = col + length(tokens[i]) + 1
-		if (col >= wrapcol) {
+		if (i != 1 && col >= wrapcol) {
 			arr[arrlen++] = row
 			row = ""
 			col = 0
