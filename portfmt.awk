@@ -77,9 +77,9 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 
 function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i) {
 	if (ignore_wrap_col[strip_modifier(var)]) {
-		wrapcol = 1000
+		wrapcol = 10000
 	} else {
-		wrapcol = 80 - length(start) - 8
+		wrapcol = WRAPCOL - length(start) - 8
 	}
 	arrlen = 1
 	row = ""
@@ -143,6 +143,10 @@ function sort_array(arr, arrlen,	i, j, temp) {
 ### Script starts here
 
 BEGIN {
+	WRAPCOL = ENVIRON["WRAPCOL"]
+	if (!WRAPCOL) {
+		WRAPCOL = 80
+	}
 	setup_relations()
 	reset()
 }
@@ -283,6 +287,25 @@ function setup_relations(	i, broken) {
 	ignore_wrap_col["IGNORE"] = 1
 	ignore_wrap_col["MASTER_SITES"] = 1
 
+	print_as_newlines["CARGO_CRATES"] = 1
+	print_as_newlines["CARGO_GH_CARGOTOML"] = 1
+	print_as_newlines["CFLAGS"] = 1
+	print_as_newlines["CPPFLAGS"] = 1
+	print_as_newlines["CXXFLAGS"] = 1
+	print_as_newlines["DESKTOP_ENTRIES"] = 1
+	print_as_newlines["DEV_ERROR"] = 1
+	print_as_newlines["DEV_WARNING"] = 1
+	print_as_newlines["DISTFILES"] = 1
+	print_as_newlines["DISTFILES"] = 1
+	print_as_newlines["DISTFILES"] = 1
+	print_as_newlines["GH_TUPLE"] = 1
+	print_as_newlines["LDFLAGS"] = 1
+	print_as_newlines["MOZ_OPTIONS"] = 1
+	print_as_newlines["OPTIONS_EXCLUDE"] = 1
+	print_as_newlines["PLIST_FILES"] = 1
+	print_as_newlines["PLIST_SUB"] = 1
+	print_as_newlines["SUB_LIST"] = 1
+
 	broken["FreeBSD_11"] = 0
 	broken["FreeBSD_12"] = 0
 	broken["FreeBSD_13"] = 0
@@ -307,7 +330,6 @@ function setup_relations(	i, broken) {
 function reset() {
 	varname = "<<<unknown>>>"
 	tokens_len = 1
-	print_as_tokens = 1
 	empty_lines_before_len = 1
 	empty_lines_after_len = 1
 	in_target = 0
@@ -344,10 +366,10 @@ function print_tokens(	i) {
 	if (!leave_unsorted[strip_modifier(varname)]) {
 		sort_array(tokens, tokens_len)
 	}
-	if (print_as_tokens == 1) {
-		print_token_array(varname, assign_variable(varname), tokens, tokens_len)
-	} else {
+	if (print_as_newlines[strip_modifier(varname)]) {
 		print_newline_array(varname, assign_variable(varname), tokens, tokens_len)
+	} else {
+		print_token_array(varname, assign_variable(varname), tokens, tokens_len)
 	}
 
 	for (i = 1; i < empty_lines_after_len; i++) {
@@ -385,49 +407,6 @@ maybe_in_target {
 /^[A-Za-z0-9_-]+:/ && !/:=/ {
 	skip = 1
 	in_target = 1
-}
-
-# Special handling of some variables.  This is for more complicated
-# patterns, i.e., options helpers.  For simple variables add something
-# to the arrays in setup_relations() above instead.
-
-
-/^LICENSE_PERMS_[A-Z0-9._-+ ]+[+?:]?=/ ||
-/^LICENSE_PERMS[+?:]?=/ {
-	order = "license-perms"
-}
-
-/^USE_QT[+?:]?=/ {
-	order = "use-qt"
-}
-
-/^([A-Z_]+_)?MASTER_SITES[+?:]?=/ ||
-/^[a-zA-Z0-9_]+_DEPENDS[+?:]?=/ ||
-/^[a-zA-Z0-9_]+_C(XX|PP)?FLAGS[+?:]?=/ ||
-/^C(XX|PP)?FLAGS[+?:]?=/ ||
-/^CARGO_CRATES?[+?:]?=/ ||
-/^DESKTOP_ENTRIES[+?:]?=/ ||
-/^DISTFILES[+?:]?=/ ||
-/^DEV_ERROR[+?:]?=/ ||
-/^DEV_WARNING[+?:]?=/ ||
-/^OPTIONS_EXCLUDE:=/ ||
-/^PLIST_FILES[+?:]?=/ ||
-/^SUB_LIST[+?:]?=/ ||
-/^PLIST_SUB[+?:]?=/ ||
-/^GH_TUPLE[+?:]?=/ ||
-/^MOZ_OPTIONS[+?:]?=/ ||
-/^CARGO_GH_CARGOTOML[+?:]?=/ ||
-/^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
-/^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
-/^[A-Z0-9_]+_GH_TUPLE[+?:]?=/ ||
-/^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
-/^[A-Z0-9_]+_ENV(_OFF)?[+?:]?=/ ||
-/^[A-Z0-9_]+_VARS(_OFF)?[+?:]?=/ ||
-/^[A-Z0-9_]+_CMAKE_OFF[+?:]?=/ ||
-/^[A-Z0-9_]+_CMAKE_ON[+?:]?=/ ||
-/^[A-Z0-9_]+_CONFIGURE_OFF[+?:]?=/ ||
-/^[A-Z0-9_]+_CONFIGURE_ON[+?:]?=/ {
-	print_as_tokens = 0
 }
 
 !skip {
@@ -512,9 +491,38 @@ skip {
 	skip = 0
 }
 
+# Special handling of some variables.  This is for more complicated
+# patterns, i.e., options helpers.  For simple variables add something
+# to the arrays in setup_relations() above instead.
+
+/^LICENSE_PERMS_[A-Z0-9._-+ ]+[+?:]?=/ ||
+/^LICENSE_PERMS[+?:]?=/ {
+	order = "license-perms"
+}
+
+/^USE_QT[+?:]?=/ {
+	order = "use-qt"
+}
+
 /^LICENSE_NAME_[A-Z0-9._-+ ]+[+?:]?=/ ||
 /^[A-Z_]+_DESC[+?:]?=/ {
 	leave_unsorted[varname] = 1
+}
+
+/^([A-Z_]+_)?MASTER_SITES[+?:]?=/ ||
+/^[a-zA-Z0-9_]+_DEPENDS[+?:]?=/ ||
+/^[a-zA-Z0-9_]+_C(XX|PP)?FLAGS[+?:]?=/ ||
+/^[CM][A-Z_]+_ARGS(_OFF)?[+?:]?=/ ||
+/^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
+/^[A-Z0-9_]+_GH_TUPLE[+?:]?=/ ||
+/^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
+/^[A-Z0-9_]+_ENV(_OFF)?[+?:]?=/ ||
+/^[A-Z0-9_]+_VARS(_OFF)?[+?:]?=/ ||
+/^[A-Z0-9_]+_CMAKE_OFF[+?:]?=/ ||
+/^[A-Z0-9_]+_CMAKE_ON[+?:]?=/ ||
+/^[A-Z0-9_]+_CONFIGURE_OFF[+?:]?=/ ||
+/^[A-Z0-9_]+_CONFIGURE_ON[+?:]?=/ {
+	print_as_newlines[varname] = 1
 }
 
 END {
