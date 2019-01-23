@@ -67,7 +67,7 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 		printf "%s%s%s", sep, arr[i], end
 		if (i == 1) {
 			level = indent_level(start)
-			if (indent_twice[strip_modifier(var)]) {
+			if (indent_twice(var)) {
 				level++
 			}
 			sep = repeat("\t", level)
@@ -76,7 +76,7 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 }
 
 function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i) {
-	if (ignore_wrap_col[strip_modifier(var)]) {
+	if (ignore_wrap_col(var)) {
 		wrapcol = 10000
 	} else {
 		wrapcol = WRAPCOL - length(start) - 8
@@ -139,6 +139,37 @@ function sort_array(arr, arrlen,	i, j, temp) {
 	}
 }
 
+function indent_twice(varname,	var) {
+	var = strip_modifier(varname)
+	if (indent_twice_[var]) {
+		return 1
+	}
+	return 0
+}
+
+function leave_unsorted(varname,	var) {
+	var = strip_modifier(varname)
+	if (leave_unsorted_[var]) {
+		return 1
+	}
+	return 0
+}
+
+function ignore_wrap_col(varname,	var) {
+	var = strip_modifier(varname)
+	if (ignore_wrap_col_[var]) {
+		return 1
+	}
+	return 0
+}
+
+function print_as_newlines(varname,	var) {
+	var = strip_modifier(varname)
+	if (print_as_newlines_[var]) {
+		return 1
+	}
+	return 0
+}
 
 ### Script starts here
 
@@ -244,70 +275,70 @@ function setup_relations(	i, broken) {
 	}
 
 # Some variables are usually indented with an extra tab by porters.
-	indent_twice["OPTIONS_DEFINE"] = 1
-	indent_twice["OPTIONS_GROUP"] = 1
-	indent_twice["OPTIONS_MULTI"] = 1
-	indent_twice["USES"] = 1
-	indent_twice["USE_GL"] = 1
-	indent_twice["USE_QT"] = 1
-	indent_twice["USERS"] = 1
-	indent_twice["GROUPS"] = 1
+	indent_twice_["OPTIONS_DEFINE"] = 1
+	indent_twice_["OPTIONS_GROUP"] = 1
+	indent_twice_["OPTIONS_MULTI"] = 1
+	indent_twice_["USES"] = 1
+	indent_twice_["USE_GL"] = 1
+	indent_twice_["USE_QT"] = 1
+	indent_twice_["USERS"] = 1
+	indent_twice_["GROUPS"] = 1
 
 # Sanitize whitespace but do *not* sort tokens; more complicated patterns below
-	leave_unsorted["BROKEN"] = 1
-	leave_unsorted["CARGO_CARGO_RUN"] = 1
-	leave_unsorted["CARGO_CRATES"] = 1
-	leave_unsorted["CARGO_FEATURES"] = 1
-	leave_unsorted["CATEGORIES"] = 1
-	leave_unsorted["COMMENT"] = 1
-	leave_unsorted["DAEMONARGS"] = 1
-	leave_unsorted["DEPRECATED"] = 1
-	leave_unsorted["DESKTOP_ENTRIES"] = 1
-	leave_unsorted["EXPIRATION_DATE"] = 1
-	leave_unsorted["EXTRACT_AFTER_ARGS"] = 1
-	leave_unsorted["EXTRACT_BEFORE_ARGS"] = 1
-	leave_unsorted["EXTRACT_CMD"] = 1
-	leave_unsorted["FLAVORS"] = 1
-	leave_unsorted["GH_TUPLE"] = 1
-	leave_unsorted["IGNORE"] = 1
-	leave_unsorted["LICENSE_NAME"] = 1
-	leave_unsorted["MASTER_SITES"] = 1
-	leave_unsorted["MAKE_JOBS_UNSAFE"] = 1
-	leave_unsorted["MOZ_SED_ARGS"] = 1
-	leave_unsorted["MOZCONFIG_SED"] = 1
-	leave_unsorted["RESTRICTED"] = 1
+	leave_unsorted_["BROKEN"] = 1
+	leave_unsorted_["CARGO_CARGO_RUN"] = 1
+	leave_unsorted_["CARGO_CRATES"] = 1
+	leave_unsorted_["CARGO_FEATURES"] = 1
+	leave_unsorted_["CATEGORIES"] = 1
+	leave_unsorted_["COMMENT"] = 1
+	leave_unsorted_["DAEMONARGS"] = 1
+	leave_unsorted_["DEPRECATED"] = 1
+	leave_unsorted_["DESKTOP_ENTRIES"] = 1
+	leave_unsorted_["EXPIRATION_DATE"] = 1
+	leave_unsorted_["EXTRACT_AFTER_ARGS"] = 1
+	leave_unsorted_["EXTRACT_BEFORE_ARGS"] = 1
+	leave_unsorted_["EXTRACT_CMD"] = 1
+	leave_unsorted_["FLAVORS"] = 1
+	leave_unsorted_["GH_TUPLE"] = 1
+	leave_unsorted_["IGNORE"] = 1
+	leave_unsorted_["LICENSE_NAME"] = 1
+	leave_unsorted_["MASTER_SITES"] = 1
+	leave_unsorted_["MAKE_JOBS_UNSAFE"] = 1
+	leave_unsorted_["MOZ_SED_ARGS"] = 1
+	leave_unsorted_["MOZCONFIG_SED"] = 1
+	leave_unsorted_["RESTRICTED"] = 1
 
 # Lines that are best not wrapped to 80 columns
 # especially don't wrap BROKEN and IGNORE with \ or it introduces
 # some spurious extra spaces when the message is displayed to users
-	ignore_wrap_col["BROKEN"] = 1
-	ignore_wrap_col["CARGO_CARGO_RUN"] = 1
-	ignore_wrap_col["DEV_ERROR"] = 1
-	ignore_wrap_col["DEV_WARNING"] = 1
-	ignore_wrap_col["DISTFILES"] = 1
-	ignore_wrap_col["GH_TUPLE"] = 1
-	ignore_wrap_col["IGNORE"] = 1
-	ignore_wrap_col["MASTER_SITES"] = 1
-	ignore_wrap_col["RESTRICTED"] = 1
+	ignore_wrap_col_["BROKEN"] = 1
+	ignore_wrap_col_["CARGO_CARGO_RUN"] = 1
+	ignore_wrap_col_["DEV_ERROR"] = 1
+	ignore_wrap_col_["DEV_WARNING"] = 1
+	ignore_wrap_col_["DISTFILES"] = 1
+	ignore_wrap_col_["GH_TUPLE"] = 1
+	ignore_wrap_col_["IGNORE"] = 1
+	ignore_wrap_col_["MASTER_SITES"] = 1
+	ignore_wrap_col_["RESTRICTED"] = 1
 
-	print_as_newlines["CARGO_CRATES"] = 1
-	print_as_newlines["CARGO_GH_CARGOTOML"] = 1
-	print_as_newlines["CFLAGS"] = 1
-	print_as_newlines["CPPFLAGS"] = 1
-	print_as_newlines["CXXFLAGS"] = 1
-	print_as_newlines["DESKTOP_ENTRIES"] = 1
-	print_as_newlines["DEV_ERROR"] = 1
-	print_as_newlines["DEV_WARNING"] = 1
-	print_as_newlines["DISTFILES"] = 1
-	print_as_newlines["DISTFILES"] = 1
-	print_as_newlines["DISTFILES"] = 1
-	print_as_newlines["GH_TUPLE"] = 1
-	print_as_newlines["LDFLAGS"] = 1
-	print_as_newlines["MOZ_OPTIONS"] = 1
-	print_as_newlines["OPTIONS_EXCLUDE"] = 1
-	print_as_newlines["PLIST_FILES"] = 1
-	print_as_newlines["PLIST_SUB"] = 1
-	print_as_newlines["SUB_LIST"] = 1
+	print_as_newlines_["CARGO_CRATES"] = 1
+	print_as_newlines_["CARGO_GH_CARGOTOML"] = 1
+	print_as_newlines_["CFLAGS"] = 1
+	print_as_newlines_["CPPFLAGS"] = 1
+	print_as_newlines_["CXXFLAGS"] = 1
+	print_as_newlines_["DESKTOP_ENTRIES"] = 1
+	print_as_newlines_["DEV_ERROR"] = 1
+	print_as_newlines_["DEV_WARNING"] = 1
+	print_as_newlines_["DISTFILES"] = 1
+	print_as_newlines_["DISTFILES"] = 1
+	print_as_newlines_["DISTFILES"] = 1
+	print_as_newlines_["GH_TUPLE"] = 1
+	print_as_newlines_["LDFLAGS"] = 1
+	print_as_newlines_["MOZ_OPTIONS"] = 1
+	print_as_newlines_["OPTIONS_EXCLUDE"] = 1
+	print_as_newlines_["PLIST_FILES"] = 1
+	print_as_newlines_["PLIST_SUB"] = 1
+	print_as_newlines_["SUB_LIST"] = 1
 
 	broken["FreeBSD_11"] = 0
 	broken["FreeBSD_12"] = 0
@@ -322,12 +353,11 @@ function setup_relations(	i, broken) {
 	broken["powerpc"] = 0
 	broken["powerpc64"] = 0
 	for (i in broken) {
-		leave_unsorted[sprintf("BROKEN_%s", i)] = 1
-		ignore_wrap_col[sprintf("BROKEN_%s", i)] = 1
-		leave_unsorted[sprintf("IGNORE_%s", i)] = 1
-		ignore_wrap_col[sprintf("IGNORE_%s", i)] = 1
+		leave_unsorted_[sprintf("BROKEN_%s", i)] = 1
+		ignore_wrap_col_[sprintf("BROKEN_%s", i)] = 1
+		leave_unsorted_[sprintf("IGNORE_%s", i)] = 1
+		ignore_wrap_col_[sprintf("IGNORE_%s", i)] = 1
 	}
-
 }
 
 function reset() {
@@ -346,7 +376,7 @@ function strip_modifier(var) {
 }
 
 function assign_variable(var) {
-	if (indent_twice[strip_modifier(var)]) {
+	if (indent_twice(var)) {
 		return sprintf("%s=\t", var)
 	} else {
 		if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
@@ -366,10 +396,10 @@ function print_tokens(	i) {
 		return
 	}
 
-	if (!leave_unsorted[strip_modifier(varname)]) {
+	if (!leave_unsorted(varname)) {
 		sort_array(tokens, tokens_len)
 	}
-	if (print_as_newlines[strip_modifier(varname)]) {
+	if (print_as_newlines(varname)) {
 		print_newline_array(varname, assign_variable(varname), tokens, tokens_len)
 	} else {
 		print_token_array(varname, assign_variable(varname), tokens, tokens_len)
@@ -510,7 +540,7 @@ skip {
 /^LICENSE_NAME_[A-Z0-9._-+ ]+[+?:]?=/ ||
 /^[A-Z0-9_]+_MASTER_SITES[+?:]?=/ ||
 /^[A-Z0-9_]+_DESC[+?:]?=/ {
-	leave_unsorted[varname] = 1
+	leave_unsorted_[varname] = 1
 }
 
 /^([A-Z_]+_)?MASTER_SITES[+?:]?=/ ||
@@ -526,7 +556,7 @@ skip {
 /^[A-Z0-9_]+_CMAKE_ON[+?:]?=/ ||
 /^[A-Z0-9_]+_CONFIGURE_OFF[+?:]?=/ ||
 /^[A-Z0-9_]+_CONFIGURE_ON[+?:]?=/ {
-	print_as_newlines[varname] = 1
+	print_as_newlines_[varname] = 1
 }
 
 END {
