@@ -67,9 +67,7 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 		printf "%s%s%s", sep, arr[i], end
 		if (i == 1) {
 			level = indent_level(start)
-			if (indent_twice(var)) {
-				level++
-			}
+			level += indent_multi(var)
 			sep = repeat("\t", level)
 		}
 	}
@@ -146,12 +144,9 @@ function sort_array(arr, arrlen,	i, j, temp) {
 	}
 }
 
-function indent_twice(varname,	var) {
+function indent_multi(varname,	var) {
 	var = strip_modifier(varname)
-	if (indent_twice_[var]) {
-		return 1
-	}
-	return 0
+	return indent_multi_[var]
 }
 
 function leave_unsorted(varname,	var) {
@@ -301,15 +296,15 @@ function setup_relations(	i, archs) {
 # i.e., for options helpers, should go into the respective functions
 # instead.
 
-# Some variables are usually indented with an extra tab by porters.
-	indent_twice_["OPTIONS_DEFINE"] = 1
-	indent_twice_["OPTIONS_GROUP"] = 1
-	indent_twice_["OPTIONS_MULTI"] = 1
-	indent_twice_["USES"] = 1
-	indent_twice_["USE_GL"] = 1
-	indent_twice_["USE_QT"] = 1
-	indent_twice_["USERS"] = 1
-	indent_twice_["GROUPS"] = 1
+# Some variables are usually indented with one or more extra tabs by porters.
+	indent_multi_["OPTIONS_DEFINE"] = 1
+	indent_multi_["OPTIONS_GROUP"] = 1
+	indent_multi_["OPTIONS_MULTI"] = 1
+	indent_multi_["USES"] = 1
+	indent_multi_["USE_GL"] = 1
+	indent_multi_["USE_QT"] = 1
+	indent_multi_["USERS"] = 1
+	indent_multi_["GROUPS"] = 1
 
 # Sanitize whitespace but do *not* sort tokens; more complicated patterns below
 	leave_unsorted_["BROKEN"] = 1
@@ -403,8 +398,8 @@ function strip_modifier(var) {
 }
 
 function assign_variable(var) {
-	if (indent_twice(var)) {
-		return sprintf("%s=\t", var)
+	if (indent_multi(var)) {
+		return sprintf("%s=%s", var, repeat("\t", indent_multi(var)))
 	} else {
 		if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
 			return sprintf("%s =", varname)
