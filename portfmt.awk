@@ -249,6 +249,7 @@ function setup_relations(	i, broken) {
 	indent_twice["USERS"] = 1
 	indent_twice["GROUPS"] = 1
 
+# Sanitize whitespace but do *not* sort tokens; more complicated patterns below
 	leave_unsorted["BROKEN"] = 1
 	leave_unsorted["CARGO_CARGO_RUN"] = 1
 	leave_unsorted["CARGO_CRATES"] = 1
@@ -309,7 +310,6 @@ function reset() {
 	print_as_tokens = 1
 	empty_lines_before_len = 1
 	empty_lines_after_len = 1
-	sorted = 1
 	in_target = 0
 	maybe_in_target = 0
 	order = "default"
@@ -341,7 +341,7 @@ function print_tokens(	i) {
 		return
 	}
 
-	if (sorted && !leave_unsorted[strip_modifier(varname)]) {
+	if (!leave_unsorted[strip_modifier(varname)]) {
 		sort_array(tokens, tokens_len)
 	}
 	if (print_as_tokens == 1) {
@@ -391,11 +391,6 @@ maybe_in_target {
 # patterns, i.e., options helpers.  For simple variables add something
 # to the arrays in setup_relations() above instead.
 
-# Sanitize whitespace but do *not* sort tokens
-/^LICENSE_NAME_[A-Z0-9._-+ ]+[+?:]?=/ ||
-/^[A-Z_]+_DESC[+?:]?=/ {
-	sorted = 0
-}
 
 /^LICENSE_PERMS_[A-Z0-9._-+ ]+[+?:]?=/ ||
 /^LICENSE_PERMS[+?:]?=/ {
@@ -515,6 +510,11 @@ skip {
 		empty_lines_after[empty_lines_after_len++] = $0;
 	}
 	skip = 0
+}
+
+/^LICENSE_NAME_[A-Z0-9._-+ ]+[+?:]?=/ ||
+/^[A-Z_]+_DESC[+?:]?=/ {
+	leave_unsorted[varname] = 1
 }
 
 END {
