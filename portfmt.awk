@@ -249,6 +249,27 @@ function setup_relations(	i, broken) {
 	indent_twice["USERS"] = 1
 	indent_twice["GROUPS"] = 1
 
+	leave_unsorted["BROKEN"] = 1
+	leave_unsorted["CARGO_CARGO_RUN"] = 1
+	leave_unsorted["CARGO_CRATES"] = 1
+	leave_unsorted["CARGO_FEATURES"] = 1
+	leave_unsorted["CATEGORIES"] = 1
+	leave_unsorted["COMMENT"] = 1
+	leave_unsorted["DAEMONARGS"] = 1
+	leave_unsorted["DEPRECATED"] = 1
+	leave_unsorted["DESKTOP_ENTRIES"] = 1
+	leave_unsorted["EXPIRATION_DATE"] = 1
+	leave_unsorted["EXTRACT_AFTER_ARGS"] = 1
+	leave_unsorted["EXTRACT_BEFORE_ARGS"] = 1
+	leave_unsorted["EXTRACT_CMD"] = 1
+	leave_unsorted["FLAVORS"] = 1
+	leave_unsorted["GH_TUPLE"] = 1
+	leave_unsorted["IGNORE"] = 1
+	leave_unsorted["LICENSE_NAME"] = 1
+	leave_unsorted["MAKE_JOBS_UNSAFE"] = 1
+	leave_unsorted["MOZ_SED_ARGS"] = 1
+	leave_unsorted["MOZCONFIG_SED"] = 1
+
 # Lines that are best not wrapped to 80 columns
 # especially don't wrap BROKEN and IGNORE with \ or it introduces
 # some spurious extra spaces when the message is displayed to users
@@ -274,7 +295,9 @@ function setup_relations(	i, broken) {
 	broken["powerpc"] = 0
 	broken["powerpc64"] = 0
 	for (i in broken) {
+		leave_unsorted[sprintf("BROKEN_%s", i)] = 1
 		ignore_wrap_col[sprintf("BROKEN_%s", i)] = 1
+		leave_unsorted[sprintf("IGNORE_%s", i)] = 1
 		ignore_wrap_col[sprintf("IGNORE_%s", i)] = 1
 	}
 
@@ -318,7 +341,7 @@ function print_tokens(	i) {
 		return
 	}
 
-	if (sorted) {
+	if (sorted && !leave_unsorted[strip_modifier(varname)]) {
 		sort_array(tokens, tokens_len)
 	}
 	if (print_as_tokens == 1) {
@@ -364,32 +387,13 @@ maybe_in_target {
 	in_target = 1
 }
 
+# Special handling of some variables.  This is for more complicated
+# patterns, i.e., options helpers.  For simple variables add something
+# to the arrays in setup_relations() above instead.
+
 # Sanitize whitespace but do *not* sort tokens
-/^BROKEN_[A-Za-z_0-9]+?[+?:]?=/ ||
-/^IGNORE_[A-Za-z_0-9]+?[+?:]?=/ ||
-/^BROKEN[+?:]?=/ ||
-/^IGNORE[+?:]?=/ ||
-/^DEPRECATED[+?:]?=/ ||
-/^EXPIRATION_DATE[+?:]?=/ ||
-/^EXTRACT_AFTER_ARGS[+?:]?=/ ||
-/^EXTRACT_BEFORE_ARGS[+?:]?=/ ||
-/^EXTRACT_CMD[+?:]?=/ ||
-/^CATEGORIES[+?:]?=/ ||
-/^CARGO_CRATES[+?:]?=/ ||
-/^CARGO_CARGO_RUN[+?:]?=/ ||
-/^MOZ_SED_ARGS[+?:]?=/ ||
-/^MOZCONFIG_SED[+?:]?=/ ||
-/^GH_TUPLE[+?:]?=/ ||
-/^DESKTOP_ENTRIES[+?:]?=/ ||
-/^[A-Z0-9_]+_DESKTOP_ENTRIES[+?:]?=/ ||
-/^COMMENT[+?:]?=/ ||
-/^LICENSE_NAME[+?:]?=/ ||
 /^LICENSE_NAME_[A-Z0-9._-+ ]+[+?:]?=/ ||
-/^[A-Z_]+_DESC[+?:]?=/ ||
-/^FLAVORS[+?:]?=/ ||
-/^LLD_UNSAFE[+?:]?=/ ||
-/^CARGO_FEATURES[+?:]?=/ ||
-/^MAKE_JOBS_UNSAFE[+?:]?=/ {
+/^[A-Z_]+_DESC[+?:]?=/ {
 	sorted = 0
 }
 
