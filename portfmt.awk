@@ -398,14 +398,10 @@ function strip_modifier(var) {
 }
 
 function assign_variable(var) {
-	if (indent_multi(var)) {
-		return sprintf("%s=%s", var, repeat("\t", indent_multi(var)))
+	if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
+		return sprintf("%s =", varname)
 	} else {
-		if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
-			return sprintf("%s =", varname)
-		} else {
-			return sprintf("%s=", var)
-		}
+		return sprintf("%s=%s", var, repeat("\t", indent_multi(var)))
 	}
 }
 
