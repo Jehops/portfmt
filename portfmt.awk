@@ -505,6 +505,8 @@ maybe_in_target {
 			continue
 		}
 
+		# Prune eol backslash sandwiched with token
+		gsub(/\\$/, "", $i)
 		if ((single_quoted || quoted) && tokens_len > 0) {
 			token = tokens[tokens_len - 1]
 			tokens[tokens_len - 1] = sprintf("%s %s", token, $i)

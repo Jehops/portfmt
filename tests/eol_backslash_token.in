@@ -1,2 +1,3 @@
 PLIST_FILES=	bin/blabla\
+		\
 		bin/abc

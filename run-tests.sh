@@ -2,7 +2,9 @@
 set -u
 PORTFMT="awk -f ${PWD}/portfmt.awk"
 status=0
-for test in tests/*.in; do
+cd tests
+: ${TESTS:=*.in}
+for test in ${TESTS}; do
 	t=${test%*.in}
 	${PORTFMT} < ${test} | diff -L ${t}.expected -L ${t}.actual \
 		-u ${t}.expected -
