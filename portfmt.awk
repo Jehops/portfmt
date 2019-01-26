@@ -152,7 +152,7 @@ function indent_multi(varname,	var) {
 function leave_unsorted(varname,	var) {
 	var = strip_modifier(varname)
 	if (leave_unsorted_[var] ||
-            var ~ /^LICENSE_NAME_[A-Z0-9._-+ ]$/ ||
+            var ~ /^LICENSE_NAME_[A-Z0-9._\-+ ]$/ ||
 	    var ~ /^[A-Z0-9_]+_MASTER_SITES$/ ||
 	    var ~ /^[A-Z0-9_]+_DESC$/) {
 		return 1
@@ -463,7 +463,7 @@ maybe_in_target {
 !skip {
 	portfmt_no_skip()
 } function portfmt_no_skip(	i, arrtemp, quoted, single_quoted, token, eol_comment, eol_comment_tokens) {
-	if (match($0, /^[a-zA-Z0-9._-+ ]+[+?:]?=/)) {
+	if (match($0, /^[a-zA-Z0-9._\-+ ]+[+?:]?=/)) {
 		# Handle special lines like: VAR=xyz
 		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
 			token = arrtemp[2]
@@ -542,7 +542,7 @@ skip {
 	skip = 0
 }
 
-/^LICENSE_PERMS_[A-Z0-9._-+ ]+[+?:]?=/ ||
+/^LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
 /^LICENSE_PERMS[+?:]?=/ {
 	order = "license-perms"
 }
