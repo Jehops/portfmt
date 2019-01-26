@@ -1,0 +1,4 @@
+LIB_DEPENDS=	libABC.so:asfd/asdfa \
+		libcurl.so:ftp/curl \
+		libsndio.so:audio/sndio \
+		libX11.so:x11/xlib

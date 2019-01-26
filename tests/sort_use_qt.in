@@ -1,0 +1,1 @@
+USE_QT=		qmake_build core buildtools_build widgets gui

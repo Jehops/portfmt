@@ -1,0 +1,2 @@
+PLIST_FILES=	"@sample etc/foobar.sample" \
+		bin/asdfasd

@@ -1,0 +1,3 @@
+CONFIGURE_ARGS=	exampledir=${EXAMPLESDIR} \
+		mandir=${MANPREFIX}/man \
+		prefix=${PREFIX}
