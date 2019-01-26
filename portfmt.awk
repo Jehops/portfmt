@@ -103,11 +103,11 @@ function greater_helper(rel, a, b,	ai, bi) {
 	ai = rel[a]
 	bi = rel[b]
 	if (ai == 0 && bi == 0) {
-		return a > b
+		return (tolower(a) > tolower(b))
 	} else if (ai == 0) {
-		return false # b > a
+		return 0 # b > a
 	} else if (bi == 0) {
-		return true # a > b
+		return 1 # a > b
 	} else {
 		return ai > bi
 	}
@@ -126,7 +126,9 @@ function greater(a, b) {
 	} else if (order == "use-qt") {
 		return greater_helper(use_qt_rel, a, b)
 	} else {
-		return a > b
+		# one-true-awk does this case-insensitive but gawk doesn't,
+		# lowercase everything first.
+		return (tolower(a) > tolower(b))
 	}
 }
 
