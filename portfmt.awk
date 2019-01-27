@@ -140,7 +140,8 @@ function greater(a, b) {
 	}
 
 	# one-true-awk does this case-insensitive but gawk doesn't,
-	# lowercase everything first.
+	# lowercase everything first.  This also coerces everything
+	# to a string, so that we compare strings and not integers.
 	return (tolower(a) > tolower(b))
 }
 
