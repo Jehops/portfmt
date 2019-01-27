@@ -52,7 +52,7 @@ function repeat(s, n,	temp, i) {
 	return temp
 }
 
-function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
+function print_newline_array(var, start, arr, arrlen,	end, i, level, sep, line) {
 	# Handle variables with empty values
 	if (arrlen == 2 && arr[1] == "<<<empty-value>>>") {
 		printf "%s\n", start
@@ -61,10 +61,14 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 	sep = sprintf("%s\t", start)
 	end = " \\\n"
 	for (i = 1; i < arrlen; i++) {
+		line = arr[i]
+		if (line == "<<<empty-value>>>") {
+			continue
+		}
 		if (i == arrlen - 1) {
 			end = "\n"
 		}
-		printf "%s%s%s", sep, arr[i], end
+		printf "%s%s%s", sep, line, end
 		if (i == 1) {
 			level = indent_level(start)
 			level += indent_multi(var)
@@ -73,7 +77,7 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep) {
 	}
 }
 
-function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i) {
+function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i, token) {
 	if (ignore_wrap_col(var)) {
 		wrapcol = 10000
 	} else {
@@ -83,16 +87,20 @@ function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, 
 	row = ""
 	col = 0
 	for (i = 1; i < tokenslen; i++) {
-		col = col + length(tokens[i]) + 1
+		token = tokens[i]
+		if (token == "<<<empty-value>>>") {
+			continue
+		}
+		col = col + length(token) + 1
 		if (i != 1 && col >= wrapcol) {
 			arr[arrlen++] = row
 			row = ""
 			col = 0
 		}
 		if (row == "") {
-			row = tokens[i]
+			row = token
 		} else {
-			row = sprintf("%s %s", row, tokens[i])
+			row = sprintf("%s %s", row, token)
 		}
 	}
 	arr[arrlen++] = row
