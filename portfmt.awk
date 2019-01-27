@@ -420,6 +420,17 @@ function assign_variable(var) {
 	}
 }
 
+function dump_empty_lines(	i) {
+	for (i = 1; i < empty_lines_before_len; i++) {
+		print empty_lines_before[i]
+	}
+	for (i = 1; i < empty_lines_after_len; i++) {
+		print empty_lines_after[i]
+	}
+	empty_lines_before_len = 1
+	empty_lines_after_len = 1
+}
+
 function print_tokens(	i) {
 	for (i = 1; i < empty_lines_before_len; i++) {
 		print empty_lines_before[i]
@@ -478,7 +489,7 @@ maybe_in_target {
 !skip {
 	portfmt_no_skip()
 } function portfmt_no_skip(	i, arrtemp, quoted, single_quoted, token, eol_comment, eol_comment_tokens) {
-	if (match($0, /^[a-zA-Z0-9._\-+ ]+[+?:]?=/)) {
+	if (match($0, /^[\$\{\}a-zA-Z0-9._\-+ ]+[+?:]?=/)) {
 		# Handle special lines like: VAR=xyz
 		if (split($1, arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
 			token = arrtemp[2]
@@ -491,8 +502,7 @@ maybe_in_target {
 		}
 		varname = arrtemp[1]
 
-		empty_lines_before_len = 1
-		empty_lines_after_len = 1
+		dump_empty_lines()
 		i = 2
 	} else {
 		i = 1
