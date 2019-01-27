@@ -350,6 +350,7 @@ function setup_relations(	i, archs) {
 # some spurious extra spaces when the message is displayed to users
 	ignore_wrap_col_["BROKEN"] = 1
 	ignore_wrap_col_["CARGO_CARGO_RUN"] = 1
+	ignore_wrap_col_["COMMENT"] = 1
 	ignore_wrap_col_["DEV_ERROR"] = 1
 	ignore_wrap_col_["DEV_WARNING"] = 1
 	ignore_wrap_col_["DISTFILES"] = 1
