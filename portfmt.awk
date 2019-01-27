@@ -135,8 +135,8 @@ function greater(a, b) {
 		return greater_helper(use_qt_rel, a, b)
 	} else if (order == "plist-files") {
 		# Ignore plist keywords
-		gsub(/^"@[a-z]+ /, "", a)
-		gsub(/^"@[a-z]+ /, "\"", b)
+		gsub(/^"@[a-z\-]+ /, "", a)
+		gsub(/^"@[a-z\-]+ /, "\"", b)
 	}
 
 	# one-true-awk does this case-insensitive but gawk doesn't,
