@@ -133,11 +133,15 @@ function greater(a, b) {
 		return greater_helper(license_perms_rel, a, b)
 	} else if (order == "use-qt") {
 		return greater_helper(use_qt_rel, a, b)
-	} else {
-		# one-true-awk does this case-insensitive but gawk doesn't,
-		# lowercase everything first.
-		return (tolower(a) > tolower(b))
+	} else if (order == "plist-files") {
+		# Ignore plist keywords
+		gsub(/^"@[a-z]+ /, "", a)
+		gsub(/^"@[a-z]+ /, "\"", b)
 	}
+
+	# one-true-awk does this case-insensitive but gawk doesn't,
+	# lowercase everything first.
+	return (tolower(a) > tolower(b))
 }
 
 # Case insensitive Bubble sort because it's super easy and we don't
@@ -557,6 +561,11 @@ skip {
 /^LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
 /^LICENSE_PERMS[+?:]?=/ {
 	order = "license-perms"
+}
+
+/^PLIST_DIRS[+?:]?=/ ||
+/^PLIST_FILES[+?:]?=/ {
+	order = "plist-files"
 }
 
 /^USE_QT[+?:]?=/ {
