@@ -168,6 +168,7 @@ function leave_unsorted(varname,	var) {
 	var = strip_modifier(varname)
 	if (leave_unsorted_[var] ||
             var ~ /^LICENSE_NAME_[A-Z0-9._\-+ ]$/ ||
+            var ~ /^LICENSE_TEXT_[A-Z0-9._\-+ ]$/ ||
 	    var ~ /^[A-Z0-9_]+_MASTER_SITES$/ ||
 	    var ~ /^[A-Z0-9_]+_DESC$/) {
 		return 1
@@ -339,6 +340,7 @@ function setup_relations(	i, archs) {
 	leave_unsorted_["GH_TUPLE"] = 1
 	leave_unsorted_["IGNORE"] = 1
 	leave_unsorted_["LICENSE_NAME"] = 1
+	leave_unsorted_["LICENSE_TEXT"] = 1
 	leave_unsorted_["MASTER_SITES"] = 1
 	leave_unsorted_["MAKE_JOBS_UNSAFE"] = 1
 	leave_unsorted_["MOZ_SED_ARGS"] = 1
