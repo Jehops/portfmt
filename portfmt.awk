@@ -429,6 +429,7 @@ function print_tokens(	i) {
 	}
 
 	if (tokens_len <= 1) {
+		reset()
 		return
 	}
 
