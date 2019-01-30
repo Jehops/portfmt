@@ -423,17 +423,6 @@ function assign_variable(var) {
 	}
 }
 
-function dump_empty_lines(	i) {
-	for (i = 1; i < empty_lines_before_len; i++) {
-		print empty_lines_before[i]
-	}
-	for (i = 1; i < empty_lines_after_len; i++) {
-		print empty_lines_after[i]
-	}
-	empty_lines_before_len = 1
-	empty_lines_after_len = 1
-}
-
 function print_tokens(	i) {
 	for (i = 1; i < empty_lines_before_len; i++) {
 		print empty_lines_before[i]
@@ -505,7 +494,6 @@ maybe_in_target {
 		}
 		varname = arrtemp[1]
 
-		dump_empty_lines()
 		i = 2
 	} else {
 		i = 1
