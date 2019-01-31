@@ -184,23 +184,15 @@ function ignore_wrap_col(varname,	var) {
 	return 0
 }
 
-function print_as_newlines(varname,	var) {
+function print_as_newlines(varname,	helper, var) {
 	var = strip_modifier(varname)
-	if (print_as_newlines_[var] ||
-	    var ~ /^([A-Z_]+_)?MASTER_SITES$/ ||
-	    var ~ /^[a-zA-Z0-9_]+_DEPENDS$/ ||
-	    var ~ /^[a-zA-Z0-9_]+_C(XX|PP)?FLAGS$/ ||
-	    var ~ /^[CM][A-Z_]+_ARGS(_OFF)?$/ ||
-	    var ~ /^[A-Z0-9_]+_DESKTOP_ENTRIES$/ ||
-	    var ~ /^[A-Z0-9_]+_GH_TUPLE$/ ||
-	    var ~ /^[A-Z0-9_]+_PLIST_FILES$/ ||
-	    var ~ /^[A-Z0-9_]+_ENV(_OFF)?$/ ||
-	    var ~ /^[A-Z0-9_]+_VARS(_OFF)?$/ ||
-	    var ~ /^[A-Z0-9_]+_CMAKE_OFF$/ ||
-	    var ~ /^[A-Z0-9_]+_CMAKE_ON$/ ||
-	    var ~ /^[A-Z0-9_]+_CONFIGURE_OFF$/ ||
-	    var ~ /^[A-Z0-9_]+_CONFIGURE_ON$/) {
+	if (print_as_newlines_[var]) {
 		return 1
+	}
+	for (helper in options_helpers_) {
+		if (print_as_newlines_[helper] && (var ~ sprintf("_%s$", helper) || var ~ sprintf("_%s_OFF$", helper))) {
+			return 1
+		}
 	}
 	return 0
 }
@@ -445,24 +437,35 @@ function setup_relations(	i, archs) {
 	ignore_wrap_col_["MASTER_SITES"] = 1
 	ignore_wrap_col_["RESTRICTED"] = 1
 
+	print_as_newlines_["BUILD_DEPENDS"] = 1
 	print_as_newlines_["CARGO_CRATES"] = 1
 	print_as_newlines_["CARGO_GH_CARGOTOML"] = 1
 	print_as_newlines_["CFLAGS"] = 1
+	print_as_newlines_["CONFIGURE_ARGS"] = 1
+	print_as_newlines_["CONFIGURE_ON"] = 1
+	print_as_newlines_["CMAKE_BOOL"] = 1
+	print_as_newlines_["CONFIGURE_OFF"] = 1
 	print_as_newlines_["CPPFLAGS"] = 1
 	print_as_newlines_["CXXFLAGS"] = 1
 	print_as_newlines_["DESKTOP_ENTRIES"] = 1
 	print_as_newlines_["DEV_ERROR"] = 1
 	print_as_newlines_["DEV_WARNING"] = 1
 	print_as_newlines_["DISTFILES"] = 1
-	print_as_newlines_["DISTFILES"] = 1
-	print_as_newlines_["DISTFILES"] = 1
+	print_as_newlines_["EXTRACT_DEPENDS"] = 1
+	print_as_newlines_["FETCH_DEPENDS"] = 1
 	print_as_newlines_["GH_TUPLE"] = 1
 	print_as_newlines_["LDFLAGS"] = 1
+	print_as_newlines_["LIB_DEPENDS"] = 1
 	print_as_newlines_["MOZ_OPTIONS"] = 1
 	print_as_newlines_["OPTIONS_EXCLUDE"] = 1
+	print_as_newlines_["PATCH_DEPENDS"] = 1
+	print_as_newlines_["PKG_DEPENDS"] = 1
 	print_as_newlines_["PLIST_FILES"] = 1
 	print_as_newlines_["PLIST_SUB"] = 1
+	print_as_newlines_["RUN_DEPENDS"] = 1
 	print_as_newlines_["SUB_LIST"] = 1
+	print_as_newlines_["TEST_DEPENDS"] = 1
+	print_as_newlines_["VARS"] = 1
 
 	archs["FreeBSD_11"] = 0
 	archs["FreeBSD_12"] = 0

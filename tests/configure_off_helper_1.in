@@ -1,0 +1,2 @@
+SDL_CONFIGURE_OFF=	prefix=${PREFIX} mandir=${MANPREFIX}/man \
+	exampledir=${EXAMPLESDIR}

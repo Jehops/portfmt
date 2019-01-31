@@ -1,0 +1,3 @@
+SDL_CONFIGURE_ON=	exampledir=${EXAMPLESDIR} \
+			mandir=${MANPREFIX}/man \
+			prefix=${PREFIX}
