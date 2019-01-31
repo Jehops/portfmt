@@ -217,6 +217,90 @@ BEGIN {
 }
 
 function setup_relations(	i, archs) {
+	# _OPTIONS_FLAGS
+	options_helpers_["ALL_TARGET"] = 1
+	options_helpers_["BINARY_ALIAS"] = 1
+	options_helpers_["BROKEN"] = 1
+	options_helpers_["CATEGORIES"] = 1
+	options_helpers_["CFLAGS"] = 1
+	options_helpers_["CONFIGURE_ENV"] = 1
+	options_helpers_["CONFLICTS"] = 1
+	options_helpers_["CONFLICTS_BUILD"] = 1
+	options_helpers_["CONFLICTS_INSTALL"] = 1
+	options_helpers_["CPPFLAGS"] = 1
+	options_helpers_["CXXFLAGS"] = 1
+	options_helpers_["DESKTOP_ENTRIES"] = 1
+	options_helpers_["DISTFILES"] = 1
+	options_helpers_["EXTRA_PATCHES"] = 1
+	options_helpers_["EXTRACT_ONLY"] = 1
+	options_helpers_["GH_ACCOUNT"] = 1
+	options_helpers_["GH_PROJECT"] = 1
+	options_helpers_["GH_SUBDIR"] = 1
+	options_helpers_["GH_TAGNAME"] = 1
+	options_helpers_["GH_TUPLE"] = 1
+	options_helpers_["GL_ACCOUNT"] = 1
+	options_helpers_["GL_COMMIT"] = 1
+	options_helpers_["GL_PROJECT"] = 1
+	options_helpers_["GL_SITE"] = 1
+	options_helpers_["GL_SUBDIR"] = 1
+	options_helpers_["GL_TUPLE"] = 1
+	options_helpers_["IGNORE"] = 1
+	options_helpers_["INFO"] = 1
+	options_helpers_["INSTALL_TARGET"] = 1
+	options_helpers_["LDFLAGS"] = 1
+	options_helpers_["LIBS"] = 1
+	options_helpers_["MAKE_ARGS"] = 1
+	options_helpers_["MAKE_ENV"] = 1
+	options_helpers_["MASTER_SITES"] = 1
+	options_helpers_["PATCH_SITES"] = 1
+	options_helpers_["PATCHFILES"] = 1
+	options_helpers_["PLIST_DIRS"] = 1
+	options_helpers_["PLIST_FILES"] = 1
+	options_helpers_["PLIST_SUB"] = 1
+	options_helpers_["PORTDOCS"] = 1
+	options_helpers_["PORTEXAMPLES"] = 1
+	options_helpers_["SUB_FILES"] = 1
+	options_helpers_["SUB_LIST"] = 1
+	options_helpers_["TEST_TARGET"] = 1
+	options_helpers_["USES"] = 1
+
+	# _OPTIONS_DEPENDS
+	options_helpers_["PKG_DEPENDS"] = 1
+	options_helpers_["FETCH_DEPENDS"] = 1
+	options_helpers_["EXTRACT_DEPENDS"] = 1
+	options_helpers_["PATCH_DEPENDS"] = 1
+	options_helpers_["BUILD_DEPENDS"] = 1
+	options_helpers_["LIB_DEPENDS"] = 1
+	options_helpers_["RUN_DEPENDS"] = 1
+	options_helpers_["TEST_DEPENDS"] = 1
+
+	# Other special options helpers
+	options_helpers_["USE"] = 1
+	options_helpers_["VARS"] = 1
+
+	# Add _OFF variants
+	for (i in options_helpers_) {
+		options_helpers_[sprintf("%s_OFF", i)] = 1
+	}
+
+	# Other irregular helpers
+	options_helpers_["CONFIGURE_ENABLE"] = 1
+	options_helpers_["CONFIGURE_WITH"] = 1
+	options_helpers_["CMAKE_BOOL"] = 1
+	options_helpers_["CMAKE_BOOL_OFF"] = 1
+	options_helpers_["CMAKE_ON"] = 1
+	options_helpers_["CMAKE_OFF"] = 1
+	options_helpers_["MESON_TRUE"] = 1
+	options_helpers_["MESON_FALSE"] = 1
+	options_helpers_["MESON_YES"] = 1
+	options_helpers_["MESON_NO"] = 1
+	options_helpers_["CONFIGURE_ON"] = 1
+	options_helpers_["MESON_ON"] = 1
+	options_helpers_["QMAKE_ON"] = 1
+	options_helpers_["CONFIGURE_OFF"] = 1
+	options_helpers_["MESON_OFF"] = 1
+	options_helpers_["QMAKE_OFF"] = 1
+
 	i = 0
 	license_perms_rel["dist-mirror"] = i++
 	license_perms_rel["no-dist-mirror"] = i++
