@@ -164,14 +164,17 @@ function indent_multi(varname,	var) {
 	return indent_multi_[var]
 }
 
-function leave_unsorted(varname,	var) {
+function leave_unsorted(varname,	helper, var) {
 	var = strip_modifier(varname)
 	if (leave_unsorted_[var] ||
             var ~ /^LICENSE_NAME_[A-Z0-9._\-+ ]$/ ||
-            var ~ /^LICENSE_TEXT_[A-Z0-9._\-+ ]$/ ||
-	    var ~ /^[A-Z0-9_]+_MASTER_SITES$/ ||
-	    var ~ /^[A-Z0-9_]+_DESC$/) {
+            var ~ /^LICENSE_TEXT_[A-Z0-9._\-+ ]$/) {
 		return 1
+	}
+	for (helper in options_helpers_) {
+		if (leave_unsorted_[helper] && (var ~ sprintf("_%s$", helper) || var ~ sprintf("_%s_OFF$", helper))) {
+			return 1
+		}
 	}
 	return 0
 }
@@ -282,6 +285,7 @@ function setup_relations(	i, archs) {
 	options_helpers_["CMAKE_BOOL_OFF"] = 1
 	options_helpers_["CMAKE_ON"] = 1
 	options_helpers_["CMAKE_OFF"] = 1
+	options_helpers_["DESC"] = 1
 	options_helpers_["MESON_TRUE"] = 1
 	options_helpers_["MESON_FALSE"] = 1
 	options_helpers_["MESON_YES"] = 1
@@ -407,6 +411,7 @@ function setup_relations(	i, archs) {
 	leave_unsorted_["COMMENT"] = 1
 	leave_unsorted_["DAEMONARGS"] = 1
 	leave_unsorted_["DEPRECATED"] = 1
+	leave_unsorted_["DESC"] = 1
 	leave_unsorted_["DESKTOP_ENTRIES"] = 1
 	leave_unsorted_["EXPIRATION_DATE"] = 1
 	leave_unsorted_["EXTRACT_AFTER_ARGS"] = 1
