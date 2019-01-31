@@ -136,7 +136,7 @@ function greater(a, b) {
 	} else if (order == "plist-files") {
 		# Ignore plist keywords
 		gsub(/^"@[a-z\-]+ /, "", a)
-		gsub(/^"@[a-z\-]+ /, "\"", b)
+		gsub(/^"@[a-z\-]+ /, "", b)
 	}
 
 	# one-true-awk does this case-insensitive but gawk doesn't,
@@ -658,6 +658,8 @@ skip {
 	order = "license-perms"
 }
 
+/^[A-Z0-9_]+_PLIST_DIRS[+?:]?=/ ||
+/^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
 /^PLIST_DIRS[+?:]?=/ ||
 /^PLIST_FILES[+?:]?=/ {
 	order = "plist-files"
