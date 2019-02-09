@@ -465,6 +465,7 @@ function setup_relations(	i, archs) {
 	print_as_newlines_["LIB_DEPENDS"] = 1
 	print_as_newlines_["MAKE_ARGS"] = 1
 	print_as_newlines_["MAKE_ENV"] = 1
+	print_as_newlines_["MASTER_SITES"] = 1
 	print_as_newlines_["MOZ_OPTIONS"] = 1
 	print_as_newlines_["OPTIONS_EXCLUDE"] = 1
 	print_as_newlines_["PATCH_DEPENDS"] = 1
