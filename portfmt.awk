@@ -411,6 +411,10 @@ function setup_relations(	i, archs) {
 	leave_unsorted_["MOZCONFIG_SED"] = 1
 	leave_unsorted_["RESTRICTED"] = 1
 
+# Don't indent with the rest of the variables in a paragraph
+	skip_goalcol_["DISTVERSIONPREFIX"] = 1
+	skip_goalcol_["DISTVERSIONSUFFIX"] = 1
+
 # Lines that are best not wrapped to 80 columns
 # especially don't wrap BROKEN and IGNORE with \ or it introduces
 # some spurious extra spaces when the message is displayed to users
@@ -671,7 +675,19 @@ function max(a, b) {
 	}
 }
 
-function final_output(	i, j, k, last, tokens, tokens_len, var, map, varlength, varlength_len, goalcol, tmp) {
+function skip_goalcol(var) {
+	if (skip_goalcol_[var]) {
+		return 1
+	}
+
+	if (var ~ /^LICENSE_(FILE|NAME)_/) {
+		return 1
+	}
+
+	return 0
+}
+
+function final_output(	_goalcol, i, j, k, last, tokens, tokens_len, var, map, varlength, varlength_len, goalcol, tmp) {
 	goalcol = 0
 	last = 1
 	for (i = 1; i <= output_len; i++) {
@@ -683,7 +699,12 @@ function final_output(	i, j, k, last, tokens, tokens_len, var, map, varlength, v
 			if (((varlength + 1) % 8) == 0) {
 				d++
 			}
-			goalcol = max(ceil((varlength + d) / 8) * 8, goalcol)
+			_goalcol = max(ceil((varlength + d) / 8) * 8, goalcol)
+			if (skip_goalcol(output[i, "var"])) {
+				tmp[i] = _goalcol
+			} else {
+				goalcol = _goalcol
+			}
 		} else if (output[i] == "empty") {
 			if (output[i, "length"] == 0) {
 				continue
@@ -700,8 +721,10 @@ function final_output(	i, j, k, last, tokens, tokens_len, var, map, varlength, v
 			}
 
 			goalcol = max(16, goalcol)
-			for (k = last; k <= i; k++) {
-				tmp[k] = goalcol
+			for (k = last; k < i; k++) {
+				if (!skip_goalcol(output[k, "var"])) {
+					tmp[k] = goalcol
+				}
 			}
 			last = i
 			goalcol = 0
@@ -712,7 +735,9 @@ function final_output(	i, j, k, last, tokens, tokens_len, var, map, varlength, v
 	if (goalcol) {
 		goalcol = max(16, goalcol)
 		for (k = last; k < i; k++) {
-			tmp[k] = goalcol
+			if (!skip_goalcol(output[k, "var"])) {
+				tmp[k] = goalcol
+			}
 		}
 	}
 
