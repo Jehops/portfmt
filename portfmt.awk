@@ -157,11 +157,6 @@ function sort_array(arr, arrlen,	i, j, temp) {
 	}
 }
 
-function indent_multi(varname,	var) {
-	var = strip_modifier(varname)
-	return indent_multi_[var]
-}
-
 function leave_unsorted(varname,	helper, var) {
 	var = strip_modifier(varname)
 	if (leave_unsorted_[var] ||
@@ -389,16 +384,6 @@ function setup_relations(	i, archs) {
 # Special handling of some variables.  More complicated patterns,
 # i.e., for options helpers, should go into the respective functions
 # instead.
-
-# Some variables are usually indented with one or more extra tabs by porters.
-	indent_multi_["OPTIONS_DEFINE"] = 1
-	indent_multi_["OPTIONS_GROUP"] = 1
-	indent_multi_["OPTIONS_MULTI"] = 1
-	indent_multi_["USES"] = 1
-	indent_multi_["USE_GL"] = 1
-	indent_multi_["USE_QT"] = 1
-	indent_multi_["USERS"] = 1
-	indent_multi_["GROUPS"] = 1
 
 # Sanitize whitespace but do *not* sort tokens; more complicated patterns below
 	leave_unsorted_["BROKEN"] = 1
@@ -705,7 +690,7 @@ function final_output(	i, j, k, last, tokens, tokens_len, var, map, varlength, v
 			}
 			ok = 1
 			for (k = 1; k <= output[i, "length"]; k++) {
-				if (output[i, k] ~ "^#") {
+				if (output[i, k] ~ /^#/) {
 					ok = 0
 					break
 				}
