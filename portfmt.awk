@@ -52,13 +52,13 @@ function repeat(s, n,	temp, i) {
 	return temp
 }
 
-function print_newline_array(var, start, arr, arrlen,	end, i, level, sep, line) {
+function print_newline_array(var, start, arr, arrlen, goalcol,	end, i, level, sep, line) {
 	# Handle variables with empty values
 	if (arrlen == 2 && arr[1] == "<<<empty-value>>>") {
 		printf "%s\n", start
 		return
 	}
-	sep = sprintf("%s\t", start)
+	sep = sprintf("%s%s", start, repeat("\t", ceil((goalcol - length(start)) / 8)))
 	end = " \\\n"
 	for (i = 1; i < arrlen; i++) {
 		line = arr[i]
@@ -70,14 +70,12 @@ function print_newline_array(var, start, arr, arrlen,	end, i, level, sep, line) 
 		}
 		printf "%s%s%s", sep, line, end
 		if (i == 1) {
-			level = indent_level(start)
-			level += indent_multi(var)
-			sep = repeat("\t", level)
+			sep = repeat("\t", ceil(goalcol / 8))
 		}
 	}
 }
 
-function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, row, col, i, token) {
+function print_token_array(var, start, tokens, tokenslen, goalcol,	wrapcol, arr, arrlen, row, col, i, token) {
 	if (ignore_wrap_col(var)) {
 		wrapcol = 10000
 	} else {
@@ -104,7 +102,7 @@ function print_token_array(var, start, tokens, tokenslen,	wrapcol, arr, arrlen, 
 		}
 	}
 	arr[arrlen++] = row
-	print_newline_array(var, start, arr, arrlen)
+	print_newline_array(var, start, arr, arrlen, goalcol)
 }
 
 function greater_helper(rel, a, b,	ai, bi) {
@@ -516,7 +514,7 @@ function assign_variable(var) {
 	if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
 		return sprintf("%s =", varname)
 	} else {
-		return sprintf("%s=%s", var, repeat("\t", indent_multi(var)))
+		return sprintf("%s=", var)
 	}
 }
 
@@ -537,7 +535,7 @@ function print_tokens(	i) {
 	}
 
 	output[++output_len] = "tokens"
-	output[output_len, "varname"] = varname
+	output[output_len, "var"] = varname
 	output[output_len, "length"] = tokens_len
 	for (i = 1; i <= tokens_len; i++) {
 		output[output_len, i] = tokens[i]
@@ -680,18 +678,70 @@ skip {
 	order = "use-qt"
 }
 
-function final_output(	i, j, tokens, tokens_len, varname) {
+function max(a, b) {
+	if (a > b) {
+		return a
+	} else {
+		return b
+	}
+}
+
+function final_output(	i, j, k, last, tokens, tokens_len, var, map, varlength, varlength_len, goalcol, tmp) {
+	goalcol = 0
+	last = 1
 	for (i = 1; i <= output_len; i++) {
 		if (output[i] == "tokens") {
-			varname = output[i, "varname"]
+			var = output[i, "var"]
+			varlength = length(var)
+			# include assignment '='
+			d = 1
+			if (((varlength + 1) % 8) == 0) {
+				d++
+			}
+			goalcol = max(ceil((varlength + d) / 8) * 8, goalcol)
+		} else if (output[i] == "empty") {
+			if (output[i, "length"] == 0) {
+				continue
+			}
+			ok = 1
+			for (k = 1; k <= output[i, "length"]; k++) {
+				if (output[i, k] ~ "^#") {
+					ok = 0
+					break
+				}
+			}
+			if (!ok) {
+				continue
+			}
+
+			goalcol = max(16, goalcol)
+			for (k = last; k <= i; k++) {
+				tmp[k] = goalcol
+			}
+			last = i
+			goalcol = 0
+		} else {
+			exit(1)
+		}
+	}
+	if (goalcol) {
+		goalcol = max(16, goalcol)
+		for (k = last; k < i; k++) {
+			tmp[k] = goalcol
+		}
+	}
+
+	for (i = 1; i <= output_len; i++) {
+		if (output[i] == "tokens") {
+			var = output[i, "var"]
 			tokens_len = output[i, "length"]
 			for (j = 1; j <= tokens_len; j++) {
 				tokens[j] = output[i, j]
 			}
-			if (print_as_newlines(varname)) {
-				print_newline_array(varname, assign_variable(varname), tokens, tokens_len)
+			if (print_as_newlines(var)) {
+				print_newline_array(var, assign_variable(var), tokens, tokens_len, tmp[i])
 			} else {
-				print_token_array(varname, assign_variable(varname), tokens, tokens_len)
+				print_token_array(var, assign_variable(var), tokens, tokens_len, tmp[i])
 			}
 		} else if (output[i] == "empty") {
 			for (j = 1; j <= output[i, "length"]; j++) {
