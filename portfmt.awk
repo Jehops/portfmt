@@ -391,7 +391,10 @@ function setup_relations(	i, archs) {
 	leave_unsorted_["CARGO_CRATES"] = 1
 	leave_unsorted_["CARGO_FEATURES"] = 1
 	leave_unsorted_["CATEGORIES"] = 1
+	leave_unsorted_["CFLAGS"] = 1
 	leave_unsorted_["COMMENT"] = 1
+	leave_unsorted_["CPPFLAGS"] = 1
+	leave_unsorted_["CXXFLAGS"] = 1
 	leave_unsorted_["DAEMONARGS"] = 1
 	leave_unsorted_["DEPRECATED"] = 1
 	leave_unsorted_["DESC"] = 1
@@ -403,10 +406,11 @@ function setup_relations(	i, archs) {
 	leave_unsorted_["FLAVORS"] = 1
 	leave_unsorted_["GH_TUPLE"] = 1
 	leave_unsorted_["IGNORE"] = 1
+	leave_unsorted_["LDFLAGS"] = 1
 	leave_unsorted_["LICENSE_NAME"] = 1
 	leave_unsorted_["LICENSE_TEXT"] = 1
-	leave_unsorted_["MASTER_SITES"] = 1
 	leave_unsorted_["MAKE_JOBS_UNSAFE"] = 1
+	leave_unsorted_["MASTER_SITES"] = 1
 	leave_unsorted_["MOZ_SED_ARGS"] = 1
 	leave_unsorted_["MOZCONFIG_SED"] = 1
 	leave_unsorted_["RESTRICTED"] = 1
