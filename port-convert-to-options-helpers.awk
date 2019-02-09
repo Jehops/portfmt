@@ -28,6 +28,90 @@
 #
 
 BEGIN {
+	options_helpers_["ALL_TARGET"] = 1
+	options_helpers_["BINARY_ALIAS"] = 1
+	options_helpers_["BROKEN"] = 1
+	options_helpers_["CATEGORIES"] = 1
+	options_helpers_["CFLAGS"] = 1
+	options_helpers_["CONFIGURE_ENV"] = 1
+	options_helpers_["CONFLICTS"] = 1
+	options_helpers_["CONFLICTS_BUILD"] = 1
+	options_helpers_["CONFLICTS_INSTALL"] = 1
+	options_helpers_["CPPFLAGS"] = 1
+	options_helpers_["CXXFLAGS"] = 1
+	options_helpers_["DESKTOP_ENTRIES"] = 1
+	options_helpers_["DISTFILES"] = 1
+	options_helpers_["EXTRA_PATCHES"] = 1
+	options_helpers_["EXTRACT_ONLY"] = 1
+	options_helpers_["GH_ACCOUNT"] = 1
+	options_helpers_["GH_PROJECT"] = 1
+	options_helpers_["GH_SUBDIR"] = 1
+	options_helpers_["GH_TAGNAME"] = 1
+	options_helpers_["GH_TUPLE"] = 1
+	options_helpers_["GL_ACCOUNT"] = 1
+	options_helpers_["GL_COMMIT"] = 1
+	options_helpers_["GL_PROJECT"] = 1
+	options_helpers_["GL_SITE"] = 1
+	options_helpers_["GL_SUBDIR"] = 1
+	options_helpers_["GL_TUPLE"] = 1
+	options_helpers_["IGNORE"] = 1
+	options_helpers_["INFO"] = 1
+	options_helpers_["INSTALL_TARGET"] = 1
+	options_helpers_["LDFLAGS"] = 1
+	options_helpers_["LIBS"] = 1
+	options_helpers_["MAKE_ARGS"] = 1
+	options_helpers_["MAKE_ENV"] = 1
+	options_helpers_["MASTER_SITES"] = 1
+	options_helpers_["PATCH_SITES"] = 1
+	options_helpers_["PATCHFILES"] = 1
+	options_helpers_["PLIST_DIRS"] = 1
+	options_helpers_["PLIST_FILES"] = 1
+	options_helpers_["PLIST_SUB"] = 1
+	options_helpers_["PORTDOCS"] = 1
+	options_helpers_["PORTEXAMPLES"] = 1
+	options_helpers_["SUB_FILES"] = 1
+	options_helpers_["SUB_LIST"] = 1
+	options_helpers_["TEST_TARGET"] = 1
+	options_helpers_["USES"] = 1
+
+	# _OPTIONS_DEPENDS
+	options_helpers_["PKG_DEPENDS"] = 1
+	options_helpers_["FETCH_DEPENDS"] = 1
+	options_helpers_["EXTRACT_DEPENDS"] = 1
+	options_helpers_["PATCH_DEPENDS"] = 1
+	options_helpers_["BUILD_DEPENDS"] = 1
+	options_helpers_["LIB_DEPENDS"] = 1
+	options_helpers_["RUN_DEPENDS"] = 1
+	options_helpers_["TEST_DEPENDS"] = 1
+
+	# Other special options helpers
+	options_helpers_["USE"] = 1
+	options_helpers_["VARS"] = 1
+
+	# Add _OFF variants
+	for (i in options_helpers_) {
+		options_helpers_[sprintf("%s_OFF", i)] = 1
+	}
+
+	# Other irregular helpers
+	options_helpers_["CONFIGURE_ENABLE"] = 1
+	options_helpers_["CONFIGURE_WITH"] = 1
+	options_helpers_["CMAKE_BOOL"] = 1
+	options_helpers_["CMAKE_BOOL_OFF"] = 1
+	options_helpers_["CMAKE_ON"] = 1
+	options_helpers_["CMAKE_OFF"] = 1
+	options_helpers_["DESC"] = 1
+	options_helpers_["MESON_TRUE"] = 1
+	options_helpers_["MESON_FALSE"] = 1
+	options_helpers_["MESON_YES"] = 1
+	options_helpers_["MESON_NO"] = 1
+	options_helpers_["CONFIGURE_ON"] = 1
+	options_helpers_["MESON_ON"] = 1
+	options_helpers_["QMAKE_ON"] = 1
+	options_helpers_["CONFIGURE_OFF"] = 1
+	options_helpers_["MESON_OFF"] = 1
+	options_helpers_["QMAKE_OFF"] = 1
+
 	irregular_helpers["CONFIGURE_ARGS", 0] = "CONFIGURE_OFF"
 	irregular_helpers["CONFIGURE_ARGS", 1] = "CONFIGURE_ON"
 
@@ -40,10 +124,15 @@ function lookup_helper(var, state,	helper) {
 		return helper
 	}
 	if (state) {
-		return var
+		helper = var
 	} else {
-		return sprintf("%s_OFF", var)
+		helper = sprintf("%s_OFF", var)
 	}
+
+	if (options_helpers_[helper]) {
+		return helper
+	}
+	return ""
 }
 
 function reset() {
@@ -54,15 +143,15 @@ function reset() {
 	skip_next_if_empty = 0
 }
 
-function on_off(state) {
+function on_off(state, on, off) {
 	if (state) {
-		return "on"
+		return on
 	} else {
-		return "off"
+		return off
 	}
 }
 
-/^\.if \$\{PORT_OPTIONS:M[A-Z0-9_]+}/, /^.endif$/ {
+/^\.if !?\$\{PORT_OPTIONS:M[A-Z0-9_]+}/, /^.endif$/ {
 	if ($0 ~ /^.endif$/) {
 		reset()
 		next
@@ -78,7 +167,7 @@ function on_off(state) {
 			state = 1
 		}
 		if (in_target) {
-			printf "\n%s-%s-%s:\n", in_target, opt, on_off(state)
+			printf "\n%s-%s-%s:\n", in_target, opt, on_off(state, "on", "off")
 		}
 		next
 	} else if ($0 ~ /^.else$/) {
@@ -143,7 +232,24 @@ function extract_helper(	var, rest) {
 				return
 			}
 		}
-		printf("%s_%s=\t%s\n", opt, lookup_helper(var, state), rest)
+		helper = lookup_helper(var, state)
+		if (!helper) {
+			if (var ~ /^USE_/) {
+				gsub(/^USE_/, "", var)
+				if (rest ~ / /) {
+					gsub(/ /, ",", rest)
+				}
+				printf("%s_USE%s+=\t%s=%s\n", opt, on_off(state, "", "_OFF"), var, rest)
+			} else {
+				if (rest ~ / /) {
+					printf("%s_VARS%s+=\t%s=\"%s\"\n", opt, on_off(state, "", "_OFF"), var, rest)
+				} else {
+					printf("%s_VARS%s+=\t%s=%s\n", opt, on_off(state, "", "_OFF"), var, rest)
+				}
+			}
+		} else {
+			printf("%s_%s=\t%s\n", opt, helper, rest)
+		}
 	}
 }
 
