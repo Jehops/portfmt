@@ -416,6 +416,7 @@ function setup_relations(	i, archs) {
 	leave_unsorted_["RESTRICTED"] = 1
 
 # Don't indent with the rest of the variables in a paragraph
+	skip_goalcol_["CARGO_CRATES"] = 1
 	skip_goalcol_["DISTVERSIONPREFIX"] = 1
 	skip_goalcol_["DISTVERSIONSUFFIX"] = 1
 
