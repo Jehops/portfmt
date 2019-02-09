@@ -49,23 +49,42 @@ function lookup_helper(var, state,	helper) {
 function reset() {
 	opt = "<<<unknown>>>"
 	state = 0
-	i = 0
+	in_target = 0
+	maybe_in_target = 0
+}
+
+function on_off(state) {
+	if (state) {
+		return "on"
+	} else {
+		return "off"
+	}
 }
 
 /^\.if \$\{PORT_OPTIONS:M[A-Z0-9_]+}/, /^.endif$/ {
 	if ($0 ~ /^.endif$/) {
 		reset()
 		next
-	} else if ($0 ~ /^\.if \$\{PORT_OPTIONS:M[A-Z0-9_]+}/) {
+	} else if ($0 ~ /^\.if !?\$\{PORT_OPTIONS:M[A-Z0-9_]+}/) {
 		if (match($0, /:M[A-Z0-9_]+\}/)) {
 			opt = substr($0, RSTART, RLENGTH)
 			gsub(/^:M/, "", opt)
 			gsub(/\}$/, "", opt)
 		}
-		state = 1
+		if (match($0, /^\.if !/)) {
+			state = 0
+		} else {
+			state = 1
+		}
+		if (in_target) {
+			printf "\n%s-%s-%s:\n", in_target, opt, on_off(state)
+		}
 		next
 	} else if ($0 ~ /^.else$/) {
 		state = !state
+		if (in_target) {
+			printf "\n%s-%s-on:\n", in_target, opt, on_off(state)
+		}
 		next
 	} else if (opt == "<<<unknown>>>") {
 		next
@@ -73,6 +92,27 @@ function reset() {
 		extract_helper()
 		next
 	}
+}
+
+# If we were in a target previously, but there was an empty line,
+# then we are actually still in the same target as before if the
+# current line begins with a tab.
+maybe_in_target && /^\t/ {
+	in_target = 1
+}
+
+maybe_in_target {
+	maybe_in_target = 0
+}
+
+/^[ \t]*$/ { # empty line
+	in_target = 0
+	maybe_in_target = 1
+}
+
+/^[A-Za-z0-9_-]+:/ && !/:=/ {
+	in_target = $0
+	gsub(/:$/, "", in_target)
 }
 
 {
