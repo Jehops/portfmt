@@ -51,6 +51,7 @@ function reset() {
 	state = 0
 	in_target = 0
 	maybe_in_target = 0
+	skip_next_if_empty = 0
 }
 
 function on_off(state) {
@@ -108,11 +109,20 @@ maybe_in_target {
 /^[ \t]*$/ { # empty line
 	in_target = 0
 	maybe_in_target = 1
+	if (skip_next_if_empty) {
+		skip_next_if_empty = 0
+		next
+	}
 }
 
 /^[A-Za-z0-9_-]+:/ && !/:=/ {
 	in_target = $0
 	gsub(/:$/, "", in_target)
+}
+
+/^\.include <bsd\.port\.options\.mk>$/ {
+	skip_next_if_empty = 1
+	next
 }
 
 {
