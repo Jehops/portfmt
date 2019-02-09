@@ -521,8 +521,10 @@ function assign_variable(var) {
 }
 
 function print_tokens(	i) {
+	output[++output_len] = "empty"
+	output[output_len, "length"] = empty_lines_before_len - 1
 	for (i = 1; i < empty_lines_before_len; i++) {
-		print empty_lines_before[i]
+		output[output_len, i] = empty_lines_before[i]
 	}
 
 	if (tokens_len <= 1) {
@@ -533,14 +535,18 @@ function print_tokens(	i) {
 	if (!leave_unsorted(varname)) {
 		sort_array(tokens, tokens_len)
 	}
-	if (print_as_newlines(varname)) {
-		print_newline_array(varname, assign_variable(varname), tokens, tokens_len)
-	} else {
-		print_token_array(varname, assign_variable(varname), tokens, tokens_len)
+
+	output[++output_len] = "tokens"
+	output[output_len, "varname"] = varname
+	output[output_len, "length"] = tokens_len
+	for (i = 1; i <= tokens_len; i++) {
+		output[output_len, i] = tokens[i]
 	}
 
+	output[++output_len] = "empty"
+	output[output_len, "length"] = empty_lines_after_len - 1
 	for (i = 1; i < empty_lines_after_len; i++) {
-		print empty_lines_after[i]
+		output[output_len, i] = empty_lines_after[i]
 	}
 
 	reset()
@@ -674,6 +680,30 @@ skip {
 	order = "use-qt"
 }
 
+function final_output(	i, j, tokens, tokens_len, varname) {
+	for (i = 1; i <= output_len; i++) {
+		if (output[i] == "tokens") {
+			varname = output[i, "varname"]
+			tokens_len = output[i, "length"]
+			for (j = 1; j <= tokens_len; j++) {
+				tokens[j] = output[i, j]
+			}
+			if (print_as_newlines(varname)) {
+				print_newline_array(varname, assign_variable(varname), tokens, tokens_len)
+			} else {
+				print_token_array(varname, assign_variable(varname), tokens, tokens_len)
+			}
+		} else if (output[i] == "empty") {
+			for (j = 1; j <= output[i, "length"]; j++) {
+				print output[i, j]
+			}
+		} else {
+			exit(1)
+		}
+	}
+}
+
 END {
 	print_tokens()
+	final_output()
 }
