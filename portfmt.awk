@@ -45,10 +45,6 @@ function err(status, msg, a) {
 	exit(status)
 }
 
-function indent_level(s) {
-	return ceil(length(s) / 8)
-}
-
 function max(a, b) {
 	if (a > b) {
 		return a
@@ -697,20 +693,24 @@ function skip_goalcol(var) {
 	return 0
 }
 
-function find_goalcol_per_parapgraph(goalcol, output, output_len,	i, d, k, ok, last, moving_goalcol, _moving_goalcol, var, varlength)  {
+function indent_goalcol(var,	d, varlength) {
+	varlength = length(var)
+	# include assignment '='
+	d = 1
+	if (((varlength + 1) % 8) == 0) {
+		d++
+	}
+	return ceil((varlength + d) / 8) * 8
+}
+
+function find_goalcol_per_parapgraph(goalcol, output, output_len,	i, d, k, ok, last, moving_goalcol, _moving_goalcol, var)  {
 	moving_goalcol = 0
 	last = 1
 	for (i = 1; i <= output_len; i++) {
 		if (output[i] == "tokens") {
 			var = output[i, "var"]
-			varlength = length(var)
-			# include assignment '='
-			d = 1
-			if (((varlength + 1) % 8) == 0) {
-				d++
-			}
-			_moving_goalcol = max(ceil((varlength + d) / 8) * 8, moving_goalcol)
-			if (skip_goalcol(output[i, "var"])) {
+			_moving_goalcol = max(indent_goalcol(var), moving_goalcol)
+			if (skip_goalcol(var)) {
 				goalcol[i] = _moving_goalcol
 			} else {
 				moving_goalcol = _moving_goalcol
