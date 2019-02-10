@@ -11,6 +11,7 @@ for test in ${TESTS}; do
 	diff -L ${t}.expected -L ${t}.actual -u ${t}.expected ${t}.actual
 	if [ $? -ne 0 ]; then
 		status=1
+		continue
 	fi
 	${PORTFMT} < ${t}.expected > ${t}.actual2
 	diff -L ${t}.expected -L ${t}.actual -u ${t}.expected ${t}.actual2
