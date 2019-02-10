@@ -40,8 +40,21 @@ function ceil(n,	i) {
 	return i;
 }
 
+function err(status, msg, a) {
+	printf "%s: %s\n", msg, a > "/dev/stderr"
+	exit(status)
+}
+
 function indent_level(s) {
 	return ceil(length(s) / 8)
+}
+
+function max(a, b) {
+	if (a > b) {
+		return a
+	} else {
+		return b
+	}
 }
 
 function repeat(s, n,	temp, i) {
@@ -672,14 +685,6 @@ skip {
 	order = "use-qt"
 }
 
-function max(a, b) {
-	if (a > b) {
-		return a
-	} else {
-		return b
-	}
-}
-
 function skip_goalcol(var) {
 	if (skip_goalcol_[var]) {
 		return 1
@@ -737,8 +742,7 @@ function find_goalcol_per_parapgraph(goalcol, output, output_len,	i, d, k, ok, l
 			last = i
 			moving_goalcol = 0
 		} else {
-			exit(1)
-			#err(1, "Unhandled output type:", output[i])
+			err(1, "Unhandled output type", output[i])
 		}
 	}
 	if (moving_goalcol) {
@@ -772,7 +776,7 @@ function final_output(	goalcol, i, j, tokens, tokens_len, var) {
 				print output[i, j]
 			}
 		} else {
-			exit(1)
+			err(1, "Unhandled output type", output[i])
 		}
 	}
 }
