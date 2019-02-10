@@ -752,7 +752,7 @@ function find_goalcol_per_parapgraph(goalcol, output, output_len,	i, d, k, ok, l
 
 }
 
-function final_output(	_goalcol, i, j, k, last, tokens, tokens_len, var, map, varlength, varlength_len, goalcol, tmp) {
+function final_output(	goalcol, i, j, tokens, tokens_len, var) {
 	find_goalcol_per_parapgraph(goalcol, output, output_len)
 
 	for (i = 1; i <= output_len; i++) {
