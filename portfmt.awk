@@ -186,6 +186,9 @@ function ignore_wrap_col(varname,	var) {
 	if (ignore_wrap_col_[var]) {
 		return 1
 	}
+	if (var ~ /_DESC$/) {
+		return 1
+	}
 	return 0
 }
 
