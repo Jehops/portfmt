@@ -45,6 +45,14 @@ function err(status, msg, a) {
 	exit(status)
 }
 
+function print_(fmt, a, b, c, d, e, f, g, h) {
+	if (INPLACE == 1) {
+		printf fmt, a, b, c, d, e, f, g, h > FILENAME
+	} else {
+		printf fmt, a, b, c, d, e, f, g, h
+	}
+}
+
 function max(a, b) {
 	if (a > b) {
 		return a
@@ -64,7 +72,7 @@ function repeat(s, n,	temp, i) {
 function print_newline_array(var, start, arr, arrlen, goalcol,	end, i, level, sep, line) {
 	# Handle variables with empty values
 	if (arrlen == 2 && arr[1] == "<<<empty-value>>>") {
-		printf "%s\n", start
+		print_("%s\n", start)
 		return
 	}
 	sep = sprintf("%s%s", start, repeat("\t", ceil((goalcol - length(start)) / 8)))
@@ -77,7 +85,7 @@ function print_newline_array(var, start, arr, arrlen, goalcol,	end, i, level, se
 		if (i == arrlen - 1) {
 			end = "\n"
 		}
-		printf "%s%s%s", sep, line, end
+		print_("%s%s%s", sep, line, end)
 		if (i == 1) {
 			sep = repeat("\t", ceil(goalcol / 8))
 		}
@@ -208,6 +216,10 @@ function print_as_newlines(varname,	helper, var) {
 ### Script starts here
 
 BEGIN {
+	INPLACE = ENVIRON["INPLACE"]
+	if (INPLACE != 1 || ARGC < 2) {
+		INPLACE = 0
+	}
 	WRAPCOL = ENVIRON["WRAPCOL"]
 	if (!WRAPCOL) {
 		WRAPCOL = 80
@@ -774,7 +786,7 @@ function final_output(	goalcol, i, j, tokens, tokens_len, var) {
 			}
 		} else if (output[i] == "empty") {
 			for (j = 1; j <= output[i, "length"]; j++) {
-				print output[i, j]
+				print_("%s\n", output[i, j])
 			}
 		} else {
 			err(1, "Unhandled output type", output[i])
