@@ -692,8 +692,8 @@ function skip_goalcol(var) {
 	return 0
 }
 
-function final_output(	_goalcol, i, j, k, last, tokens, tokens_len, var, map, varlength, varlength_len, goalcol, tmp) {
-	goalcol = 0
+function find_goalcol_per_parapgraph(goalcol, output, output_len,	i, d, k, ok, last, moving_goalcol, _moving_goalcol, var, varlength)  {
+	moving_goalcol = 0
 	last = 1
 	for (i = 1; i <= output_len; i++) {
 		if (output[i] == "tokens") {
@@ -704,11 +704,11 @@ function final_output(	_goalcol, i, j, k, last, tokens, tokens_len, var, map, va
 			if (((varlength + 1) % 8) == 0) {
 				d++
 			}
-			_goalcol = max(ceil((varlength + d) / 8) * 8, goalcol)
+			_moving_goalcol = max(ceil((varlength + d) / 8) * 8, moving_goalcol)
 			if (skip_goalcol(output[i, "var"])) {
-				tmp[i] = _goalcol
+				goalcol[i] = _moving_goalcol
 			} else {
-				goalcol = _goalcol
+				moving_goalcol = _moving_goalcol
 			}
 		} else if (output[i] == "empty") {
 			if (output[i, "length"] == 0) {
@@ -728,26 +728,32 @@ function final_output(	_goalcol, i, j, k, last, tokens, tokens_len, var, map, va
 				continue
 			}
 
-			goalcol = max(16, goalcol)
+			moving_goalcol = max(16, moving_goalcol)
 			for (k = last; k < i; k++) {
 				if (!skip_goalcol(output[k, "var"])) {
-					tmp[k] = goalcol
+					goalcol[k] = moving_goalcol
 				}
 			}
 			last = i
-			goalcol = 0
+			moving_goalcol = 0
 		} else {
 			exit(1)
+			#err(1, "Unhandled output type:", output[i])
 		}
 	}
-	if (goalcol) {
-		goalcol = max(16, goalcol)
+	if (moving_goalcol) {
+		moving_goalcol = max(16, moving_goalcol)
 		for (k = last; k < i; k++) {
 			if (!skip_goalcol(output[k, "var"])) {
-				tmp[k] = goalcol
+				goalcol[k] = moving_goalcol
 			}
 		}
 	}
+
+}
+
+function final_output(	_goalcol, i, j, k, last, tokens, tokens_len, var, map, varlength, varlength_len, goalcol, tmp) {
+	find_goalcol_per_parapgraph(goalcol, output, output_len)
 
 	for (i = 1; i <= output_len; i++) {
 		if (output[i] == "tokens") {
@@ -757,9 +763,9 @@ function final_output(	_goalcol, i, j, k, last, tokens, tokens_len, var, map, va
 				tokens[j] = output[i, j]
 			}
 			if (print_as_newlines(var)) {
-				print_newline_array(var, assign_variable(var), tokens, tokens_len, tmp[i])
+				print_newline_array(var, assign_variable(var), tokens, tokens_len, goalcol[i])
 			} else {
-				print_token_array(var, assign_variable(var), tokens, tokens_len, tmp[i])
+				print_token_array(var, assign_variable(var), tokens, tokens_len, goalcol[i])
 			}
 		} else if (output[i] == "empty") {
 			for (j = 1; j <= output[i, "length"]; j++) {
