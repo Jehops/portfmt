@@ -716,6 +716,9 @@ function final_output(	_goalcol, i, j, k, last, tokens, tokens_len, var, map, va
 			}
 			ok = 1
 			for (k = 1; k <= output[i, "length"]; k++) {
+				if (output[i, k] == "") {
+					break
+				}
 				if (output[i, k] ~ /^#/) {
 					ok = 0
 					break
