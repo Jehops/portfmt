@@ -71,7 +71,7 @@ function repeat(s, n,	temp, i) {
 
 function print_newline_array(var, start, arr, arrlen, goalcol,	end, i, level, sep, line) {
 	# Handle variables with empty values
-	if (arrlen == 2 && arr[1] == "<<<empty-value>>>") {
+	if (arrlen <= 2 && (arr[1] == "<<<empty-value>>>" || arr[1] == "")) {
 		print_("%s\n", start)
 		return
 	}
