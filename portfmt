@@ -1,0 +1,27 @@
+#!/bin/sh
+set -eu
+
+usage() {
+	echo "usage: portfmt [-i] [-w wrapcol] [Makefile]" 1>&2
+	return 64
+}
+
+main() {
+	if ! command -v portfmt.awk >/dev/null; then
+		echo "portfmt: portfmt.awk: not found" 1>&2
+		exit 1
+	fi
+
+	while getopts "iw:" arg; do
+		case ${arg} in
+		i) export INPLACE=1 ;;
+		w) export WRAPCOL="${OPTARG}" ;;
+		*) usage ;;
+		esac
+	done
+	shift $((OPTIND - 1))
+
+	exec portfmt.awk "$@"
+}
+
+main "$@"
