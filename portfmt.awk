@@ -41,7 +41,7 @@ function ceil(n,	i) {
 }
 
 function err(status, msg, a) {
-	printf "%s: %s\n", msg, a > "/dev/stderr"
+	printf "portfmt: %s: %s\n", msg, a > "/dev/stderr"
 	exit(status)
 }
 

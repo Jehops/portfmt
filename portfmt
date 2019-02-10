@@ -21,6 +21,10 @@ main() {
 	done
 	shift $((OPTIND - 1))
 
+	if [ $# -gt 1 ]; then
+		usage
+	fi
+
 	exec portfmt.awk "$@"
 }
 
