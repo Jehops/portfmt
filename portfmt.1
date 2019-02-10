@@ -28,6 +28,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl i
+.Op Fl u
 .Op Fl w Ar wrapcol
 .Op Ar file
 .Sh DESCRIPTION
@@ -41,6 +42,8 @@ The following options are available:
 .Bl -tag -width indent
 .It Fl i
 Format Makefile in-place instead of outputting it to stdout.
+.It Fl u
+Leave variables unsorted.
 .It Fl w Ar wrapcol
 Sets the wrapping column to
 .Ar wrapcol

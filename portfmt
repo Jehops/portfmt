@@ -35,9 +35,13 @@ main() {
 		exit 1
 	fi
 
-	while getopts "iw:" arg; do
+	unset INPLACE
+	unset UNSORTED
+	unset WRAPCOL
+	while getopts "iuw:" arg; do
 		case ${arg} in
 		i) export INPLACE=1 ;;
+		u) export UNSORTED=1 ;;
 		w) export WRAPCOL="${OPTARG}" ;;
 		*) usage ;;
 		esac

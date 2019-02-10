@@ -175,6 +175,9 @@ function sort_array(arr, arrlen,	i, j, temp) {
 }
 
 function leave_unsorted(varname,	helper, var) {
+	if (UNSORTED) {
+		return 1
+	}
 	var = strip_modifier(varname)
 	if (leave_unsorted_[var] ||
 	    var ~ /^LICENSE_NAME_[A-Z0-9._\-+ ]$/ ||
@@ -219,6 +222,10 @@ BEGIN {
 	INPLACE = ENVIRON["INPLACE"]
 	if (INPLACE != 1 || ARGC < 2) {
 		INPLACE = 0
+	}
+	UNSORTED = ENVIRON["UNSORTED"]
+	if (UNSORTED != 1) {
+		UNSORTED = 0
 	}
 	WRAPCOL = ENVIRON["WRAPCOL"]
 	if (!WRAPCOL) {
