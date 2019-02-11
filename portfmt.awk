@@ -592,9 +592,35 @@ maybe_in_target {
 	in_target = 1
 }
 
+function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
+	start = pos
+	counter = 0
+	for (i = pos; i <= length(line); i++) {
+		c = substr($0, i, 1)
+		if (startchar == endchar) {
+			if (c == startchar) {
+				if (counter == 1) {
+					return i
+				} else {
+					counter++
+				}
+			}
+		} else {
+			if (c == startchar) {
+				counter++
+			} else if (c == endchar && counter == 1) {
+				return i
+			} else if (c == endchar) {
+				counter--
+			}
+		}
+	}
+	err(1, "tokenizer", sprintf("expected %s", endchar)) 
+}
+
 !skip {
 	portfmt_no_skip()
-} function portfmt_no_skip(	i, arrtemp, quoted, single_quoted, token, eol_comment, eol_comment_tokens, pos) {
+} function portfmt_no_skip(	i, c, arrtemp, dollar, start, token, pos) {
 	if (match($0, /^[\$\{\}a-zA-Z0-9._\-+ ]+[+?:]?=/)) {
 		# Handle special lines like: VAR=xyz
 		if (split(substr($0, RSTART, RLENGTH), arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
@@ -609,57 +635,62 @@ maybe_in_target {
 		varname = arrtemp[1]
 
 		i = 2
-		pos = RLENGTH
+		pos = RLENGTH + 1
 	} else {
 		pos = 1
 		i = 1
 	}
 
-	quoted = 0
-	single_quoted = 0
-	eol_comment = 0
-	for (; i <= NF; i++) {
-		if ($i == "\\") {
-			break
-		}
-
-		# Try to push end of line comments out of the way
-		# above the variable as a way to preserve them.
-		# They clash badly with sorting tokens in variables.
-		# We could add more special cases for this, but
-		# often having them at the top is just as good.
-		if ($i == "#" || eol_comment) {
-			eol_comment_tokens[eol_comment++] = $i
-			continue
-		}
-
-		# Prune eol backslash sandwiched with token
-		gsub(/\\$/, "", $i)
-		if ((single_quoted || quoted) && tokens_len > 0) {
-			token = tokens[tokens_len - 1]
-			tokens[tokens_len - 1] = sprintf("%s %s", token, $i)
-		} else {
-			tokens[tokens_len++] = $i
-		}
-		if (match($i, /"/) && !match($i, /""/)) {
-			quoted = !quoted
-		}
-		if (match($i, /'/) && !match($i, /''/)) {
-			single_quoted = !single_quoted
-		}
+	# Try to push end of line comments out of the way # above
+	# the variable as a way to preserve them.  They clash badly
+	# with sorting tokens in variables.  We could add more
+	# special cases for this, but often having them at the top
+	# is just as good.
+	if (match($0, /#.*$/)) {
+		empty_lines_before[empty_lines_before_len++] = substr($0, RSTART, RLENGTH)
+		$0 = substr($0, 1, RSTART - RLENGTH)
 	}
 
-	if (eol_comment) {
-		token = ""
-		for (i = 0; i <= eol_comment; i++) {
-			token = sprintf("%s %s", token, eol_comment_tokens[i])
-		}
-		gsub(/(^ | $)/, "", token)
-		empty_lines_before[empty_lines_before_len++] = token
-	}
-
-	if (tokens_len == 1) {
+	if (pos >= length($0)) {
 		tokens[tokens_len++] = "<<<empty-value>>>"
+		return
+	}
+
+	dollar = 0
+	start = pos
+	gsub(/\\$/, "", $0)
+	for (i = pos; i <= length($0); i++) {
+		c = substr($0, i, 1)
+		if (dollar) {
+			if (c == "{") {
+				i = consume_token($0, i, "{", "}")
+				dollar = 0
+			} else {
+				err(1, "tokenizer", "expected {")
+			}
+		} else {
+			if (c == " " || c == "\t") {
+				token = substr($0, start, i - start + 1)
+				gsub(/^[[:blank:]]*/, "", token)
+				gsub(/[[:blank:]]*$/, "", token)
+				if (token != "" && token != "\\") {
+					tokens[tokens_len++] = token
+				}
+				start = i
+			} else if (c == "\"") {
+				i = consume_token($0, i, "\"", "\"")
+			} else if (c == "'") {
+				i = consume_token($0, i, "'", "'")
+			} else if (c == "$") {
+				dollar++
+			}
+		}
+	}
+	token = substr($0, start, i - start + 1)
+	gsub(/^[[:blank:]]*/, "", token)
+	gsub(/[[:blank:]]*$/, "", token)
+	if (token != "" && token != "\\") {
+		tokens[tokens_len++] = token
 	}
 }
 
