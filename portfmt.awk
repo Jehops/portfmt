@@ -92,25 +92,26 @@ function print_newline_array(var, start, arr, arrlen, goalcol,	end, i, level, se
 	}
 }
 
-function print_token_array(var, start, tokens, tokenslen, goalcol,	wrapcol, arr, arrlen, row, col, i, token) {
+function print_token_array(var, start, tokens, tokenslen, goalcol,	wrapcol, arr, arrlen, row, i, token) {
 	if (ignore_wrap_col(var)) {
 		wrapcol = 10000
 	} else {
-		wrapcol = WRAPCOL - length(start) - 8
+		wrapcol = WRAPCOL - goalcol
 	}
 	arrlen = 1
 	row = ""
-	col = 0
 	for (i = 1; i < tokenslen; i++) {
 		token = tokens[i]
 		if (token == "<<<empty-value>>>") {
 			continue
 		}
-		col = col + length(token) + 1
-		if (i != 1 && col >= wrapcol) {
-			arr[arrlen++] = row
+		if ((length(row) + length(token)) > wrapcol) {
+			if (row == "") {
+				arr[arrlen++] = token
+			} else {
+				arr[arrlen++] = row
+			}
 			row = ""
-			col = 0
 		}
 		if (row == "") {
 			row = token
@@ -118,7 +119,9 @@ function print_token_array(var, start, tokens, tokenslen, goalcol,	wrapcol, arr,
 			row = sprintf("%s %s", row, token)
 		}
 	}
-	arr[arrlen++] = row
+	if (row != "") {
+		arr[arrlen++] = row
+	}
 	print_newline_array(var, start, arr, arrlen, goalcol)
 }
 
