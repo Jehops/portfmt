@@ -487,6 +487,7 @@ function setup_relations(	i, archs) {
 	print_as_newlines_["PLIST_SUB"] = 1
 	print_as_newlines_["RUN_DEPENDS"] = 1
 	print_as_newlines_["SUB_LIST"] = 1
+	print_as_newlines_["TEST_ARGS"] = 1
 	print_as_newlines_["TEST_DEPENDS"] = 1
 	print_as_newlines_["VARS"] = 1
 
