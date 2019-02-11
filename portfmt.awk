@@ -20,20 +20,6 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# $FreeBSD$
-#
-# MAINTAINER=	tobik@FreeBSD.org
-#
-# Format port Makefiles.  Best used via your editor and piping
-# only parts of the Makefile to it.
-#
-# Usage: ${PORTSDIR}/Tools/scripts/portfmt.awk < Makefile
-#
-# Editor setup for Kakoune in ~/.config/kak/kakrc mapped to ,1
-# map global user 1 '|/usr/ports/Tools/scripts/portfmt.awk<ret>;' -docstring "portfmt on selection"
-#
-
-### Utility functions
 
 function ceil(n,	i) {
 	for (i = int(n); i < n; i++) { }
@@ -218,8 +204,6 @@ function print_as_newlines(varname,	helper, var) {
 	}
 	return 0
 }
-
-### Script starts here
 
 BEGIN {
 	INPLACE = ENVIRON["INPLACE"]
