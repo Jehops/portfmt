@@ -612,7 +612,7 @@ maybe_in_target {
 	in_target = 1
 }
 
-function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
+function consume_token(line, pos, startchar, endchar, eol_ok,	start, i, c, counter) {
 	start = pos
 	counter = 0
 	for (i = pos; i <= length(line); i++) {
@@ -635,7 +635,11 @@ function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
 			}
 		}
 	}
-	err(1, "tokenizer", sprintf("expected %s", endchar)) 
+	if (!eol_ok) {
+		err(1, "tokenizer", sprintf("%i: expected %s", NR, endchar))
+	} else {
+		return i
+	}
 }
 
 !skip {
@@ -673,10 +677,10 @@ function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
 		c = substr($0, i, 1)
 		if (dollar) {
 			if (c == "{") {
-				i = consume_token($0, i, "{", "}")
+				i = consume_token($0, i, "{", "}", 0)
 				dollar = 0
 			} else {
-				err(1, "tokenizer", "expected {")
+				err(1, "tokenizer", sprintf("%i: expected {", NR))
 			}
 		} else {
 			if (c == " " || c == "\t") {
@@ -688,9 +692,9 @@ function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
 				}
 				start = i
 			} else if (c == "\"") {
-				i = consume_token($0, i, "\"", "\"")
+				i = consume_token($0, i, "\"", "\"", 1)
 			} else if (c == "'") {
-				i = consume_token($0, i, "'", "'")
+				i = consume_token($0, i, "'", "'", 1)
 			} else if (c == "$") {
 				dollar++
 			} else if (c == "#") {
