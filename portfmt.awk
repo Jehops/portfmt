@@ -169,8 +169,8 @@ function leave_unsorted(varname,	helper, var) {
 	}
 	var = strip_modifier(varname)
 	if (leave_unsorted_[var] ||
-	    var ~ /^LICENSE_NAME_[A-Z0-9._\-+ ]$/ ||
-	    var ~ /^LICENSE_TEXT_[A-Z0-9._\-+ ]$/) {
+	    var ~ /^LICENSE_NAME_[A-Z0-9._\-+ ]+$/ ||
+	    var ~ /^LICENSE_TEXT_[A-Z0-9._\-+ ]+$/) {
 		return 1
 	}
 	for (helper in options_helpers_) {
