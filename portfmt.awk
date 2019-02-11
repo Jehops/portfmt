@@ -594,7 +594,7 @@ maybe_in_target {
 
 !skip {
 	portfmt_no_skip()
-} function portfmt_no_skip(	i, arrtemp, quoted, single_quoted, token, eol_comment, eol_comment_tokens) {
+} function portfmt_no_skip(	i, arrtemp, quoted, single_quoted, token, eol_comment, eol_comment_tokens, pos) {
 	if (match($0, /^[\$\{\}a-zA-Z0-9._\-+ ]+[+?:]?=/)) {
 		# Handle special lines like: VAR=xyz
 		if (split(substr($0, RSTART, RLENGTH), arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
@@ -609,12 +609,10 @@ maybe_in_target {
 		varname = arrtemp[1]
 
 		i = 2
+		pos = RLENGTH
 	} else {
+		pos = 1
 		i = 1
-	}
-
-	if ($2 == "=") {
-		$2 = ""
 	}
 
 	quoted = 0
