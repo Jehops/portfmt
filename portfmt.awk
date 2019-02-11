@@ -641,16 +641,6 @@ function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
 		i = 1
 	}
 
-	# Try to push end of line comments out of the way above
-	# the variable as a way to preserve them.  They clash badly
-	# with sorting tokens in variables.  We could add more
-	# special cases for this, but often having them at the top
-	# is just as good.
-	if (match($0, /#.*$/)) {
-		empty_lines_before[empty_lines_before_len++] = substr($0, RSTART, RLENGTH)
-		$0 = substr($0, 1, RSTART - RLENGTH)
-	}
-
 	if (pos >= length($0)) {
 		tokens[tokens_len++] = "<<<empty-value>>>"
 		return
@@ -683,6 +673,15 @@ function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
 				i = consume_token($0, i, "'", "'")
 			} else if (c == "$") {
 				dollar++
+			} else if (c == "#") {
+				# Try to push end of line comments out of the way above
+				# the variable as a way to preserve them.  They clash badly
+				# with sorting tokens in variables.  We could add more
+				# special cases for this, but often having them at the top
+				# is just as good.
+				empty_lines_before[empty_lines_before_len++] = substr($0, i)
+				tokens[tokens_len++] = "<<<empty-value>>>"
+				return
 			}
 		}
 	}
