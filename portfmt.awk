@@ -596,7 +596,7 @@ function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
 	start = pos
 	counter = 0
 	for (i = pos; i <= length(line); i++) {
-		c = substr($0, i, 1)
+		c = substr(line, i, 1)
 		if (startchar == endchar) {
 			if (c == startchar) {
 				if (counter == 1) {
@@ -641,7 +641,7 @@ function consume_token(line, pos, startchar, endchar,	start, i, c, counter) {
 		i = 1
 	}
 
-	# Try to push end of line comments out of the way # above
+	# Try to push end of line comments out of the way above
 	# the variable as a way to preserve them.  They clash badly
 	# with sorting tokens in variables.  We could add more
 	# special cases for this, but often having them at the top
