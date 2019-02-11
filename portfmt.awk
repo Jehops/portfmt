@@ -404,6 +404,7 @@ function setup_relations(	i, archs) {
 # instead.
 
 # Sanitize whitespace but do *not* sort tokens; more complicated patterns below
+	leave_unsorted_["ALL_TARGET"] = 1
 	leave_unsorted_["BROKEN"] = 1
 	leave_unsorted_["CARGO_CARGO_RUN"] = 1
 	leave_unsorted_["CARGO_CRATES"] = 1
@@ -424,6 +425,7 @@ function setup_relations(	i, archs) {
 	leave_unsorted_["FLAVORS"] = 1
 	leave_unsorted_["GH_TUPLE"] = 1
 	leave_unsorted_["IGNORE"] = 1
+	leave_unsorted_["INSTALL_TARGET"] = 1
 	leave_unsorted_["LDFLAGS"] = 1
 	leave_unsorted_["LICENSE_NAME"] = 1
 	leave_unsorted_["LICENSE_TEXT"] = 1
@@ -432,6 +434,7 @@ function setup_relations(	i, archs) {
 	leave_unsorted_["MOZ_SED_ARGS"] = 1
 	leave_unsorted_["MOZCONFIG_SED"] = 1
 	leave_unsorted_["RESTRICTED"] = 1
+	leave_unsorted_["TEST_TARGET"] = 1
 
 # Don't indent with the rest of the variables in a paragraph
 	skip_goalcol_["CARGO_CRATES"] = 1
