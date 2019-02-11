@@ -222,7 +222,7 @@ BEGIN {
 	reset()
 }
 
-function setup_relations(	i, archs) {
+function setup_relations(	i, j, archs, opsys) {
 	# _OPTIONS_FLAGS
 	options_helpers_["ALL_TARGET"] = 1
 	options_helpers_["BINARY_ALIAS"] = 1
@@ -493,10 +493,6 @@ function setup_relations(	i, archs) {
 	print_as_newlines_["TEST_DEPENDS"] = 1
 	print_as_newlines_["VARS"] = 1
 
-	archs["FreeBSD_11"] = 0
-	archs["FreeBSD_12"] = 0
-	archs["FreeBSD_13"] = 0
-	archs["DragonFly"] = 0
 	archs["aarch64"] = 0
 	archs["amd64"] = 0
 	archs["armv6"] = 0
@@ -510,6 +506,24 @@ function setup_relations(	i, archs) {
 		ignore_wrap_col_[sprintf("BROKEN_%s", i)] = 1
 		leave_unsorted_[sprintf("IGNORE_%s", i)] = 1
 		ignore_wrap_col_[sprintf("IGNORE_%s", i)] = 1
+	}
+
+	opsys["FreeBSD_11"] = 0
+	opsys["FreeBSD_12"] = 0
+	opsys["FreeBSD_13"] = 0
+	opsys["DragonFly"] = 0
+	opsys["FreeBSD"] = 0
+	for (i in opsys) {
+		leave_unsorted_[sprintf("BROKEN_%s", i)] = 1
+		ignore_wrap_col_[sprintf("BROKEN_%s", i)] = 1
+		leave_unsorted_[sprintf("IGNORE_%s", i)] = 1
+		ignore_wrap_col_[sprintf("IGNORE_%s", i)] = 1
+		for (j in archs) {
+			leave_unsorted_[sprintf("BROKEN_%s_%s", i, j)] = 1
+			ignore_wrap_col_[sprintf("BROKEN_%s_%s", i, j)] = 1
+			leave_unsorted_[sprintf("IGNORE_%s_%s", i, j)] = 1
+			ignore_wrap_col_[sprintf("IGNORE_%s_%s", i, j)] = 1
+		}
 	}
 }
 
