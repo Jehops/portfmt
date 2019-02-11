@@ -24,13 +24,15 @@
 #
 set -eu
 
+PREFIX="/usr/local"
+
 usage() {
 	echo "usage: portfmt [-i] [-w wrapcol] [Makefile]" 1>&2
 	return 64
 }
 
 main() {
-	if ! command -v portfmt.awk >/dev/null; then
+	if ! [ -x "${PREFIX}/libexec/portfmt/portfmt.awk" ]; then
 		echo "portfmt: portfmt.awk: not found" 1>&2
 		exit 1
 	fi
@@ -52,7 +54,7 @@ main() {
 		usage
 	fi
 
-	exec portfmt.awk "$@"
+	exec "${PREFIX}/libexec/portfmt/portfmt.awk" "$@"
 }
 
 main "$@"
