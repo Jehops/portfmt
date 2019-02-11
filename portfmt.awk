@@ -105,7 +105,7 @@ function print_token_array(var, start, tokens, tokenslen, goalcol,	wrapcol, arr,
 			row = sprintf("%s %s", row, token)
 		}
 	}
-	if (row != "") {
+	if (row != "" && arrlen < tokenslen) {
 		arr[arrlen++] = row
 	}
 	print_newline_array(var, start, arr, arrlen, goalcol)
