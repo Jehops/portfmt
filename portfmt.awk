@@ -432,6 +432,7 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["_PATCHFILES2"] = 1
 	leave_unsorted_["_PKG_SEQ"] = 1
 	leave_unsorted_["_PORTS_DIRECTORIES"] = 1
+	leave_unsorted_["_PORTSEARCH"] = 1
 	leave_unsorted_["_PRETTY_PRINT_DEPENDS_LIST"] = 1
 	leave_unsorted_["_RANDOMIZE_SITES"] = 1
 	leave_unsorted_["_REALLY_ALL_POSSIBLE_OPTIONS"] = 1
@@ -477,8 +478,10 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["FETCH_LIST"] = 1
 	leave_unsorted_["FLAVORS"] = 1
 	leave_unsorted_["GH_TUPLE"] = 1
+	leave_unsorted_["HTMLIFY"] = 1
 	leave_unsorted_["IGNORE"] = 1
 	leave_unsorted_["IGNORECMD"] = 1
+	leave_unsorted_["IGNOREDIR"] = 1
 	leave_unsorted_["INSTALL_DATA"] = 1
 	leave_unsorted_["INSTALL_KLD"] = 1
 	leave_unsorted_["INSTALL_LIB"] = 1
