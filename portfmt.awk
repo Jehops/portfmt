@@ -506,14 +506,15 @@ function setup_relations(	i, j, archs, opsys) {
 	print_as_newlines_["CFLAGS"] = 1
 	print_as_newlines_["CMAKE_ARGS"] = 1
 	print_as_newlines_["CMAKE_BOOL"] = 1
+	print_as_newlines_["CO_ENV"] = 1
 	print_as_newlines_["CONFIGURE_ARGS"] = 1
 	print_as_newlines_["CONFIGURE_ENV"] = 1
 	print_as_newlines_["CONFIGURE_OFF"] = 1
 	print_as_newlines_["CONFIGURE_ON"] = 1
 	print_as_newlines_["CPPFLAGS"] = 1
 	print_as_newlines_["CXXFLAGS"] = 1
-	print_as_newlines_["DESKTOP_ENTRIES"] = 1
 	print_as_newlines_["D4P_ENV"] = 1
+	print_as_newlines_["DESKTOP_ENTRIES"] = 1
 	print_as_newlines_["DEV_ERROR"] = 1
 	print_as_newlines_["DEV_WARNING"] = 1
 	print_as_newlines_["DISTFILES"] = 1
@@ -531,8 +532,10 @@ function setup_relations(	i, j, archs, opsys) {
 	print_as_newlines_["OPTIONS_EXCLUDE"] = 1
 	print_as_newlines_["PATCH_DEPENDS"] = 1
 	print_as_newlines_["PKG_DEPENDS"] = 1
+	print_as_newlines_["PKG_ENV"] = 1
 	print_as_newlines_["PLIST_FILES"] = 1
 	print_as_newlines_["PLIST_SUB"] = 1
+	print_as_newlines_["QA_ENV"] = 1
 	print_as_newlines_["RUN_DEPENDS"] = 1
 	print_as_newlines_["SUB_LIST"] = 1
 	print_as_newlines_["TEST_ARGS"] = 1
