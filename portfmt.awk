@@ -758,6 +758,8 @@ function consume_var(line,	i, arrtemp, pos, token) {
 				i = consume_token($0, i, "\"", "\"", 1)
 			} else if (c == "'") {
 				i = consume_token($0, i, "'", "'", 1)
+			} else if (c == "`") {
+				i = consume_token($0, i, "`", "`", 1)
 			} else if (c == "$") {
 				dollar++
 			} else if (c == "#") {

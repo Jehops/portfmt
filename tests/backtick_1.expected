@@ -1,0 +1,1 @@
+CXXFLAGS+=	`pkgconf --cflags-only-other libcryptopp`
