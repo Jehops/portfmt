@@ -504,6 +504,7 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["RADIO_EOL"] = 1
 	leave_unsorted_["RANDOM_ARGS"] = 1
 	leave_unsorted_["RESTRICTED"] = 1
+	leave_unsorted_["RUBY_CONFIG"] = 1
 	leave_unsorted_["RUN-DEPENDS-LIST"] = 1
 	leave_unsorted_["SINGLE_EOL"] = 1
 	leave_unsorted_["TEST_TARGET"] = 1
