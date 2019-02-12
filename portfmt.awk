@@ -410,15 +410,21 @@ function setup_relations(	i, j, archs, opsys) {
 # instead.
 
 # Sanitize whitespace but do *not* sort tokens; more complicated patterns below
+
+	leave_unsorted_["_PORTS_DIRECTORIES"] = 1
+	leave_unsorted_["_UNSUPPORTED_SYSTEM_MESSAGE"] = 1
 	leave_unsorted_["ALL_TARGET"] = 1
 	leave_unsorted_["BROKEN"] = 1
 	leave_unsorted_["CARGO_CARGO_RUN"] = 1
 	leave_unsorted_["CARGO_CRATES"] = 1
 	leave_unsorted_["CARGO_FEATURES"] = 1
 	leave_unsorted_["CATEGORIES"] = 1
+	leave_unsorted_["CC"] = 1
 	leave_unsorted_["CFLAGS"] = 1
 	leave_unsorted_["COMMENT"] = 1
+	leave_unsorted_["CPP"] = 1
 	leave_unsorted_["CPPFLAGS"] = 1
+	leave_unsorted_["CXX"] = 1
 	leave_unsorted_["CXXFLAGS"] = 1
 	leave_unsorted_["DAEMONARGS"] = 1
 	leave_unsorted_["DEPRECATED"] = 1
