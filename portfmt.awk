@@ -666,7 +666,7 @@ maybe_in_target {
 
 /^#/ || /^\./ || in_target {
 	skip = 1
-	if ($0 ~ /\\$/) {
+	if ($0 ~ /\\$/ || $0 ~ /^\./) {
 		skip++
 	}
 }
@@ -800,7 +800,7 @@ skip {
 	} else {
 		empty_lines_after[empty_lines_after_len++] = $0;
 	}
-	if ($0 !~ /\\$/) {
+	if ($0 !~ /\\$/ && $0 !~ /^\./) {
 		skip--
 	}
 }
