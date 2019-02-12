@@ -642,28 +642,20 @@ function consume_token(line, pos, startchar, endchar, eol_ok,	start, i, c, count
 	}
 }
 
-!skip {
-	portfmt_no_skip()
-} function portfmt_no_skip(	i, c, arrtemp, dollar, start, token, pos) {
+function consume_var(line,	i, arrtemp, pos, token) {
 	if (match($0, /^[\$\{\}a-zA-Z0-9._\-+ ]+[+?:]?=/)) {
-		# Handle special lines like: VAR=xyz
-		if (split(substr($0, RSTART, RLENGTH), arrtemp, "=") > 1 && arrtemp[2] != "" && arrtemp[2] != "\\") {
-			token = arrtemp[2]
-			for (i = 3; i <= length(arrtemp); i++) {
-				if (arrtemp[i] != "" && arrtemp[i] != "\\") {
-					token = sprintf("%s=%s", token, arrtemp[i])
-				}
-			}
-			tokens[tokens_len++] = token
-		}
-		varname = arrtemp[1]
-
-		i = 2
+		varname = substr($0, RSTART, RLENGTH - 1)
 		pos = RLENGTH + 1
 	} else {
 		pos = 1
-		i = 1
 	}
+	return pos
+}
+
+!skip {
+	portfmt_no_skip()
+} function portfmt_no_skip(	i, c, dollar, start, token, pos) {
+	pos = consume_var($0)
 
 	if (pos >= length($0)) {
 		tokens[tokens_len++] = "<<<empty-value>>>"
