@@ -55,6 +55,12 @@ function repeat(s, n,	temp, i) {
 	return temp
 }
 
+function strip(s) {
+	gsub(/^[[:blank:]]*/, "", s)
+	gsub(/[[:blank:]]*$/, "", s)
+	return s
+}
+
 function print_newline_array(var, start, arr, arrlen, goalcol,	end, i, level, sep, line) {
 	# Handle variables with empty values
 	if (arrlen <= 2 && (arr[1] == "<<<empty-value>>>" || arr[1] == "")) {
@@ -676,9 +682,7 @@ function consume_var(line,	i, arrtemp, pos, token) {
 			}
 		} else {
 			if (c == " " || c == "\t") {
-				token = substr($0, start, i - start + 1)
-				gsub(/^[[:blank:]]*/, "", token)
-				gsub(/[[:blank:]]*$/, "", token)
+				token = strip(substr($0, start, i - start + 1))
 				if (token != "" && token != "\\") {
 					tokens[tokens_len++] = token
 				}
@@ -695,9 +699,7 @@ function consume_var(line,	i, arrtemp, pos, token) {
 				# with sorting tokens in variables.  We could add more
 				# special cases for this, but often having them at the top
 				# is just as good.
-				token = substr($0, i)
-				gsub(/^[[:blank:]]*/, "", token)
-				gsub(/[[:blank:]]*$/, "", token)
+				token = strip(substr($0, i))
 				if (token == "#" || token == "# empty") {
 					tokens[tokens_len++] = token
 				} else {
@@ -708,9 +710,7 @@ function consume_var(line,	i, arrtemp, pos, token) {
 			}
 		}
 	}
-	token = substr($0, start, i - start + 1)
-	gsub(/^[[:blank:]]*/, "", token)
-	gsub(/[[:blank:]]*$/, "", token)
+	token = strip(substr($0, start, i - start + 1))
 	if (token != "" && token != "\\") {
 		tokens[tokens_len++] = token
 	}
