@@ -645,7 +645,7 @@ maybe_in_target {
 
 /^#/ || /^\./ || /^[A-Z_]+!=/ || in_target {
 	skip = 1
-	if (substr($0, length($0)) == "\\") {
+	if ($0 ~ /\\$/) {
 		skip++
 	}
 }
@@ -768,7 +768,7 @@ skip {
 	} else {
 		empty_lines_after[empty_lines_after_len++] = $0;
 	}
-	if ($0 !~ /^[[:blank:]]+/) {
+	if ($0 !~ /\\$/) {
 		skip--
 	}
 }
