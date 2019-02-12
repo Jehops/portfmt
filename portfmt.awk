@@ -563,6 +563,8 @@ function setup_relations(	i, j, archs, opsys) {
 	print_as_newlines_["MAKE_ARGS"] = 1
 	print_as_newlines_["MAKE_ENV"] = 1
 	print_as_newlines_["MASTER_SITES"] = 1
+	print_as_newlines_["MASTER_SITES_ABBREVS"] = 1
+	print_as_newlines_["MASTER_SITES_SUBDIRS"] = 1
 	print_as_newlines_["MESON_ARGS"] = 1
 	print_as_newlines_["MOZ_OPTIONS"] = 1
 	print_as_newlines_["OPTIONS_EXCLUDE"] = 1
