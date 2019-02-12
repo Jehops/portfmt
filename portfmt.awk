@@ -516,6 +516,8 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["SINGLE_EOL"] = 1
 	leave_unsorted_["TEST_TARGET"] = 1
 	leave_unsorted_["TEST-DEPENDS-LIST"] = 1
+	leave_unsorted_["TEX_FORMAT_LUATEX"] = 1
+	leave_unsorted_["TEXHASHDIRS"] = 1
 
 # Don't indent with the rest of the variables in a paragraph
 	skip_goalcol_["CARGO_CRATES"] = 1
