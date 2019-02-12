@@ -175,6 +175,7 @@ function leave_unsorted(varname,	helper, var) {
 	}
 	var = strip_modifier(varname)
 	if (leave_unsorted_[var] ||
+	    varname ~ /!$/ ||
 	    var ~ /^LICENSE_NAME_[A-Z0-9._\-+ ]+$/ ||
 	    var ~ /^LICENSE_TEXT_[A-Z0-9._\-+ ]+$/) {
 		return 1
@@ -587,7 +588,7 @@ function reset() {
 }
 
 function strip_modifier(var) {
-	gsub(/[:?\+]$/, "", var)
+	gsub(/[:!?\+]$/, "", var)
 	return var
 }
 
@@ -631,7 +632,7 @@ function print_tokens(	i) {
 	reset()
 }
 
-/^[\$\{\}a-zA-Z0-9._\-+ ]+[+?:]?=/ {
+/^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/ {
 	print_tokens()
 }
 
@@ -695,7 +696,7 @@ function consume_token(line, pos, startchar, endchar, eol_ok,	start, i, c, count
 }
 
 function consume_var(line,	i, arrtemp, pos, token) {
-	if (match($0, /^[\$\{\}a-zA-Z0-9._\-+ ]+[+?:]?=/)) {
+	if (match($0, /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/)) {
 		varname = substr($0, RSTART, RLENGTH - 1)
 		pos = RLENGTH + 1
 	} else {
