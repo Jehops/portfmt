@@ -411,16 +411,38 @@ function setup_relations(	i, j, archs, opsys) {
 
 # Sanitize whitespace but do *not* sort tokens; more complicated patterns below
 
+	leave_unsorted_["_BUILD_SEQ"] = 1
+	leave_unsorted_["_CONFIGURE_SEQ"] = 1
+	leave_unsorted_["_DEPENDS-LIST"] = 1
+	leave_unsorted_["_EXTRACT_SEQ"] = 1
+	leave_unsorted_["_FETCH_SEQ"] = 1
+	leave_unsorted_["_FLAVOR_RECURSIVE_SH"] = 1
+	leave_unsorted_["_PACKAGE_SEQ"] = 1
+	leave_unsorted_["_PATCH_SEQ"] = 1
+	leave_unsorted_["_PKG_SEQ"] = 1
 	leave_unsorted_["_PORTS_DIRECTORIES"] = 1
+	leave_unsorted_["_PRETTY_PRINT_DEPENDS_LIST"] = 1
+	leave_unsorted_["_SANITY_SEQ"] = 1
+	leave_unsorted_["_STAGE_SEQ"] = 1
+	leave_unsorted_["_TARGETS_STAGES"] = 1
+	leave_unsorted_["_TARGETS"] = 1
+	leave_unsorted_["_TEST_SEQ"] = 1
+	leave_unsorted_["_tmp_seq"] = 1
+	leave_unsorted_["_UNIFIED_DEPENDS"] = 1
 	leave_unsorted_["_UNSUPPORTED_SYSTEM_MESSAGE"] = 1
 	leave_unsorted_["ALL_TARGET"] = 1
+	leave_unsorted_["ALL-DEPENDS-FLAVORS-LIST"] = 1
+	leave_unsorted_["ALL-DEPENDS-LIST"] = 1
 	leave_unsorted_["BROKEN"] = 1
+	leave_unsorted_["BUILD-DEPENDS-LIST"] = 1
 	leave_unsorted_["CARGO_CARGO_RUN"] = 1
 	leave_unsorted_["CARGO_CRATES"] = 1
 	leave_unsorted_["CARGO_FEATURES"] = 1
 	leave_unsorted_["CATEGORIES"] = 1
 	leave_unsorted_["CC"] = 1
 	leave_unsorted_["CFLAGS"] = 1
+	leave_unsorted_["CLEAN-DEPENDS-LIMITED-LIST"] = 1
+	leave_unsorted_["CLEAN-DEPENDS-LIST"] = 1
 	leave_unsorted_["COMMENT"] = 1
 	leave_unsorted_["CPP"] = 1
 	leave_unsorted_["CPPFLAGS"] = 1
@@ -430,23 +452,34 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["DEPRECATED"] = 1
 	leave_unsorted_["DESC"] = 1
 	leave_unsorted_["DESKTOP_ENTRIES"] = 1
+	leave_unsorted_["DO_MAKE_BUILD"] = 1
+	leave_unsorted_["DO_MAKE_TEST"] = 1
 	leave_unsorted_["EXPIRATION_DATE"] = 1
 	leave_unsorted_["EXTRACT_AFTER_ARGS"] = 1
 	leave_unsorted_["EXTRACT_BEFORE_ARGS"] = 1
 	leave_unsorted_["EXTRACT_CMD"] = 1
+	leave_unsorted_["FETCH_LIST"] = 1
 	leave_unsorted_["FLAVORS"] = 1
 	leave_unsorted_["GH_TUPLE"] = 1
 	leave_unsorted_["IGNORE"] = 1
+	leave_unsorted_["IGNORECMD"] = 1
 	leave_unsorted_["INSTALL_TARGET"] = 1
 	leave_unsorted_["LDFLAGS"] = 1
 	leave_unsorted_["LICENSE_NAME"] = 1
 	leave_unsorted_["LICENSE_TEXT"] = 1
 	leave_unsorted_["MAKE_JOBS_UNSAFE"] = 1
 	leave_unsorted_["MASTER_SITES"] = 1
+	leave_unsorted_["MASTER_SORT_AWK"] = 1
+	leave_unsorted_["MISSING-DEPENDS-LIST"] = 1
 	leave_unsorted_["MOZ_SED_ARGS"] = 1
 	leave_unsorted_["MOZCONFIG_SED"] = 1
+	leave_unsorted_["MULTI_EOL"] = 1
+	leave_unsorted_["RADIO_EOL"] = 1
 	leave_unsorted_["RESTRICTED"] = 1
+	leave_unsorted_["RUN-DEPENDS-LIST"] = 1
+	leave_unsorted_["SINGLE_EOL"] = 1
 	leave_unsorted_["TEST_TARGET"] = 1
+	leave_unsorted_["TEST-DEPENDS-LIST"] = 1
 
 # Don't indent with the rest of the variables in a paragraph
 	skip_goalcol_["CARGO_CRATES"] = 1
@@ -480,6 +513,7 @@ function setup_relations(	i, j, archs, opsys) {
 	print_as_newlines_["CPPFLAGS"] = 1
 	print_as_newlines_["CXXFLAGS"] = 1
 	print_as_newlines_["DESKTOP_ENTRIES"] = 1
+	print_as_newlines_["D4P_ENV"] = 1
 	print_as_newlines_["DEV_ERROR"] = 1
 	print_as_newlines_["DEV_WARNING"] = 1
 	print_as_newlines_["DISTFILES"] = 1
