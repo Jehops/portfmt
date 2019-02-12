@@ -178,8 +178,8 @@ function leave_unsorted(varname,	helper, var) {
 	    varname ~ /!$/ ||
 	    var ~ /_CMD$/ ||
 	    var ~ /FLAGS$/ ||
-	    var ~ /^LICENSE_NAME_[A-Z0-9._\-+ ]+$/ ||
-	    var ~ /^LICENSE_TEXT_[A-Z0-9._\-+ ]+$/) {
+	    var ~ /^_?LICENSE_NAME_[A-Za-z0-9._\-+ ]+$/ ||
+	    var ~ /^_?LICENSE_TEXT_[A-Za-z0-9._\-+ ]+$/) {
 		return 1
 	}
 	for (helper in options_helpers_) {
@@ -195,7 +195,8 @@ function ignore_wrap_col(varname,	var) {
 	if (ignore_wrap_col_[var]) {
 		return 1
 	}
-	if (var ~ /_DESC$/) {
+	if (var ~ /_DESC$/ ||
+	    var ~ /^_?LICENSE_NAME_[A-Za-z0-9._\-+ ]+$/) {
 		return 1
 	}
 	return 0
@@ -328,6 +329,7 @@ function setup_relations(	i, j, archs, opsys) {
 	license_perms_rel["no-pkg-sell"] = i++
 	license_perms_rel["auto-accept"] = i++
 	license_perms_rel["no-auto-accept"] = i++
+	license_perms_rel["none"] = i++
 
 	i = 0
 	use_qt_rel["3d"] = i++
@@ -420,6 +422,7 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["_EXTRACT_SEQ"] = 1
 	leave_unsorted_["_FETCH_SEQ"] = 1
 	leave_unsorted_["_FLAVOR_RECURSIVE_SH"] = 1
+	leave_unsorted_["_LICENSE_TEXT"] = 1
 	leave_unsorted_["_PACKAGE_SEQ"] = 1
 	leave_unsorted_["_PATCH_SEQ"] = 1
 	leave_unsorted_["_PATCHFILES"] = 1
@@ -805,7 +808,8 @@ skip {
 	}
 }
 
-/^LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
+/^_?LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
+/^_LICENSE_LIST_PERMS[+?:]?=/ ||
 /^LICENSE_PERMS[+?:]?=/ {
 	order = "license-perms"
 }
