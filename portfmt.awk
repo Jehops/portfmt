@@ -177,6 +177,8 @@ function leave_unsorted(varname,	helper, var) {
 	if (leave_unsorted_[var] ||
 	    varname ~ /!$/ ||
 	    var ~ /_CMD$/ ||
+	    var ~ /_ALT$/ ||
+	    var ~ /_REASON$/ ||
 	    var ~ /FLAGS$/ ||
 	    var ~ /^_?LICENSE_NAME_[A-Za-z0-9._\-+ ]+$/ ||
 	    var ~ /^_?LICENSE_TEXT_[A-Za-z0-9._\-+ ]+$/) {
@@ -444,7 +446,9 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["_tmp_seq"] = 1
 	leave_unsorted_["_UNIFIED_DEPENDS"] = 1
 	leave_unsorted_["_UNSUPPORTED_SYSTEM_MESSAGE"] = 1
+	leave_unsorted_["ALL_NOTNEEDED"] = 1
 	leave_unsorted_["ALL_TARGET"] = 1
+	leave_unsorted_["ALL_UNSUPPORTED"] = 1
 	leave_unsorted_["ALL-DEPENDS-FLAVORS-LIST"] = 1
 	leave_unsorted_["ALL-DEPENDS-LIST"] = 1
 	leave_unsorted_["BROKEN"] = 1
@@ -506,6 +510,9 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["RESTRICTED"] = 1
 	leave_unsorted_["RUBY_CONFIG"] = 1
 	leave_unsorted_["RUN-DEPENDS-LIST"] = 1
+	leave_unsorted_["SANITY_DEPRECATED"] = 1
+	leave_unsorted_["SANITY_NOTNEEDED"] = 1
+	leave_unsorted_["SANITY_UNSUPPORTED"] = 1
 	leave_unsorted_["SINGLE_EOL"] = 1
 	leave_unsorted_["TEST_TARGET"] = 1
 	leave_unsorted_["TEST-DEPENDS-LIST"] = 1
