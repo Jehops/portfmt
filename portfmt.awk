@@ -664,7 +664,7 @@ maybe_in_target {
 	maybe_in_target = 0
 }
 
-/^#/ || /^\./ || /^[A-Z_]+!=/ || in_target {
+/^#/ || /^\./ || in_target {
 	skip = 1
 	if ($0 ~ /\\$/) {
 		skip++
@@ -677,7 +677,7 @@ maybe_in_target {
 	maybe_in_target = 1
 }
 
-/^[\$\{\}A-Za-z0-9\._-]+:/ && !/:=/ {
+/^[\$\{\}A-Za-z0-9\/\._-]+:/ && !/:=/ {
 	skip = 1
 	in_target = 1
 }
