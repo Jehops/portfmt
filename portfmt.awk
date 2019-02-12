@@ -619,7 +619,7 @@ maybe_in_target {
 	maybe_in_target = 1
 }
 
-/^[A-Za-z0-9_-]+:/ && !/:=/ {
+/^[A-Za-z0-9\._-]+:/ && !/:=/ {
 	skip = 1
 	in_target = 1
 }

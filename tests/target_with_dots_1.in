@@ -1,0 +1,2 @@
+.BEGIN:
+	${ECHO_CMD} bla
