@@ -700,7 +700,7 @@ function consume_var(line,	i, arrtemp, pos, token) {
 				# special cases for this, but often having them at the top
 				# is just as good.
 				token = strip(substr($0, i))
-				if (token == "#" || token == "# empty") {
+				if (token == "#" || token == "# empty" || token == "#none" || token == "# none") {
 					tokens[tokens_len++] = token
 				} else {
 					empty_lines_before[empty_lines_before_len++] = token
