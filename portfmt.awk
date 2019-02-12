@@ -724,7 +724,7 @@ function consume_var(line,	i, arrtemp, pos, token) {
 
 !skip {
 	portfmt_no_skip()
-} function portfmt_no_skip(	i, c, dollar, start, token, pos) {
+} function portfmt_no_skip(	i, c, dollar, escape, pos, start, token) {
 	pos = consume_var($0)
 
 	if (pos >= length($0)) {
@@ -733,10 +733,17 @@ function consume_var(line,	i, arrtemp, pos, token) {
 	}
 
 	dollar = 0
+	escape = 0
 	start = pos
 	gsub(/\\$/, "", $0)
 	for (i = pos; i <= length($0); i++) {
 		c = substr($0, i, 1)
+		if (escape) {
+			escape = 0
+			if (c == "#" || c == "\\" || c == "$") {
+				continue
+			}
+		}
 		if (dollar) {
 			if (c == "{") {
 				i = consume_token($0, i, "{", "}", 0)
@@ -762,6 +769,8 @@ function consume_var(line,	i, arrtemp, pos, token) {
 				i = consume_token($0, i, "`", "`", 1)
 			} else if (c == "$") {
 				dollar++
+			} else if (c == "\\") {
+				escape = 1
 			} else if (c == "#") {
 				# Try to push end of line comments out of the way above
 				# the variable as a way to preserve them.  They clash badly
