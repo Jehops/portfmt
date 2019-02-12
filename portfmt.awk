@@ -582,7 +582,7 @@ function print_tokens(	i) {
 	reset()
 }
 
-/^[A-Za-z0-9_]+[?+:]?=/ {
+/^[\$\{\}a-zA-Z0-9._\-+ ]+[+?:]?=/ {
 	print_tokens()
 }
 
