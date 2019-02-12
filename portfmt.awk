@@ -683,7 +683,10 @@ function consume_var(line,	i, arrtemp, pos, token) {
 			if (c == "{") {
 				i = consume_token($0, i, "{", "}", 0)
 				dollar = 0
+			} else if (c == "$") {
+				dollar = 0
 			} else {
+				print $0
 				err(1, "tokenizer", sprintf("%i: expected {", NR))
 			}
 		} else {
