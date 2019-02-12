@@ -695,8 +695,15 @@ function consume_var(line,	i, arrtemp, pos, token) {
 				# with sorting tokens in variables.  We could add more
 				# special cases for this, but often having them at the top
 				# is just as good.
-				empty_lines_before[empty_lines_before_len++] = substr($0, i)
-				tokens[tokens_len++] = "<<<empty-value>>>"
+				token = substr($0, i)
+				gsub(/^[[:blank:]]*/, "", token)
+				gsub(/[[:blank:]]*$/, "", token)
+				if (token == "#" || token == "# empty") {
+					tokens[tokens_len++] = token
+				} else {
+					empty_lines_before[empty_lines_before_len++] = token
+					tokens[tokens_len++] = "<<<empty-value>>>"
+				}
 				return
 			}
 		}
