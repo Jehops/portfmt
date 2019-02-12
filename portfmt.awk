@@ -416,6 +416,7 @@ function setup_relations(	i, j, archs, opsys) {
 
 # Sanitize whitespace but do *not* sort tokens; more complicated patterns below
 
+	leave_unsorted_["_ALL_EXCLUDE"] = 1
 	leave_unsorted_["_BUILD_SEQ"] = 1
 	leave_unsorted_["_CONFIGURE_SEQ"] = 1
 	leave_unsorted_["_DEPENDS-LIST"] = 1
@@ -423,6 +424,8 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["_FETCH_SEQ"] = 1
 	leave_unsorted_["_FLAVOR_RECURSIVE_SH"] = 1
 	leave_unsorted_["_LICENSE_TEXT"] = 1
+	leave_unsorted_["_OPTIONS_DEPENDS"] = 1
+	leave_unsorted_["_OPTIONS_TARGETS"] = 1
 	leave_unsorted_["_PACKAGE_SEQ"] = 1
 	leave_unsorted_["_PATCH_SEQ"] = 1
 	leave_unsorted_["_PATCHFILES"] = 1
@@ -431,6 +434,7 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["_PORTS_DIRECTORIES"] = 1
 	leave_unsorted_["_PRETTY_PRINT_DEPENDS_LIST"] = 1
 	leave_unsorted_["_RANDOMIZE_SITES"] = 1
+	leave_unsorted_["_REALLY_ALL_POSSIBLE_OPTIONS"] = 1
 	leave_unsorted_["_SANITY_SEQ"] = 1
 	leave_unsorted_["_STAGE_SEQ"] = 1
 	leave_unsorted_["_TARGETS_STAGES"] = 1
