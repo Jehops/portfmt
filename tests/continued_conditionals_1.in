@@ -1,0 +1,4 @@
+.if defined(DESTDIR) && !empty(DESTDIR) && !defined(CHROOTED) && \
+	!defined(BEFOREPORTMK) && !defined(INOPTIONSMK) && \
+	!defined(BEFOREPORTMK) && !defined(INOPTIONSMK)
+.endif

@@ -611,6 +611,9 @@ maybe_in_target {
 
 /^#/ || /^\./ || /^[A-Z_]+!=/ || in_target {
 	skip = 1
+	if (substr($0, length($0)) == "\\") {
+		skip++
+	}
 }
 
 /^[ \t]*$/ { # empty line
@@ -731,7 +734,9 @@ skip {
 	} else {
 		empty_lines_after[empty_lines_after_len++] = $0;
 	}
-	skip = 0
+	if ($0 !~ /^[[:blank:]]+/) {
+		skip--
+	}
 }
 
 /^LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
