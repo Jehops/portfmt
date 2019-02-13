@@ -100,10 +100,11 @@ function print_token_array(var, start, tokens, tokenslen, goalcol,	wrapcol, arr,
 		if ((length(row) + length(token)) > wrapcol) {
 			if (row == "") {
 				arr[arrlen++] = token
+				continue
 			} else {
 				arr[arrlen++] = row
+				row = ""
 			}
-			row = ""
 		}
 		if (row == "") {
 			row = token
