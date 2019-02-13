@@ -682,37 +682,72 @@ function print_tokens(	i) {
 	reset()
 }
 
-/^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/ {
-	print_tokens()
-}
-
-# If we were in a target previously, but there was an empty line,
-# then we are actually still in the same target as before if the
-# current line begins with a tab.
-maybe_in_target && /^\t/ {
-	in_target = 1
-}
-
-maybe_in_target {
-	maybe_in_target = 0
-}
-
-/^#/ || /^\./ || in_target {
-	skip = 1
-	if ($0 ~ /\\$/ || $0 ~ /^\./) {
-		skip++
+{
+	parse_line($0)
+} function parse_line(line) {
+	if (line ~ /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/) {
+		print_tokens()
 	}
-}
 
-/^[ \t]*$/ { # empty line
-	skip = 1
-	in_target = 0
-	maybe_in_target = 1
-}
+	# If we were in a target previously, but there was an empty line,
+	# then we are actually still in the same target as before if the
+	# current line begins with a tab.
+	if (maybe_in_target && line ~ /^\t/) {
+		in_target = 1
+	}
 
-/^[\$\{\}A-Za-z0-9\/\._-]+:/ && !/:=/ {
-	skip = 1
-	in_target = 1
+	if (maybe_in_target) {
+		maybe_in_target = 0
+	}
+
+	if (line ~ /^#/ || line ~ /^\./ || in_target) {
+		skip = 1
+		if (line ~ /\\$/ || line ~ /^\./) {
+			skip++
+		}
+	}
+
+	# empty line
+	if (line ~ /^[ \t]*$/) {
+		skip = 1
+		in_target = 0
+		maybe_in_target = 1
+	}
+
+	if (line ~ /^[\$\{\}A-Za-z0-9\/\._-]+:/ && line !~ /:=/) {
+		skip = 1
+		in_target = 1
+	}
+
+	if (!skip) {
+		tokenize(line)
+	} else {
+		if (tokens_len == 1) {
+			empty_lines_before[empty_lines_before_len++] = line;
+		} else {
+			empty_lines_after[empty_lines_after_len++] = line;
+		}
+		if (line !~ /\\$/ && line !~ /^\./) {
+			skip--
+		}
+	}
+
+	if (line ~ /^_?LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
+	    line ~ /^_LICENSE_LIST_PERMS[+?:]?=/ ||
+	    line ~ /^LICENSE_PERMS[+?:]?=/) {
+		order = "license-perms"
+	}
+
+	if (line ~ /^[A-Z0-9_]+_PLIST_DIRS[+?:]?=/ ||
+	    line ~ /^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
+	    line ~ /^PLIST_DIRS[+?:]?=/ ||
+	    line ~ /^PLIST_FILES[+?:]?=/) {
+		order = "plist-files"
+	}
+
+	if (line ~ /^USE_QT[+?:]?=/) {
+		order = "use-qt"
+	}
 }
 
 function consume_token(line, pos, startchar, endchar, eol_ok,	escape, start, i, c, counter) {
@@ -764,12 +799,10 @@ function consume_var(line,	i, arrtemp, pos, token) {
 	return pos
 }
 
-!skip {
-	portfmt_no_skip()
-} function portfmt_no_skip(	i, c, dollar, escape, pos, start, token) {
-	pos = consume_var($0)
+function tokenize(line,	i, c, dollar, escape, pos, start, token) {
+	pos = consume_var(line)
 
-	if (pos >= length($0)) {
+	if (pos >= length(line)) {
 		tokens[tokens_len++] = "<<<empty-value>>>"
 		return
 	}
@@ -777,9 +810,9 @@ function consume_var(line,	i, arrtemp, pos, token) {
 	dollar = 0
 	escape = 0
 	start = pos
-	gsub(/\\$/, "", $0)
-	for (i = pos; i <= length($0); i++) {
-		c = substr($0, i, 1)
+	gsub(/\\$/, "", line)
+	for (i = pos; i <= length(line); i++) {
+		c = substr(line, i, 1)
 		if (escape) {
 			escape = 0
 			if (c == "#" || c == "\\" || c == "$") {
@@ -788,27 +821,27 @@ function consume_var(line,	i, arrtemp, pos, token) {
 		}
 		if (dollar) {
 			if (c == "{") {
-				i = consume_token($0, i, "{", "}", 0)
+				i = consume_token(line, i, "{", "}", 0)
 				dollar = 0
 			} else if (c == "$") {
 				dollar = 0
 			} else {
-				print $0
+				print line
 				err(1, "tokenizer", sprintf("%i: expected {", NR))
 			}
 		} else {
 			if (c == " " || c == "\t") {
-				token = strip(substr($0, start, i - start + 1))
+				token = strip(substr(line, start, i - start + 1))
 				if (token != "" && token != "\\") {
 					tokens[tokens_len++] = token
 				}
 				start = i
 			} else if (c == "\"") {
-				i = consume_token($0, i, "\"", "\"", 1)
+				i = consume_token(line, i, "\"", "\"", 1)
 			} else if (c == "'") {
-				i = consume_token($0, i, "'", "'", 1)
+				i = consume_token(line, i, "'", "'", 1)
 			} else if (c == "`") {
-				i = consume_token($0, i, "`", "`", 1)
+				i = consume_token(line, i, "`", "`", 1)
 			} else if (c == "$") {
 				dollar++
 			} else if (c == "\\") {
@@ -819,7 +852,7 @@ function consume_var(line,	i, arrtemp, pos, token) {
 				# with sorting tokens in variables.  We could add more
 				# special cases for this, but often having them at the top
 				# is just as good.
-				token = strip(substr($0, i))
+				token = strip(substr(line, i))
 				if (token == "#" || token == "# empty" || token == "#none" || token == "# none") {
 					tokens[tokens_len++] = token
 				} else {
@@ -830,38 +863,10 @@ function consume_var(line,	i, arrtemp, pos, token) {
 			}
 		}
 	}
-	token = strip(substr($0, start, i - start + 1))
+	token = strip(substr(line, start, i - start + 1))
 	if (token != "" && token != "\\") {
 		tokens[tokens_len++] = token
 	}
-}
-
-skip {
-	if (tokens_len == 1) {
-		empty_lines_before[empty_lines_before_len++] = $0;
-	} else {
-		empty_lines_after[empty_lines_after_len++] = $0;
-	}
-	if ($0 !~ /\\$/ && $0 !~ /^\./) {
-		skip--
-	}
-}
-
-/^_?LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
-/^_LICENSE_LIST_PERMS[+?:]?=/ ||
-/^LICENSE_PERMS[+?:]?=/ {
-	order = "license-perms"
-}
-
-/^[A-Z0-9_]+_PLIST_DIRS[+?:]?=/ ||
-/^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
-/^PLIST_DIRS[+?:]?=/ ||
-/^PLIST_FILES[+?:]?=/ {
-	order = "plist-files"
-}
-
-/^USE_QT[+?:]?=/ {
-	order = "use-qt"
 }
 
 function skip_goalcol(var) {
