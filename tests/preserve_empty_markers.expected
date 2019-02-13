@@ -1,4 +1,4 @@
 STRIP=		#
 MASTER_SITES=	# empty
 STRIP=		#none
-STRIP=		# none
+XSTRIP=		# none

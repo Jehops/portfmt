@@ -1,7 +1,7 @@
 #!/bin/sh
 set -u
 : ${AWK:=awk}
-PORTFMT="${AWK} -f ${PWD}/portfmt.awk"
+PORTFMT="${PWD}/portfmt"
 status=0
 cd tests
 : ${TESTS:=*.in}

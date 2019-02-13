@@ -1,0 +1,2 @@
+MAKE_ARGS=	INSTALL_STRIP_FLAG="${STRIP}" \
+		pkgconfigdir="${PREFIX}/libdata/pkgconfig"
