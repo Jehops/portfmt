@@ -180,6 +180,7 @@ function leave_unsorted(varname,	helper, var) {
 	    var ~ /_CMD$/ ||
 	    var ~ /_ALT$/ ||
 	    var ~ /_REASON$/ ||
+	    var ~ /_USE_GNOME_IMPL$/ ||
 	    var ~ /FLAGS$/ ||
 	    var ~ /^_?LICENSE_NAME_[A-Za-z0-9._\-+ ]+$/ ||
 	    var ~ /^_?LICENSE_TEXT_[A-Za-z0-9._\-+ ]+$/) {
@@ -508,6 +509,8 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["PATCH_DIST_ARGS"] = 1
 	leave_unsorted_["RADIO_EOL"] = 1
 	leave_unsorted_["RANDOM_ARGS"] = 1
+	leave_unsorted_["intlhack_PRE_PATCH"] = 1
+	leave_unsorted_["referencehack_PRE_PATCH"] = 1
 	leave_unsorted_["RESTRICTED"] = 1
 	leave_unsorted_["RUBY_CONFIG"] = 1
 	leave_unsorted_["RUN-DEPENDS-LIST"] = 1
@@ -705,11 +708,16 @@ maybe_in_target {
 	in_target = 1
 }
 
-function consume_token(line, pos, startchar, endchar, eol_ok,	start, i, c, counter) {
+function consume_token(line, pos, startchar, endchar, eol_ok,	escape, start, i, c, counter) {
 	start = pos
 	counter = 0
+	escape = 0
 	for (i = pos; i <= length(line); i++) {
 		c = substr(line, i, 1)
+		if (escape) {
+			escape = 0
+			continue
+		}
 		if (startchar == endchar) {
 			if (c == startchar) {
 				if (counter == 1) {
@@ -717,6 +725,8 @@ function consume_token(line, pos, startchar, endchar, eol_ok,	start, i, c, count
 				} else {
 					counter++
 				}
+			} else if (c == "\\") {
+				escape = 1
 			}
 		} else {
 			if (c == startchar) {
@@ -725,6 +735,8 @@ function consume_token(line, pos, startchar, endchar, eol_ok,	start, i, c, count
 				return i
 			} else if (c == endchar) {
 				counter--
+			} else if (c == "\\") {
+				escape = 1
 			}
 		}
 	}
