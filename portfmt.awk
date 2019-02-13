@@ -236,6 +236,14 @@ BEGIN {
 	}
 	setup_relations()
 	reset()
+
+	while (getline > 0) {
+		parse_line($0)
+	}
+
+	print_tokens()
+	final_output()
+	exit(0)
 }
 
 function setup_relations(	i, j, archs, opsys) {
@@ -681,9 +689,7 @@ function print_tokens(	i) {
 	reset()
 }
 
-{
-	parse_line($0)
-} function parse_line(line) {
+function parse_line(line) {
 	if (line ~ /^[[:blank:]]*$/) { # empty line
 		skip = 1
 		in_target = 0
@@ -946,9 +952,4 @@ function final_output(	goalcol, i, j, tokens, tokens_len, var) {
 			err(1, "Unhandled output type", output[i])
 		}
 	}
-}
-
-END {
-	print_tokens()
-	final_output()
 }
