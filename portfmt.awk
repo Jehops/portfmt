@@ -633,7 +633,6 @@ function reset() {
 	empty_lines_before_len = 1
 	empty_lines_after_len = 1
 	in_target = 0
-	maybe_in_target = 0
 	order = "default"
 }
 
@@ -685,43 +684,22 @@ function print_tokens(	i) {
 {
 	parse_line($0)
 } function parse_line(line) {
-	if (line ~ /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/) {
-		print_tokens()
-	}
-
-	# If we were in a target previously, but there was an empty line,
-	# then we are actually still in the same target as before if the
-	# current line begins with a tab.
-	if (maybe_in_target && line ~ /^\t/) {
+	if (line ~ /^[[:blank:]]*$/) { # empty line
+		skip = 1
+		in_target = 0
+	} else if (line ~ /^[\$\{\}A-Za-z0-9\/\._-]+:/ && line !~ /:=/) {
+		skip = 1
 		in_target = 1
-	}
-
-	if (maybe_in_target) {
-		maybe_in_target = 0
-	}
-
-	if (line ~ /^#/ || line ~ /^\./ || in_target) {
+	} else if (line ~ /^#/ || line ~ /^\./ || in_target) {
 		skip = 1
 		if (line ~ /\\$/ || line ~ /^\./) {
 			skip++
 		}
+	} else if (line ~ /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/) {
+		print_tokens()
 	}
 
-	# empty line
-	if (line ~ /^[ \t]*$/) {
-		skip = 1
-		in_target = 0
-		maybe_in_target = 1
-	}
-
-	if (line ~ /^[\$\{\}A-Za-z0-9\/\._-]+:/ && line !~ /:=/) {
-		skip = 1
-		in_target = 1
-	}
-
-	if (!skip) {
-		tokenize(line)
-	} else {
+	if (skip) {
 		if (tokens_len == 1) {
 			empty_lines_before[empty_lines_before_len++] = line;
 		} else {
@@ -730,7 +708,10 @@ function print_tokens(	i) {
 		if (line !~ /\\$/ && line !~ /^\./) {
 			skip--
 		}
+		return
 	}
+
+	tokenize(line)
 
 	if (line ~ /^_?LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
 	    line ~ /^_LICENSE_LIST_PERMS[+?:]?=/ ||
