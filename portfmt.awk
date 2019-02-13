@@ -497,6 +497,8 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["INSTALL_PROGRAM"] = 1
 	leave_unsorted_["INSTALL_SCRIPT"] = 1
 	leave_unsorted_["INSTALL_TARGET"] = 1
+	leave_unsorted_["intlhack_PRE_PATCH"] = 1
+	leave_unsorted_["LIBS"] = 1
 	leave_unsorted_["LICENSE_NAME"] = 1
 	leave_unsorted_["LICENSE_TEXT"] = 1
 	leave_unsorted_["MAKE_JOBS_UNSAFE"] = 1
@@ -511,7 +513,6 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["PATCH_DIST_ARGS"] = 1
 	leave_unsorted_["RADIO_EOL"] = 1
 	leave_unsorted_["RANDOM_ARGS"] = 1
-	leave_unsorted_["intlhack_PRE_PATCH"] = 1
 	leave_unsorted_["referencehack_PRE_PATCH"] = 1
 	leave_unsorted_["RESTRICTED"] = 1
 	leave_unsorted_["RUBY_CONFIG"] = 1
