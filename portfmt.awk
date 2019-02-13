@@ -424,6 +424,7 @@ function setup_relations(	i, j, archs, opsys) {
 
 	leave_unsorted_["_ALL_EXCLUDE"] = 1
 	leave_unsorted_["_BUILD_SEQ"] = 1
+	leave_unsorted_["_BUILD_SETUP"] = 1
 	leave_unsorted_["_CONFIGURE_SEQ"] = 1
 	leave_unsorted_["_DEPENDS-LIST"] = 1
 	leave_unsorted_["_EXTRACT_SEQ"] = 1
@@ -509,6 +510,7 @@ function setup_relations(	i, j, archs, opsys) {
 	leave_unsorted_["MOZCONFIG_SED"] = 1
 	leave_unsorted_["MTREE_ARGS"] = 1
 	leave_unsorted_["MULTI_EOL"] = 1
+	leave_unsorted_["NO_CCACHE"] = 1
 	leave_unsorted_["PATCH_ARGS"] = 1
 	leave_unsorted_["PATCH_DIST_ARGS"] = 1
 	leave_unsorted_["RADIO_EOL"] = 1
@@ -534,6 +536,7 @@ function setup_relations(	i, j, archs, opsys) {
 # Lines that are best not wrapped to 80 columns
 # especially don't wrap BROKEN and IGNORE with \ or it introduces
 # some spurious extra spaces when the message is displayed to users
+
 	ignore_wrap_col_["BROKEN"] = 1
 	ignore_wrap_col_["CARGO_CARGO_RUN"] = 1
 	ignore_wrap_col_["COMMENT"] = 1
@@ -543,6 +546,7 @@ function setup_relations(	i, j, archs, opsys) {
 	ignore_wrap_col_["GH_TUPLE"] = 1
 	ignore_wrap_col_["IGNORE"] = 1
 	ignore_wrap_col_["MASTER_SITES"] = 1
+	ignore_wrap_col_["NO_CCACHE"] = 1
 	ignore_wrap_col_["RESTRICTED"] = 1
 
 	print_as_newlines_["BUILD_DEPENDS"] = 1
