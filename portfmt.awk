@@ -635,14 +635,10 @@ function strip_modifier(var) {
 }
 
 function assign_variable(var) {
-	if (varname ~ /^LICENSE.*\+$/) { # e.g., LICENSE_FILE_GPLv3+ =, but not CFLAGS+=
-		return sprintf("%s =", varname)
-	} else {
-		return sprintf("%s=", var)
-	}
+	return sprintf("%s=", var)
 }
 
-function print_tokens(tokens, empty_lines_before, empty_lines_after, order,	i) {
+function print_tokens(varname, tokens, empty_lines_before, empty_lines_after, order,	i) {
 	output[++output_len] = "empty"
 	output[output_len, "length"] = empty_lines_before["length"] - 1
 	for (i = 1; i < empty_lines_before["length"]; i++) {
@@ -671,8 +667,7 @@ function print_tokens(tokens, empty_lines_before, empty_lines_after, order,	i) {
 	}
 }
 
-# TODO: still global: varname
-function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens, order) {
+function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens, order, varname) {
 	varname = "<<<unknown>>>"
 	tokens["length"] = 1
 	empty_lines_before["length"] = 1
@@ -694,7 +689,7 @@ function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens, 
 				skip++
 			}
 		} else if (line ~ /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/) {
-			print_tokens(tokens, empty_lines_before, empty_lines_after, order)
+			print_tokens(varname, tokens, empty_lines_before, empty_lines_after, order)
 			varname = "<<<unknown>>>"
 			tokens["length"] = 1
 			empty_lines_before["length"] = 1
@@ -715,7 +710,7 @@ function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens, 
 			continue
 		}
 
-		tokenize(line, tokens, empty_lines_before)
+		varname = tokenize(varname, line, tokens, empty_lines_before)
 
 		if (line ~ /^_?LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
 		    line ~ /^_LICENSE_LIST_PERMS[+?:]?=/ ||
@@ -735,7 +730,7 @@ function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens, 
 		}
 	}
 
-	print_tokens(tokens, empty_lines_before, empty_lines_after, order)
+	print_tokens(varname, tokens, empty_lines_before, empty_lines_after, order)
 	final_output()
 }
 
@@ -780,7 +775,6 @@ function consume_token(line, pos, startchar, endchar, eol_ok,	escape, start, i, 
 
 function consume_var(line,	i, arrtemp, pos, token) {
 	if (match($0, /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/)) {
-		varname = substr($0, RSTART, RLENGTH - 1)
 		pos = RLENGTH + 1
 	} else {
 		pos = 1
@@ -788,12 +782,15 @@ function consume_var(line,	i, arrtemp, pos, token) {
 	return pos
 }
 
-function tokenize(line,	tokens, empty_lines_before,	i, c, dollar, escape, pos, start, token) {
+function tokenize(varname, line,	tokens, empty_lines_before,	i, c, dollar, escape, pos, start, token) {
 	pos = consume_var(line)
+	if (pos != 1) {
+		varname = substr(line, 1, pos - 2)
+	}
 
 	if (pos >= length(line)) {
 		tokens[tokens["length"]++] = "<<<empty-value>>>"
-		return
+		return varname
 	}
 
 	dollar = 0
@@ -848,7 +845,7 @@ function tokenize(line,	tokens, empty_lines_before,	i, c, dollar, escape, pos, s
 					empty_lines_before[empty_lines_before["length"]++] = token
 					tokens[tokens["length"]++] = "<<<empty-value>>>"
 				}
-				return
+				return varname
 			}
 		}
 	}
@@ -856,6 +853,8 @@ function tokenize(line,	tokens, empty_lines_before,	i, c, dollar, escape, pos, s
 	if (token != "" && token != "\\") {
 		tokens[tokens["length"]++] = token
 	}
+
+	return varname
 }
 
 function skip_goalcol(var) {
