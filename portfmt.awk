@@ -86,7 +86,7 @@ function print_newline_array(var, start, arr, arrlen, goalcol,	end, i, level, se
 
 function print_token_array(var, start, tokens, tokenslen, goalcol,	wrapcol, arr, arrlen, row, i, token) {
 	if (ignore_wrap_col(var)) {
-		wrapcol = 10000
+		wrapcol = 99999999
 	} else {
 		wrapcol = WRAPCOL - goalcol
 	}
@@ -229,7 +229,9 @@ BEGIN {
 		UNSORTED = 0
 	}
 	WRAPCOL = ENVIRON["WRAPCOL"]
-	if (!WRAPCOL) {
+	if (WRAPCOL == -1) {
+		WRAPCOL = 99999999
+	} else if (!WRAPCOL) {
 		WRAPCOL = 80
 	}
 	setup_relations()
