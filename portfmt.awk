@@ -132,7 +132,7 @@ function greater_helper(rel, a, b,	ai, bi) {
 	}
 }
 
-function greater(a, b) {
+function greater(a, b, order) {
 	# Hack to treat something like ${PYTHON_PKGNAMEPREFIX} or
 	# ${RUST_DEFAULT} as if they were PYTHON_PKGNAMEPREFIX or
 	# RUST_DEFAULT for the sake of approximately sorting them
@@ -158,10 +158,10 @@ function greater(a, b) {
 
 # Case insensitive Bubble sort because it's super easy and we don't
 # need anything better here ;-)
-function sort_array(arr, arrlen,	i, j, temp) {
+function sort_array(arr, arrlen, order,	i, j, temp) {
 	for (i = 1; i < arrlen; i++) {
 		for (j = i + 1; j < arrlen; j++) {
-			if (greater(arr[i], arr[j])) {
+			if (greater(arr[i], arr[j], order)) {
 				temp = arr[j]
 				arr[j] = arr[i]
 				arr[i] = temp
@@ -642,7 +642,7 @@ function assign_variable(var) {
 	}
 }
 
-function print_tokens(tokens, empty_lines_before, empty_lines_after,	i) {
+function print_tokens(tokens, empty_lines_before, empty_lines_after, order,	i) {
 	output[++output_len] = "empty"
 	output[output_len, "length"] = empty_lines_before["length"] - 1
 	for (i = 1; i < empty_lines_before["length"]; i++) {
@@ -654,7 +654,7 @@ function print_tokens(tokens, empty_lines_before, empty_lines_after,	i) {
 	}
 
 	if (!leave_unsorted(varname)) {
-		sort_array(tokens, tokens["length"])
+		sort_array(tokens, tokens["length"], order)
 	}
 
 	output[++output_len] = "tokens"
@@ -671,8 +671,8 @@ function print_tokens(tokens, empty_lines_before, empty_lines_after,	i) {
 	}
 }
 
-# TODO: still global: order, varname
-function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens) {
+# TODO: still global: varname
+function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens, order) {
 	varname = "<<<unknown>>>"
 	tokens["length"] = 1
 	empty_lines_before["length"] = 1
@@ -694,7 +694,7 @@ function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens) 
 				skip++
 			}
 		} else if (line ~ /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/) {
-			print_tokens(tokens, empty_lines_before, empty_lines_after)
+			print_tokens(tokens, empty_lines_before, empty_lines_after, order)
 			varname = "<<<unknown>>>"
 			tokens["length"] = 1
 			empty_lines_before["length"] = 1
@@ -735,7 +735,7 @@ function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens) 
 		}
 	}
 
-	print_tokens(tokens, empty_lines_before, empty_lines_after)
+	print_tokens(tokens, empty_lines_before, empty_lines_after, order)
 	final_output()
 }
 
