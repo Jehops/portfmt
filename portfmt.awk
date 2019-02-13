@@ -235,14 +235,8 @@ BEGIN {
 		WRAPCOL = 80
 	}
 	setup_relations()
-	reset()
 
-	while (getline > 0) {
-		parse_line($0)
-	}
-
-	print_tokens()
-	final_output()
+	parse()
 	exit(0)
 }
 
@@ -635,15 +629,6 @@ function setup_relations(	i, j, archs, opsys) {
 	}
 }
 
-function reset() {
-	varname = "<<<unknown>>>"
-	tokens_len = 1
-	empty_lines_before_len = 1
-	empty_lines_after_len = 1
-	in_target = 0
-	order = "default"
-}
-
 function strip_modifier(var) {
 	gsub(/[:!?\+]$/, "", var)
 	return var
@@ -657,84 +642,101 @@ function assign_variable(var) {
 	}
 }
 
-function print_tokens(	i) {
+function print_tokens(tokens, empty_lines_before, empty_lines_after,	i) {
 	output[++output_len] = "empty"
-	output[output_len, "length"] = empty_lines_before_len - 1
-	for (i = 1; i < empty_lines_before_len; i++) {
+	output[output_len, "length"] = empty_lines_before["length"] - 1
+	for (i = 1; i < empty_lines_before["length"]; i++) {
 		output[output_len, i] = empty_lines_before[i]
 	}
 
-	if (tokens_len <= 1) {
-		reset()
+	if (tokens["length"] <= 1) {
 		return
 	}
 
 	if (!leave_unsorted(varname)) {
-		sort_array(tokens, tokens_len)
+		sort_array(tokens, tokens["length"])
 	}
 
 	output[++output_len] = "tokens"
 	output[output_len, "var"] = varname
-	output[output_len, "length"] = tokens_len
-	for (i = 1; i <= tokens_len; i++) {
+	output[output_len, "length"] = tokens["length"]
+	for (i = 1; i <= tokens["length"]; i++) {
 		output[output_len, i] = tokens[i]
 	}
 
 	output[++output_len] = "empty"
-	output[output_len, "length"] = empty_lines_after_len - 1
-	for (i = 1; i < empty_lines_after_len; i++) {
+	output[output_len, "length"] = empty_lines_after["length"] - 1
+	for (i = 1; i < empty_lines_after["length"]; i++) {
 		output[output_len, i] = empty_lines_after[i]
 	}
-
-	reset()
 }
 
-function parse_line(line) {
-	if (line ~ /^[[:blank:]]*$/) { # empty line
-		skip = 1
-		in_target = 0
-	} else if (line ~ /^[\$\{\}A-Za-z0-9\/\._-]+:/ && line !~ /:=/) {
-		skip = 1
-		in_target = 1
-	} else if (line ~ /^#/ || line ~ /^\./ || in_target) {
-		skip = 1
-		if (line ~ /\\$/ || line ~ /^\./) {
-			skip++
+# TODO: still global: order, varname
+function parse(	line, empty_lines_before, empty_lines_after, in_target, tokens) {
+	varname = "<<<unknown>>>"
+	tokens["length"] = 1
+	empty_lines_before["length"] = 1
+	empty_lines_after["length"] = 1
+	in_target = 0
+	order = "default"
+
+	while (getline > 0) {
+		line = $0
+		if (line ~ /^[[:blank:]]*$/) { # empty line
+			skip = 1
+			in_target = 0
+		} else if (line ~ /^[\$\{\}A-Za-z0-9\/\._-]+:/ && line !~ /:=/) {
+			skip = 1
+			in_target = 1
+		} else if (line ~ /^#/ || line ~ /^\./ || in_target) {
+			skip = 1
+			if (line ~ /\\$/ || line ~ /^\./) {
+				skip++
+			}
+		} else if (line ~ /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/) {
+			print_tokens(tokens, empty_lines_before, empty_lines_after)
+			varname = "<<<unknown>>>"
+			tokens["length"] = 1
+			empty_lines_before["length"] = 1
+			empty_lines_after["length"] = 1
+			in_target = 0
+			order = "default"
 		}
-	} else if (line ~ /^[\$\{\}a-zA-Z0-9._\-+ ]+[+!?:]?=/) {
-		print_tokens()
-	}
 
-	if (skip) {
-		if (tokens_len == 1) {
-			empty_lines_before[empty_lines_before_len++] = line;
-		} else {
-			empty_lines_after[empty_lines_after_len++] = line;
+		if (skip) {
+			if (tokens["length"] == 1) {
+				empty_lines_before[empty_lines_before["length"]++] = line;
+			} else {
+				empty_lines_after[empty_lines_after["length"]++] = line;
+			}
+			if (line !~ /\\$/ && line !~ /^\./) {
+				skip--
+			}
+			continue
 		}
-		if (line !~ /\\$/ && line !~ /^\./) {
-			skip--
+
+		tokenize(line, tokens, empty_lines_before)
+
+		if (line ~ /^_?LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
+		    line ~ /^_LICENSE_LIST_PERMS[+?:]?=/ ||
+		    line ~ /^LICENSE_PERMS[+?:]?=/) {
+			order = "license-perms"
 		}
-		return
+
+		if (line ~ /^[A-Z0-9_]+_PLIST_DIRS[+?:]?=/ ||
+		    line ~ /^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
+		    line ~ /^PLIST_DIRS[+?:]?=/ ||
+		    line ~ /^PLIST_FILES[+?:]?=/) {
+			order = "plist-files"
+		}
+
+		if (line ~ /^USE_QT[+?:]?=/) {
+			order = "use-qt"
+		}
 	}
 
-	tokenize(line)
-
-	if (line ~ /^_?LICENSE_PERMS_[A-Z0-9._\-+ ]+[+?:]?=/ ||
-	    line ~ /^_LICENSE_LIST_PERMS[+?:]?=/ ||
-	    line ~ /^LICENSE_PERMS[+?:]?=/) {
-		order = "license-perms"
-	}
-
-	if (line ~ /^[A-Z0-9_]+_PLIST_DIRS[+?:]?=/ ||
-	    line ~ /^[A-Z0-9_]+_PLIST_FILES[+?:]?=/ ||
-	    line ~ /^PLIST_DIRS[+?:]?=/ ||
-	    line ~ /^PLIST_FILES[+?:]?=/) {
-		order = "plist-files"
-	}
-
-	if (line ~ /^USE_QT[+?:]?=/) {
-		order = "use-qt"
-	}
+	print_tokens(tokens, empty_lines_before, empty_lines_after)
+	final_output()
 }
 
 function consume_token(line, pos, startchar, endchar, eol_ok,	escape, start, i, c, counter) {
@@ -786,11 +788,11 @@ function consume_var(line,	i, arrtemp, pos, token) {
 	return pos
 }
 
-function tokenize(line,	i, c, dollar, escape, pos, start, token) {
+function tokenize(line,	tokens, empty_lines_before,	i, c, dollar, escape, pos, start, token) {
 	pos = consume_var(line)
 
 	if (pos >= length(line)) {
-		tokens[tokens_len++] = "<<<empty-value>>>"
+		tokens[tokens["length"]++] = "<<<empty-value>>>"
 		return
 	}
 
@@ -820,7 +822,7 @@ function tokenize(line,	i, c, dollar, escape, pos, start, token) {
 			if (c == " " || c == "\t") {
 				token = strip(substr(line, start, i - start + 1))
 				if (token != "" && token != "\\") {
-					tokens[tokens_len++] = token
+					tokens[tokens["length"]++] = token
 				}
 				start = i
 			} else if (c == "\"") {
@@ -841,10 +843,10 @@ function tokenize(line,	i, c, dollar, escape, pos, start, token) {
 				# is just as good.
 				token = strip(substr(line, i))
 				if (token == "#" || token == "# empty" || token == "#none" || token == "# none") {
-					tokens[tokens_len++] = token
+					tokens[tokens["length"]++] = token
 				} else {
-					empty_lines_before[empty_lines_before_len++] = token
-					tokens[tokens_len++] = "<<<empty-value>>>"
+					empty_lines_before[empty_lines_before["length"]++] = token
+					tokens[tokens["length"]++] = "<<<empty-value>>>"
 				}
 				return
 			}
@@ -852,7 +854,7 @@ function tokenize(line,	i, c, dollar, escape, pos, start, token) {
 	}
 	token = strip(substr(line, start, i - start + 1))
 	if (token != "" && token != "\\") {
-		tokens[tokens_len++] = token
+		tokens[tokens["length"]++] = token
 	}
 }
 
