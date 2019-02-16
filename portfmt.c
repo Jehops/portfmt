@@ -635,7 +635,9 @@ main(int argc, char *argv[])
 			}
 		} else {
 			parser_tokenize(parser, buf);
-			assert(parser->varname != NULL);
+			if (parser->varname == NULL) {
+				errx(1, "parser error on line %zu", parser->lineno);
+			}
 		}
 
 		sbuf_delete(buf);
