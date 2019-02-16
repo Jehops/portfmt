@@ -36,11 +36,15 @@
 #if HAVE_SBUF
 # include <sys/sbuf.h>
 #endif
+#if HAVE_CAPSICUM
+# include <sys/capsicum.h>
+#endif
 #include <ctype.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
 #include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <regex.h>
 #include <stdio.h>
@@ -77,16 +81,17 @@ struct Parser {
 	struct sbuf **result;
 	size_t result_len;
 	size_t result_cap;
-	int fd_out;
 };
 
 static size_t consume_token(struct Parser *, struct sbuf *, size_t, char, char, int);
 static size_t consume_var(struct sbuf *);
-static struct Parser *parser_new(int fd_out);
+static struct Parser *parser_new(void);
 static void parser_append(struct Parser *, enum OutputType, struct sbuf *);
 static void parser_enqueue_output(struct Parser *, struct sbuf *s);
 static void parser_find_goalcols(struct Parser *);
-static void parser_output(struct Parser *);
+static void parser_generate_output(struct Parser *);
+static void parser_read(struct Parser *, const char *line);
+static void parser_write(struct Parser *, int fd_out);
 static void parser_reset(struct Parser *);
 static void parser_tokenize(struct Parser *, struct sbuf *);
 
@@ -155,7 +160,7 @@ consume_var(struct sbuf *buf)
 }
 
 struct Parser *
-parser_new(int fd_out)
+parser_new()
 {
 	struct Parser *parser = calloc(1, sizeof(struct Parser));
 	if (parser == NULL) {
@@ -169,7 +174,6 @@ parser_new(int fd_out)
 		return NULL;
 	}
 
-	parser->fd_out = fd_out;
 	parser_reset(parser);
 
 	return parser;
@@ -208,7 +212,6 @@ parser_enqueue_output(struct Parser *parser, struct sbuf *s)
 
 	parser->result[parser->result_len++] = s;
 	if (parser->result_len >= parser->result_cap) {
-		fprintf(stderr, "REALLOCED %zu %zu\n", parser->result_len, parser->result_cap);
 		size_t new_cap = parser->result_cap * 2;
 		assert(new_cap > parser->result_cap);
 		struct sbuf **new_result = reallocarray(
@@ -557,7 +560,7 @@ print_token_array(struct Parser *parser, struct Output **tokens, size_t tokensle
 }
 
 void
-parser_output(struct Parser *parser) {
+parser_generate_output(struct Parser *parser) {
 	static struct Output *arr[4096];
 
 	struct sbuf *last_var = NULL;
@@ -592,6 +595,9 @@ parser_output(struct Parser *parser) {
 				}
 				arrlen = 0;
 			}
+			parser_enqueue_output(parser, parser->output[i].data);
+			parser_enqueue_output(parser, sbuf_dupstr("\n"));
+			break;
 		case OUTPUT_INLINE_COMMENT:
 			parser_enqueue_output(parser, parser->output[i].data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
@@ -611,7 +617,48 @@ parser_output(struct Parser *parser) {
 			print_token_array(parser, arr, arrlen);
 		}
 	}
+}
 
+void
+parser_read(struct Parser *parser, const char *line)
+{
+	parser->lineno++;
+	struct sbuf *buf = sbuf_dupstr(line);
+	sbuf_trim(buf);
+	sbuf_finishx(buf);
+
+	if (matches(RE_EMPTY_LINE, buf, NULL)) {
+		parser->skip = 1;
+		parser->in_target = 0;
+	} else if (matches(RE_TARGET, buf, NULL) && !matches(RE_TARGET_2, buf, NULL)) {
+		parser->skip = 1;
+		parser->in_target = 1;
+	} else if (matches(RE_COMMENT, buf, NULL) || matches(RE_CONDITIONAL, buf, NULL) || parser->in_target) {
+		parser->skip = 1;
+		if (matches(RE_BACKSLASH_AT_END, buf, NULL) || matches(RE_CONDITIONAL, buf, NULL)) {
+			parser->skip++;
+		}
+	} else if (matches(RE_VAR, buf, NULL)) {
+		parser_reset(parser);
+	}
+
+	if (parser->skip) {
+		parser_append(parser, OUTPUT_COMMENT, buf);
+		if (!matches(RE_BACKSLASH_AT_END, buf, NULL) && !matches(RE_CONDITIONAL, buf, NULL)) {
+			parser->skip--;
+		}
+	} else {
+		parser_tokenize(parser, buf);
+		if (parser->varname == NULL) {
+			errx(1, "parser error on line %zu", parser->lineno);
+		}
+	}
+	sbuf_delete(buf);
+}
+
+void
+parser_write(struct Parser *parser, int fd)
+{
 	struct iovec *iov = reallocarray(NULL, parser->result_cap, sizeof(struct iovec));
 	if (iov == NULL) {
 		err(1, "reallocarray");
@@ -621,7 +668,7 @@ parser_output(struct Parser *parser) {
 		iov[i].iov_base = sbuf_data(s);
 		iov[i].iov_len = sbuf_len(s);
 	}
-	if (writev(parser->fd_out, iov, parser->result_len) < 0) {
+	if (writev(fd, iov, parser->result_len) < 0) {
 		err(1, "writev");
 	}
 
@@ -641,13 +688,13 @@ usage() {
 int
 main(int argc, char *argv[])
 {
-	int fd_out = STDOUT_FILENO;
 	int fd_in = STDIN_FILENO;
-
+	int fd_out = STDOUT_FILENO;
+	int iflag = 0;
 	while (getopt(argc, argv, "iuw:") != -1) {
 		switch (optopt) {
 		case 'i':
-			//iflag = 1;
+			iflag = 1;
 			break;
 		case 'u':
 			ALL_UNSORTED = 1;
@@ -666,9 +713,56 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
+	if (argc > 1) {
+		usage();
+	} else if (argc == 1) {
+		fd_in = open(argv[0], iflag ? O_RDWR : O_RDONLY);
+		if (fd_in < 0) {
+			err(1, "open");
+		}
+		if (iflag) {
+			fd_out = fd_in;
+		}
+	}
+
+
+#if HAVE_CAPSICUM
+	cap_rights_t rights;
+
+	if (iflag) {
+		cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_FTRUNCATE, CAP_SEEK);
+		/* fdopen */ cap_rights_set(&rights, CAP_FCNTL);
+		/* ??? */ cap_rights_set(&rights, CAP_FSTAT);
+		if (cap_rights_limit(fd_out, &rights) < 0 && errno != ENOSYS) {
+			err(1, "cap_rights_limit");
+		}
+	} else {
+		cap_rights_init(&rights, CAP_WRITE);
+		if (cap_rights_limit(fd_out, &rights) < 0 && errno != ENOSYS) {
+			err(1, "cap_rights_limit");
+		}
+
+		cap_rights_init(&rights, CAP_READ);
+		/* fdopen */ cap_rights_set(&rights, CAP_FCNTL);
+		/* ??? */ cap_rights_set(&rights, CAP_FSTAT);
+		if (cap_rights_limit(fd_in, &rights) < 0 && errno != ENOSYS) {
+			err(1, "cap_rights_limit");
+		}
+	}
+
+	cap_rights_init(&rights, CAP_WRITE);
+	if (cap_rights_limit(STDERR_FILENO, &rights) && errno != ENOSYS) {
+		err(1, "cap_rights_limit");
+	}
+
+	if (cap_enter() && errno != ENOSYS) {
+		err(1, "cap_enter");
+	}
+#endif
+
 	compile_regular_expressions();
 
-	struct Parser *parser = parser_new(fd_out);
+	struct Parser *parser = parser_new();
 	if (parser == NULL) {
 		err(1, "calloc");
 	}
@@ -681,43 +775,21 @@ main(int argc, char *argv[])
 		err(1, "fdopen");
 	}
 	while ((linelen = getline(&line, &linecap, fp)) > 0) {
-		parser->lineno++;
-		struct sbuf *buf = sbuf_dupstr(line);
-		sbuf_trim(buf);
-		sbuf_finishx(buf);
-
-		if (matches(RE_EMPTY_LINE, buf, NULL)) {
-			parser->skip = 1;
-			parser->in_target = 0;
-		} else if (matches(RE_TARGET, buf, NULL) && !matches(RE_TARGET_2, buf, NULL)) {
-			parser->skip = 1;
-			parser->in_target = 1;
-		} else if (matches(RE_COMMENT, buf, NULL) || matches(RE_CONDITIONAL, buf, NULL) || parser->in_target) {
-			parser->skip = 1;
-			if (matches(RE_BACKSLASH_AT_END, buf, NULL) || matches(RE_CONDITIONAL, buf, NULL)) {
-				parser->skip++;
-			}
-		} else if (matches(RE_VAR, buf, NULL)) {
-			parser_reset(parser);
-		}
-
-		if (parser->skip) {
-			parser_append(parser, OUTPUT_COMMENT, buf);
-			if (!matches(RE_BACKSLASH_AT_END, buf, NULL) && !matches(RE_CONDITIONAL, buf, NULL)) {
-				parser->skip--;
-			}
-		} else {
-			parser_tokenize(parser, buf);
-			if (parser->varname == NULL) {
-				errx(1, "parser error on line %zu", parser->lineno);
-			}
-		}
-
-		sbuf_delete(buf);
+		parser_read(parser, line);
 	}
 
 	parser_find_goalcols(parser);
-	parser_output(parser);
+	parser_generate_output(parser);
+
+	if (iflag) {
+		if (lseek(fd_out, 0, SEEK_SET) < 0) {
+			err(1, "lseek");
+		}
+		if (ftruncate(fd_out, 0) < 0) {
+			err(1, "ftruncate");
+		}
+	}
+	parser_write(parser, fd_out);
 
 	close(fd_out);
 	close(fd_in);
