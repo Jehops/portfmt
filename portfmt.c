@@ -99,9 +99,6 @@ static void print_token_array(struct Parser *, struct Array *);
 static int tokcompare(const void *, const void *);
 static void usage(void);
 
-static struct sbuf *assign_variable(struct sbuf *);
-static char *repeat(char c, size_t n);
-
 static int ALL_UNSORTED = 1;
 static int WRAPCOL = 80;
 
@@ -390,31 +387,6 @@ parser_find_goalcols(struct Parser *parser)
 	if (tokens_start != -1) {
 		parser_propagate_goalcol(parser, last, tokens_end, moving_goalcol);
 	}
-}
-
-char *
-repeat(char c, size_t n)
-{
-	static char buf[128];
-	assert (n <= sizeof(buf));
-	if (n > 0) {
-		for (size_t i = 0; i < n; i++) {
-			buf[i] = c;
-		}
-		buf[n] = '\0';
-	} else {
-		buf[0] = '\0';
-	}
-	return buf;
-}
-
-struct sbuf*
-assign_variable(struct sbuf *var)
-{
-	struct sbuf *r = sbuf_dup(var);
-	sbuf_putc(r, '=');
-	sbuf_finishx(r);
-	return r;
 }
 
 void

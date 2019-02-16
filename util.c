@@ -39,6 +39,22 @@
 
 #include "util.h"
 
+char *
+repeat(char c, size_t n)
+{
+	static char buf[128];
+	assert (n < sizeof(buf));
+	if (n > 0) {
+		for (size_t i = 0; i < n; i++) {
+			buf[i] = c;
+		}
+		buf[n] = '\0';
+	} else {
+		buf[0] = '\0';
+	}
+	return buf;
+}
+
 int
 sbuf_cmp(struct sbuf *a, struct sbuf *b)
 {

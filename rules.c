@@ -980,6 +980,15 @@ skip_goalcol(struct sbuf *varname) {
 	return 0;
 }
 
+struct sbuf*
+assign_variable(struct sbuf *var)
+{
+	struct sbuf *r = sbuf_dup(var);
+	sbuf_putc(r, '=');
+	sbuf_finishx(r);
+	return r;
+}
+
 struct sbuf *
 strip_modifier(struct sbuf *s)
 {

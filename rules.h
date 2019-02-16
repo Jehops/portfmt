@@ -54,6 +54,7 @@ enum RegularExpression {
 	//RE_VAR_SORT_HACK,
 };
 
+struct sbuf *assign_variable(struct sbuf *);
 int compare_license_perms(struct sbuf *, struct sbuf *);
 int compare_use_qt(struct sbuf *, struct sbuf *);
 void compile_regular_expressions(void);

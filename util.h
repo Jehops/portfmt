@@ -40,6 +40,8 @@
 #define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
 #endif
 
+char *repeat(char, size_t);
+
 int sbuf_cmp(struct sbuf *, struct sbuf *);
 int sbuf_strcmp(struct sbuf *, const char *);
 int sbuf_endswith(struct sbuf *, const char *);
