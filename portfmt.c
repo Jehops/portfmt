@@ -53,6 +53,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "array.h"
 #include "rules.h"
 #include "util.h"
 
@@ -74,13 +75,9 @@ struct Parser {
 	size_t lineno;
 	int skip;
 	struct sbuf *varname;
-	struct Output output[4096];
 
-	size_t output_length;
-
-	struct sbuf **result;
-	size_t result_len;
-	size_t result_cap;
+	struct Array *output;
+	struct Array *result;
 };
 
 static size_t consume_token(struct Parser *, struct sbuf *, size_t, char, char, int);
@@ -88,16 +85,17 @@ static size_t consume_var(struct sbuf *);
 static struct Parser *parser_new(void);
 static void parser_append(struct Parser *, enum OutputType, struct sbuf *);
 static void parser_enqueue_output(struct Parser *, struct sbuf *s);
+static struct Output *parser_get_output(struct Parser *, size_t i);
 static void parser_find_goalcols(struct Parser *);
 static void parser_generate_output(struct Parser *);
+static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, const char *line);
 static void parser_write(struct Parser *, int fd_out);
 static void parser_reset(struct Parser *);
 static void parser_tokenize(struct Parser *, struct sbuf *);
 
-static void print_newline_array(struct Parser *, struct Output **, size_t);
-static void print_token_array(struct Parser *, struct Output **, size_t);
-static void propagate_goalcol(struct Output *, size_t, size_t, int);
+static void print_newline_array(struct Parser *, struct Array *);
+static void print_token_array(struct Parser *, struct Array *);
 static int tokcompare(const void *, const void *);
 static void usage(void);
 
@@ -164,15 +162,11 @@ parser_new()
 {
 	struct Parser *parser = calloc(1, sizeof(struct Parser));
 	if (parser == NULL) {
-		return NULL;
+		err(1, "calloc");
 	}
 
-	parser->result_cap = 1024;
-	parser->result = reallocarray(NULL, parser->result_cap, sizeof(struct sbuf*));
-	if (parser->result == NULL) {
-		free(parser);
-		return NULL;
-	}
+	parser->result = array_new(sizeof(struct sbuf *));
+	parser->output = array_new(sizeof(struct Output *));
 
 	parser_reset(parser);
 
@@ -182,9 +176,6 @@ parser_new()
 void
 parser_append(struct Parser *parser, enum OutputType type, struct sbuf *v)
 {
-	if (parser->output_length >= sizeof(parser->output)) {
-		errx(1, "output array too small");
-	}
 	struct sbuf *var = NULL;
 	if (parser->varname) {
 		var = sbuf_dup(parser->varname);
@@ -195,33 +186,30 @@ parser_append(struct Parser *parser, enum OutputType type, struct sbuf *v)
 		data = sbuf_dup(v);
 		sbuf_finishx(data);
 	}
-	parser->output[parser->output_length++] = (struct Output){
-		type, data, var, 0
-	};
+	struct Output *o = malloc(sizeof(struct Output));
+	if (o == NULL) {
+		err(1, "malloc");
+	}
+	o->type = type;
+	o->data = data;
+	o->var = var;
+	o->goalcol = 0;
+	array_append(parser->output, o);
 }
 
 void
 parser_enqueue_output(struct Parser *parser, struct sbuf *s)
 {
-	assert(parser->result_cap > 0);
-	assert(parser->result_cap > parser->result_len);
-
 	if (!sbuf_done(s)) {
 		sbuf_finishx(s);
 	}
+	array_append(parser->result, s);
+}
 
-	parser->result[parser->result_len++] = s;
-	if (parser->result_len >= parser->result_cap) {
-		size_t new_cap = parser->result_cap * 2;
-		assert(new_cap > parser->result_cap);
-		struct sbuf **new_result = reallocarray(
-			parser->result, new_cap, sizeof(struct sbuf *));
-		if (new_result == NULL) {
-			err(1, "reallocarray");
-		}
-		parser->result = new_result;
-		parser->result_cap = new_cap;
-	}
+struct Output *
+parser_get_output(struct Parser *parser, size_t i)
+{
+	return array_get(parser->output, i);
 }
 
 void
@@ -344,12 +332,13 @@ parser_reset(struct Parser *parser)
 }
 
 void
-propagate_goalcol(struct Output *output, size_t start, size_t end, int moving_goalcol)
+parser_propagate_goalcol(struct Parser *parser, size_t start, size_t end, int moving_goalcol)
 {
 	moving_goalcol = MAX(16, moving_goalcol);
 	for (size_t k = start; k <= end; k++) {
-		if (output[k].var && !skip_goalcol(output[k].var)) {
-			output[k].goalcol = moving_goalcol;
+		struct Output *o = parser_get_output(parser, k);
+		if (o->var && !skip_goalcol(o->var)) {
+			o->goalcol = moving_goalcol;
 		}
 	}
 }
@@ -361,17 +350,18 @@ parser_find_goalcols(struct Parser *parser)
 	int last = 0;
 	ssize_t tokens_start = -1;
 	ssize_t tokens_end = -1;
-	for (size_t i = 0; i < parser->output_length; i++) {
-		switch(parser->output[i].type) {
+	for (size_t i = 0; i < array_len(parser->output); i++) {
+		struct Output *o = parser_get_output(parser, i);
+		switch(o->type) {
 		case OUTPUT_TOKENS:
 			if (tokens_start == -1) {
 				tokens_start = i;
 			}
 			tokens_end = i;
 
-			struct sbuf *var = parser->output[i].var;
+			struct sbuf *var = o->var;
 			if (var && skip_goalcol(var)) {
-				parser->output[i].goalcol = indent_goalcol(var);
+				o->goalcol = indent_goalcol(var);
 			} else {
 				moving_goalcol = MAX(indent_goalcol(var), moving_goalcol);
 			}
@@ -381,11 +371,11 @@ parser_find_goalcols(struct Parser *parser)
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
 			 */
-			if (matches(RE_COMMENT, parser->output[i].data, NULL)) {
+			if (matches(RE_COMMENT, o->data, NULL)) {
 				continue;
 			}
 			if (tokens_start != -1) {
-				propagate_goalcol(parser->output, last, tokens_end, moving_goalcol);
+				parser_propagate_goalcol(parser, last, tokens_end, moving_goalcol);
 				moving_goalcol = 0;
 				last = i;
 				tokens_start = -1;
@@ -394,11 +384,11 @@ parser_find_goalcols(struct Parser *parser)
 		case OUTPUT_INLINE_COMMENT:
 			break;
 		default:
-			errx(1, "Unhandled output type: %i", parser->output[i].type);
+			errx(1, "Unhandled output type: %i", o->type);
 		}
 	}
 	if (tokens_start != -1) {
-		propagate_goalcol(parser->output, last, tokens_end, moving_goalcol);
+		parser_propagate_goalcol(parser, last, tokens_end, moving_goalcol);
 	}
 }
 
@@ -427,37 +417,37 @@ assign_variable(struct sbuf *var)
 	return r;
 }
 
-
-
 void
-print_newline_array(struct Parser *parser, struct Output **arr, size_t arrlen) {
-	struct sbuf *start = assign_variable(arr[0]->var);
+print_newline_array(struct Parser *parser, struct Array *arr) {
+	struct Output *o = array_get(arr, 0);
+	struct sbuf *start = assign_variable(o->var);
 	/* Handle variables with empty values */
-	if (arrlen == 1 && (arr[0]->data == NULL || sbuf_len(arr[0]->data) == 0)) {
+	if (array_len(arr) == 1 && (o->data == NULL || sbuf_len(o->data) == 0)) {
 		parser_enqueue_output(parser, start);
 		parser_enqueue_output(parser, sbuf_dupstr("\n"));
 		return;
 	}
 
-	size_t ntabs = ceil((MAX(16, arr[0]->goalcol) - sbuf_len(start)) / 8.0);
+	size_t ntabs = ceil((MAX(16, o->goalcol) - sbuf_len(start)) / 8.0);
 	struct sbuf *sep = sbuf_dup(start);
 	sbuf_cat(sep, repeat('\t', ntabs));
 
 	struct sbuf *end = sbuf_dupstr(" \\\n");
 
-	for (size_t i = 0; i < arrlen; i++) {
-		struct sbuf *line = arr[i]->data;
+	for (size_t i = 0; i < array_len(arr); i++) {
+		struct Output *o = array_get(arr, i);
+		struct sbuf *line = o->data;
 		if (!line || sbuf_len(line) == 0) {
 			continue;
 		}
-		if (i == arrlen - 1) {
+		if (i == array_len(arr) - 1) {
 			end = sbuf_dupstr("\n");
 		}
 		parser_enqueue_output(parser, sep);
 		parser_enqueue_output(parser, line);
 		parser_enqueue_output(parser, end);
 		if (i == 0) {
-			ntabs = ceil(MAX(16, arr[i]->goalcol) / 8.0);
+			ntabs = ceil(MAX(16, o->goalcol) / 8.0);
 			sep = sbuf_dupstr(repeat('\t', ntabs));
 		}
 	}
@@ -499,42 +489,45 @@ tokcompare(const void *a, const void *b)
 }
 
 void
-print_token_array(struct Parser *parser, struct Output **tokens, size_t tokenslen) {
-	static struct Output *arr[4096] = {};
-
-	if (tokenslen < 2) {
-		print_newline_array(parser, tokens, tokenslen);
+print_token_array(struct Parser *parser, struct Array *tokens)
+{
+	if (array_len(tokens) < 2) {
+		print_newline_array(parser, tokens);
 		return;
 	}
 
-	struct sbuf *var = tokens[0]->var;
+	struct Array *arr = array_new(sizeof(struct Output *));
+	struct Output *o = array_get(tokens, 0);
+	struct sbuf *var = o->var;
 	int wrapcol;
 	if (ignore_wrap_col(var)) {
 		wrapcol = 99999999;
 	} else {
-		wrapcol = WRAPCOL - tokens[0]->goalcol;
+		wrapcol = WRAPCOL - o->goalcol;
 	}
 
 	struct sbuf *row = sbuf_dupstr(NULL);
 	sbuf_finishx(row);
 
-	size_t arrlen = 0;
 	struct Output *token;
-	for (size_t i = 0; i < tokenslen; i++) {
-		token = tokens[i];
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		token = array_get(tokens, i);
 		if (sbuf_len(token->data) == 0) {
 			continue;
 		}
 		if ((sbuf_len(row) + sbuf_len(token->data)) > wrapcol) {
 			if (sbuf_len(row) == 0) {
-				arr[arrlen++] = token;
+				array_append(arr, token);
 				continue;
 			} else {
 				struct Output *o = malloc(sizeof(struct Output));
+				if (o == NULL) {
+					err(1, "malloc");
+				}
 				o->data = row;
 				o->var = token->var;
 				o->goalcol = token->goalcol;
-				arr[arrlen++] = o;
+				array_append(arr, o);
 				row = sbuf_dupstr(NULL);
 				//sbuf_finishx(row);
 			}
@@ -549,74 +542,82 @@ print_token_array(struct Parser *parser, struct Output **tokens, size_t tokensle
 			row = s;
 		}
 	}
-	if (sbuf_len(row) > 0 && arrlen < tokenslen) {
+	if (sbuf_len(row) > 0 && array_len(arr) < array_len(tokens)) {
 		struct Output *o = malloc(sizeof(struct Output));
+		if (o == NULL) {
+			err(1, "malloc");
+		}
 		o->data = row;
 		o->var = token->var;
 		o->goalcol = token->goalcol;
-		arr[arrlen++] = o;
+		array_append(arr, o);
 	}
-	print_newline_array(parser, arr, arrlen);
+	print_newline_array(parser, arr);
+	free(arr);
 }
 
 void
 parser_generate_output(struct Parser *parser) {
-	static struct Output *arr[4096];
-
+	struct Array *arr = array_new(sizeof(struct Output *));
 	struct sbuf *last_var = NULL;
-	size_t arrlen = 0;
-	for (size_t i = 0; i < parser->output_length; i++) {
-		switch (parser->output[i].type) {
+	for (size_t i = 0; i < array_len(parser->output); i++) {
+		struct Output *o = array_get(parser->output, i);
+		switch (o->type) {
 		case OUTPUT_TOKENS:
-			if (last_var == NULL || sbuf_cmp(parser->output[i].var, last_var) != 0) {
-				if (arrlen > 0) {
-					if (!ALL_UNSORTED || !leave_unsorted(arr[0]->var)) {
-						qsort(&arr, arrlen, sizeof(struct Output *), tokcompare);
+			if (last_var == NULL || sbuf_cmp(o->var, last_var) != 0) {
+				if (array_len(arr) > 0) {
+					struct Output *arr0 = array_get(arr, 0);
+					if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
+						array_sort(arr, tokcompare);
 					}
-					if (print_as_newlines(arr[0]->var)) {
-						print_newline_array(parser, arr, arrlen);
+					if (print_as_newlines(arr0->var)) {
+						print_newline_array(parser, arr);
 					} else {
-						print_token_array(parser, arr, arrlen);
+						print_token_array(parser, arr);
 					}
-					arrlen = 0;
+					array_truncate(arr);
 				}
 			}
-			arr[arrlen++] = &parser->output[i];
+			array_append(arr, o);
 			break;
 		case OUTPUT_COMMENT:
-			if (arrlen > 0) {
-				if (!ALL_UNSORTED || !leave_unsorted(arr[0]->var)) {
-					qsort(&arr, arrlen, sizeof(struct Output *), tokcompare);
+			if (array_len(arr) > 0) {
+				struct Output *arr0 = array_get(arr, 0);
+				if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
+					array_sort(arr, tokcompare);
 				}
-				if (print_as_newlines(arr[0]->var)) {
-					print_newline_array(parser, arr, arrlen);
+				if (print_as_newlines(arr0->var)) {
+					print_newline_array(parser, arr);
 				} else {
-					print_token_array(parser, arr, arrlen);
+					print_token_array(parser, arr);
 				}
-				arrlen = 0;
+				array_truncate(arr);
 			}
-			parser_enqueue_output(parser, parser->output[i].data);
+			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
 		case OUTPUT_INLINE_COMMENT:
-			parser_enqueue_output(parser, parser->output[i].data);
+			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
 		default:
-			errx(1, "Unhandled output type: %i", parser->output[i].type);
+			errx(1, "Unhandled output type: %i", o->type);
 		}
-		last_var = parser->output[i].var;
+		last_var = o->var;
 	}
-	if (arrlen > 0) {
-		if (!ALL_UNSORTED || !leave_unsorted(arr[0]->var)) {
-			qsort(&arr, arrlen, sizeof(struct Output *), tokcompare);
+	if (array_len(arr) > 0) {
+		struct Output *arr0 = array_get(arr, 0);
+		if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
+			array_sort(arr, tokcompare);
 		}
-		if (print_as_newlines(arr[0]->var)) {
-			print_newline_array(parser, arr, arrlen);
+		if (print_as_newlines(arr0->var)) {
+			print_newline_array(parser, arr);
 		} else {
-			print_token_array(parser, arr, arrlen);
+			print_token_array(parser, arr);
 		}
 	}
+
+	free(arr);
 }
 
 void
@@ -659,24 +660,25 @@ parser_read(struct Parser *parser, const char *line)
 void
 parser_write(struct Parser *parser, int fd)
 {
-	struct iovec *iov = reallocarray(NULL, parser->result_cap, sizeof(struct iovec));
+	struct iovec *iov = reallocarray(NULL, array_len(parser->result),
+					 sizeof(struct iovec));
 	if (iov == NULL) {
 		err(1, "reallocarray");
 	}
-	for (size_t i = 0; i < parser->result_len; i++) {
-		struct sbuf *s = parser->result[i];
+	for (size_t i = 0; i < array_len(parser->result); i++) {
+		struct sbuf *s = array_get(parser->result, i);
 		iov[i].iov_base = sbuf_data(s);
 		iov[i].iov_len = sbuf_len(s);
 	}
-	if (writev(fd, iov, parser->result_len) < 0) {
+	if (writev(fd, iov, array_len(parser->result)) < 0) {
 		err(1, "writev");
 	}
 
 	/* Collect garbage */
-	for (size_t i = 0; i < parser->result_len; i++) {
-		sbuf_delete(parser->result[i]);
+	for (size_t i = 0; i < array_len(parser->result); i++) {
+		sbuf_delete((struct sbuf *)array_get(parser->result, i));
 	}
-	parser->result_len = 0;
+	array_truncate(parser->result);
 }
 
 void
@@ -724,7 +726,6 @@ main(int argc, char *argv[])
 			fd_out = fd_in;
 		}
 	}
-
 
 #if HAVE_CAPSICUM
 	cap_rights_t rights;

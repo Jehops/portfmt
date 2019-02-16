@@ -7,12 +7,13 @@ SED?=		sed
 CFLAGS+=	-std=c99
 LDADD+=		-lm
 
-OBJS=	compats.o portfmt.o rules.o util.o
+OBJS=	array.o compats.o portfmt.o rules.o util.o
 
 portfmt: ${OBJS}
 	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LDADD}
 
-portfmt.c: rules.h sbuf.h util.h
+array.c: array.h
+portfmt.c: array.h rules.h util.h
 rules.c: rules.h
 util.c: util.h
 
