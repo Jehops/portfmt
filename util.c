@@ -27,13 +27,16 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <ctype.h>
-#include <err.h>
+#if HAVE_ERR
+# include <err.h>
+#endif
 #include <string.h>
 #include <sys/param.h>
 
-#include "sbuf.h"
 #include "util.h"
 
 int
@@ -56,7 +59,7 @@ int
 sbuf_endswith(struct sbuf *s, const char *end)
 {
 	assert(sbuf_done(s));
-	size_t len = strlen(end);
+	ssize_t len = strlen(end);
 	if (sbuf_len(s) < len) {
 		return 0;
 	}
@@ -100,7 +103,8 @@ struct sbuf *
 sbuf_substr_dup(struct sbuf *s, size_t start, size_t end) {
 	assert(sbuf_done(s));
 	assert (start <= end);
-	end = MIN(sbuf_len(s), end);
+	assert (sbuf_len(s) >= 0);
+	end = MIN((size_t)sbuf_len(s), end);
 	struct sbuf *buf = sbuf_dupstr(NULL);
 	sbuf_bcat(buf, sbuf_data(s) + start, end - start);
 	return buf;

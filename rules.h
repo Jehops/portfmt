@@ -28,8 +28,13 @@
  */
 #pragma once
 
+#include "config.h"
+
+#if HAVE_SBUF
+# include <sys/types.h>
+# include <sys/sbuf.h>
+#endif
 #include <regex.h>
-#include "sbuf.h"
 
 enum RegularExpression {
 	RE_BACKSLASH_AT_END = 0,

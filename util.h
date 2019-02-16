@@ -28,7 +28,17 @@
  */
 #pragma once
 
-#include "sbuf.h"
+#include "config.h"
+
+#include <sys/param.h>
+#include <sys/types.h>
+#if HAVE_SBUF
+# include <sys/sbuf.h>
+#endif
+
+#ifndef nitems
+#define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
+#endif
 
 int sbuf_cmp(struct sbuf *, struct sbuf *);
 int sbuf_strcmp(struct sbuf *, const char *);

@@ -27,11 +27,18 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <sys/param.h>
 #include <sys/types.h>
+#if HAVE_SBUF
+# include <sys/sbuf.h>
+#endif
 #include <ctype.h>
-#include <err.h>
+#if HAVE_ERR
+# include <err.h>
+#endif
 #include <errno.h>
 #include <math.h>
 #include <regex.h>
@@ -74,6 +81,15 @@ static void parser_output(struct Parser *);
 static void parser_reset(struct Parser *);
 static void parser_tokenize(struct Parser *, struct sbuf *);
 
+static void print_newline_array(struct Output **, size_t);
+static void print_token_array(struct Output **, size_t);
+static void propagate_goalcol(struct Output *, size_t, size_t, int);
+static int tokcompare(const void *, const void *);
+static void usage(void);
+
+static struct sbuf *assign_variable(struct sbuf *);
+static char *repeat(char c, size_t n);
+
 static int ALL_UNSORTED = 1;
 static int WRAPCOL = 80;
 
@@ -82,7 +98,7 @@ consume_token(struct Parser *parser, struct sbuf *line, size_t pos, char startch
 	char *linep = sbuf_data(line);
 	int counter = 0;
 	int escape = 0;
-	size_t i = pos;
+	ssize_t i = pos;
 	for (; i <= sbuf_len(line); i++) {
 		char c = linep[i];
 		if (escape) {
@@ -153,7 +169,7 @@ parser_append(struct Parser *parser, enum OutputType type, struct sbuf *v)
 void
 parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 	struct sbuf *line = sub(RE_BACKSLASH_AT_END, NULL, buf);
-	size_t pos = consume_var(line);
+	ssize_t pos = consume_var(line);
 	if (pos != 0) {
 		if (pos > sbuf_len(line)) {
 			errx(1, "parser->varname too small");
@@ -167,10 +183,10 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 
 	int dollar = 0;
 	int escape = 0;
-	size_t start = pos;
+	ssize_t start = pos;
 	char *linep = sbuf_data(line);
 	struct sbuf *token = NULL;
-	size_t i = pos;
+	ssize_t i = pos;
 	for (; i < sbuf_len(line); i++) {
 		assert(i >= start);
 		char c = linep[i];
@@ -285,8 +301,8 @@ parser_find_goalcols(struct Parser *parser)
 {
 	int moving_goalcol = 0;
 	int last = 0;
-	size_t tokens_start = -1;
-	size_t tokens_end = -1;
+	ssize_t tokens_start = -1;
+	ssize_t tokens_end = -1;
 	for (size_t i = 0; i < parser->output_length; i++) {
 		switch(parser->output[i].type) {
 		case OUTPUT_TOKENS:

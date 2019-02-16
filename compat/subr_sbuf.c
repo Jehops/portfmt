@@ -29,7 +29,6 @@
  */
 
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 #include <sys/param.h>
 
@@ -63,6 +62,10 @@ static MALLOC_DEFINE(M_SBUF, "sbuf", "string buffers");
 #define	SBMALLOC(size)		calloc(1, size)
 #define	SBFREE(buf)		free(buf)
 #endif /* _KERNEL */
+
+#ifndef roundup2
+#define roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
+#endif
 
 /*
  * Predicates

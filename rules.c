@@ -27,9 +27,14 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/param.h>
-#include <err.h>
+#if HAVE_ERR
+# include <err.h>
+#endif
 #include <math.h>
+#include <regex.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -44,31 +49,31 @@ static struct {
 	int flags;
 	regex_t re;
 } regular_expressions[] = {
-	[RE_BACKSLASH_AT_END] = { "\\\\$", 				      REG_BASIC },
-	[RE_COMMENT] 	      = { "^#", 				      REG_BASIC },
-	[RE_CONDITIONAL]      = { "^\\.", 				      REG_BASIC },
-	[RE_EMPTY_LINE]       = { "^[[:blank:]]*$", 			      REG_BASIC },
+	[RE_BACKSLASH_AT_END] = { "\\\\$", 				      0, {} },
+	[RE_COMMENT] 	      = { "^#", 				      0, {} },
+	[RE_CONDITIONAL]      = { "^\\.", 				      0, {} },
+	[RE_EMPTY_LINE]       = { "^[[:blank:]]*$", 			      0, {} },
 	[RE_LICENSE_NAME]     = { "^(_?(-|LICENSE_NAME_[A-Za-z0-9._+ ])+|"
 				  "^LICENSE_(FILE|NAME)_|"
 				  "_?(-|LICENSE_TEXT_[A-Za-z0-9._+ ])+$)",
-				  REG_EXTENDED },
+				  REG_EXTENDED, {} },
 	[RE_LICENSE_PERMS]    = { "^(_?LICENSE_PERMS_(-|[A-Z0-9\\._+ ])+[+?:]?|"
 				  "_LICENSE_LIST_PERMS[+?:]?|"
 				  "LICENSE_PERMS[+?:]?)",
-				  REG_EXTENDED },
-	[RE_OPTIONS_HELPER]   = { "generated in compile_regular_expressions", REG_EXTENDED },
+				  REG_EXTENDED, {} },
+	[RE_OPTIONS_HELPER]   = { "generated in compile_regular_expressions", REG_EXTENDED, {} },
 	[RE_PLIST_FILES]      = { "^([A-Z0-9_]+_PLIST_DIRS[+?:]?|"
 				  "[A-Z0-9_]+_PLIST_FILES[+?:]?|"
 				  "PLIST_FILES[+?:]?|"
 				  "PLIST_DIRS[+?:]?)",
-				  REG_EXTENDED },
-	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED },
-	[RE_STRIP_MODIFIER]   = { "[:!?\\+]$", 				      REG_EXTENDED },
-	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+:", 	      REG_EXTENDED },
-	[RE_TARGET_2] 	      = { ":=", 				      REG_BASIC },
-	[RE_USE_QT]	      = { "^USE_QT[+?:]?=",			      REG_EXTENDED },
-	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[+!?:]?=", REG_EXTENDED },
-	//[RE_VAR_SORT_HACK]    = { "[\$\{\}]",				      REG_BASIC },
+				  REG_EXTENDED, {} },
+	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
+	[RE_STRIP_MODIFIER]   = { "[:!?\\+]$", 				      REG_EXTENDED, {} },
+	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+:", 	      REG_EXTENDED, {} },
+	[RE_TARGET_2] 	      = { ":=", 				      0, {} },
+	[RE_USE_QT]	      = { "^USE_QT[+?:]?=",			      REG_EXTENDED, {} },
+	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[+!?:]?=", REG_EXTENDED, {} },
+	//[RE_VAR_SORT_HACK]    = { "[\$\{\}]",				      0, {} },
 };
 
 static const char *print_as_newlines_[] = {
@@ -984,9 +989,9 @@ strip_modifier(struct sbuf *s)
 static int
 compare_rel(const char *rel[], size_t rellen, struct sbuf *a, struct sbuf *b)
 {
-	int ai = -1;
-	int bi = -1;
-	for (int i = 0; i < rellen; i++) {
+	ssize_t ai = -1;
+	ssize_t bi = -1;
+	for (size_t i = 0; i < rellen; i++) {
 		if (ai == -1 && strcmp(sbuf_data(a), rel[i]) == 0) {
 			ai = i;
 		}

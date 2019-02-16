@@ -1,45 +1,39 @@
-PREFIX?=	/usr/local
-MANDIR?=	${PREFIX}/man
+include Makefile.configure
 
-BSD_INSTALL_MAN?=	install -m 444
-BSD_INSTALL_SCRIPT?=	install -m 555
-LLVM_PREFIX?=		/usr/local/llvm80
-MKDIR?=			mkdir -p
-SED?=			sed
+LLVM_PREFIX?=	/usr/local/llvm80
+MKDIR?=		mkdir -p
+SED?=		sed
 
-CFLAGS+=	-Wall -std=c99
-LIBS+=		-lm
+CFLAGS+=	-std=c99
+LDADD+=		-lm
 
-OBJS=		portfmt.o rules.o subr_sbuf.o util.o
+OBJS=	compats.o portfmt.o rules.o util.o
 
 portfmt: ${OBJS}
-	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LIBS}
+	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LDADD}
 
 portfmt.c: rules.h sbuf.h util.h
 rules.c: rules.h
-rules.h: sbuf.h
-subr_sbuf.c: sbuf.h
 util.c: util.h
-util.h: sbuf.h
 
 install:
 	${MKDIR} ${DESTDIR}${PREFIX}/bin \
 		${DESTDIR}${PREFIX}/libexec/portfmt \
 		${DESTDIR}${MANDIR}/man1
-	${BSD_INSTALL_MAN} portfmt.1 ${DESTDIR}${MANDIR}/man1
-	${BSD_INSTALL_SCRIPT} portfmt ${DESTDIR}${PREFIX}/bin
-	${BSD_INSTALL_SCRIPT} portfmt.awk ${DESTDIR}${PREFIX}/libexec/portfmt
+	${INSTALL_MAN} portfmt.1 ${DESTDIR}${MANDIR}/man1
+	${INSTALL_SCRIPT} portfmt ${DESTDIR}${PREFIX}/bin
+	${INSTALL_SCRIPT} portfmt.awk ${DESTDIR}${PREFIX}/libexec/portfmt
 	if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
 		${SED} -i '' 's,/usr/local,${PREFIX},' ${DESTDIR}${PREFIX}/bin/portfmt; \
 	fi
 
 install-symlinks:
-	@${MAKE} BSD_INSTALL_MAN="install -l as" \
-		BSD_INSTALL_SCRIPT="install -l as" \
+	@${MAKE} INSTALL_MAN="install -l as" \
+		INSTALL_SCRIPT="install -l as" \
 		install
 
 clean:
-	@rm -f ${OBJS} portfmt
+	@rm -f ${OBJS} portfmt config.*.old
 
 debug:
 	@${MAKE} CC=${LLVM_PREFIX}/bin/clang \

@@ -33,7 +33,8 @@
 #ifndef _SYS_SBUF_H_
 #define	_SYS_SBUF_H_
 
-#include <sys/_types.h>
+#include <sys/types.h>
+#include <stdio.h>
 
 struct sbuf;
 typedef int (sbuf_drain_func)(void *, const char *, int);
@@ -86,10 +87,8 @@ int		 sbuf_bcat(struct sbuf *, const void *, size_t);
 int		 sbuf_bcpy(struct sbuf *, const void *, size_t);
 int		 sbuf_cat(struct sbuf *, const char *);
 int		 sbuf_cpy(struct sbuf *, const char *);
-int		 sbuf_printf(struct sbuf *, const char *, ...)
-	__printflike(2, 3);
-int		 sbuf_vprintf(struct sbuf *, const char *, __va_list)
-	__printflike(2, 0);
+int		 sbuf_printf(struct sbuf *, const char *, ...);
+int		 sbuf_vprintf(struct sbuf *, const char *, va_list);
 int		 sbuf_putc(struct sbuf *, int);
 void		 sbuf_set_drain(struct sbuf *, sbuf_drain_func *, void *);
 int		 sbuf_trim(struct sbuf *);
@@ -101,8 +100,7 @@ int		 sbuf_done(const struct sbuf *);
 void		 sbuf_delete(struct sbuf *);
 void		 sbuf_start_section(struct sbuf *, ssize_t *);
 ssize_t		 sbuf_end_section(struct sbuf *, ssize_t, size_t, int);
-void		 sbuf_hexdump(struct sbuf *, const void *, int, const char *,
-		     int);
+void		 sbuf_hexdump(struct sbuf *, const void *, int, const char *, int);
 void		 sbuf_putbuf(struct sbuf *);
 
 #ifdef _KERNEL
