@@ -437,24 +437,10 @@ tokcompare(const void *a, const void *b)
 {
 	struct Output *ao = *(struct Output**)a;
 	struct Output *bo = *(struct Output**)b;
-
-	if (sbuf_strcmp(ao->var->name, "USE_QT") == 0 &&
-	    sbuf_strcmp(bo->var->name, "USE_QT") == 0) {
-		return compare_use_qt(ao->data, bo->data);
-	} else if (matches(RE_LICENSE_PERMS, ao->var->name, NULL) &&
-		   matches(RE_LICENSE_PERMS, bo->var->name, NULL)) {
-		return compare_license_perms(ao->data, bo->data);
-	} else if (matches(RE_PLIST_FILES, ao->var->name, NULL) &&
-		   matches(RE_PLIST_FILES, bo->var->name, NULL)) {
-		/* Ignore plist keywords */
-		struct sbuf *as = sub(RE_PLIST_KEYWORDS, "", ao->data);
-		struct sbuf *bs = sub(RE_PLIST_KEYWORDS, "", bo->data);
-		int retval = strcasecmp(sbuf_data(as), sbuf_data(bs));
-		sbuf_delete(as);
-		sbuf_delete(bs);
-		return retval;
+	if (sbuf_cmp(ao->var->name, bo->var->name) == 0) {
+		return compare_tokens(ao->var, ao->data, bo->data);
 	}
-
+	return strcasecmp(sbuf_data(ao->data), sbuf_data(bo->data));
 #if 0
 	# Hack to treat something like ${PYTHON_PKGNAMEPREFIX} or
 	# ${RUST_DEFAULT} as if they were PYTHON_PKGNAMEPREFIX or
@@ -463,8 +449,6 @@ tokcompare(const void *a, const void *b)
 	gsub(/[\$\{\}]/, "", a)
 	gsub(/[\$\{\}]/, "", b)
 #endif
-
-	return strcasecmp(sbuf_data(ao->data), sbuf_data(bo->data));
 }
 
 void

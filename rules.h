@@ -59,8 +59,7 @@ struct Variable {
 	struct sbuf *modifier;
 };
 
-int compare_license_perms(struct sbuf *, struct sbuf *);
-int compare_use_qt(struct sbuf *, struct sbuf *);
+int compare_tokens(struct Variable *, struct sbuf *, struct sbuf *);
 void compile_regular_expressions(void);
 int ignore_wrap_col(struct Variable *);
 int indent_goalcol(struct Variable *);

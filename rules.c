@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <sys/param.h>
+#include <assert.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -42,6 +43,9 @@
 #include "util.h"
 
 static int compare_rel(const char *[], size_t, struct sbuf *, struct sbuf *);
+static int compare_license_perms(struct Variable *, struct sbuf *, struct sbuf *, int *);
+static int compare_plist_files(struct Variable *, struct sbuf *, struct sbuf *, int *);
+static int compare_use_qt(struct Variable *, struct sbuf *, struct sbuf *, int *);
 static struct sbuf *options_helpers_pattern(void);
 
 static struct {
@@ -990,13 +994,61 @@ compare_rel(const char *rel[], size_t rellen, struct sbuf *a, struct sbuf *b)
 }
 
 int
-compare_license_perms(struct sbuf *a, struct sbuf *b) {
-	return compare_rel(license_perms_rel, nitems(license_perms_rel), a, b);
+compare_tokens(struct Variable *var, struct sbuf *a, struct sbuf *b)
+{
+	int result;
+	if (compare_license_perms(var, a, b, &result) ||
+	    compare_plist_files(var, a, b, &result) ||
+	    compare_use_qt(var, a, b, &result)) {
+		return result;
+	}
+
+	return strcasecmp(sbuf_data(a), sbuf_data(b));
 }
 
 int
-compare_use_qt(struct sbuf *a, struct sbuf *b) {
-	return compare_rel(use_qt_rel, nitems(use_qt_rel), a, b);
+compare_license_perms(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result)
+{
+	assert(result != NULL);
+
+	if (!matches(RE_LICENSE_PERMS, var->name, NULL)) {
+		return 0;
+	}
+
+	*result = compare_rel(license_perms_rel, nitems(license_perms_rel), a, b);
+	return 1;
+}
+
+int
+compare_plist_files(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result)
+{
+	assert(result != NULL);
+
+	if (!matches(RE_PLIST_FILES, var->name, NULL)) {
+		return 0;
+	}
+
+	/* Ignore plist keywords */
+	struct sbuf *as = sub(RE_PLIST_KEYWORDS, "", a);
+	struct sbuf *bs = sub(RE_PLIST_KEYWORDS, "", b);
+	*result = strcasecmp(sbuf_data(as), sbuf_data(bs));
+	sbuf_delete(as);
+	sbuf_delete(bs);
+
+	return 1;
+}
+
+int
+compare_use_qt(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result)
+{
+	assert(result != NULL);
+
+	if (sbuf_strcmp(var->name, "USE_QT") != 0) {
+		return 0;
+	}
+
+	*result = compare_rel(use_qt_rel, nitems(use_qt_rel), a, b);
+	return 1;
 }
 
 struct sbuf *
