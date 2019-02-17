@@ -12,10 +12,10 @@ OBJS=	array.o compats.o portfmt.o rules.o util.o
 portfmt: ${OBJS}
 	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LDADD}
 
-array.c: array.h
-portfmt.c: array.h rules.h util.h
-rules.c: rules.h
-util.c: util.h
+array.o: array.c array.h
+portfmt.o: array.h portfmt.c rules.h util.h
+rules.o: rules.c rules.h util.h
+util.o: util.c util.h
 
 install:
 	${MKDIR} ${DESTDIR}${PREFIX}/bin \
