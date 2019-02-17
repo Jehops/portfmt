@@ -105,6 +105,19 @@ sbuf_dupstr(const char *s) {
 }
 
 struct sbuf *
+sbuf_strip_all_dup(struct sbuf *s) {
+	assert(sbuf_done(s));
+	struct sbuf *r = sbuf_dupstr(NULL);
+	char *sp = sbuf_data(s);
+	for (; *sp; ++sp) {
+		if (!isspace(*sp)) {
+			sbuf_putc(r, *sp);
+		}
+	}
+	return r;
+}
+
+struct sbuf *
 sbuf_strip_dup(struct sbuf *s) {
 	assert(sbuf_done(s));
 	struct sbuf *r = sbuf_dupstr(NULL);

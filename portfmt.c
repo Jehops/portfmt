@@ -220,8 +220,11 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 		if (parser->varname) {
 			sbuf_delete(parser->varname);
 		}
-		parser->varname = sbuf_substr_dup(line, 0, pos - 1);
+		struct sbuf *tmp = sbuf_substr_dup(line, 0, pos - 1);
+		sbuf_finishx(tmp);
+		parser->varname = sbuf_strip_all_dup(tmp);
 		sbuf_finishx(parser->varname);
+		sbuf_delete(tmp);
 	}
 
 	int dollar = 0;
