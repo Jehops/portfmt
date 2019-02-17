@@ -69,7 +69,7 @@ static struct {
 				  "PLIST_DIRS[+?:]?)",
 				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
-	[RE_STRIP_MODIFIER]   = { "[:!?\\+]$", 				      REG_EXTENDED, {} },
+	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
 	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+:", 	      REG_EXTENDED, {} },
 	[RE_TARGET_2] 	      = { ":=", 				      0, {} },
 	[RE_USE_QT]	      = { "^USE_QT[+?:]?=",			      REG_EXTENDED, {} },
@@ -858,57 +858,47 @@ static const char *ignore_wrap_col_[] = {
 };
 
 int
-ignore_wrap_col(struct sbuf *varname)
+ignore_wrap_col(struct Variable *var)
 {
-	struct sbuf *var = strip_modifier(varname);
-
-	if (sbuf_endswith(var, "_DESC") ||
-	    matches(RE_LICENSE_NAME, var, NULL)) {
-		sbuf_delete(var);
+	if (sbuf_endswith(var->name, "_DESC") ||
+	    matches(RE_LICENSE_NAME, var->name, NULL)) {
 		return 1;
 	}
 
 	for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
-		if (strcmp(ignore_wrap_col_[i], sbuf_data(var)) == 0) {
-			sbuf_delete(var);
+		if (strcmp(ignore_wrap_col_[i], sbuf_data(var->name)) == 0) {
 			return 1;
 		}
 	}
 
-	sbuf_delete(var);
 	return 0;
 }
 
 int
-indent_goalcol(struct sbuf *var) {
-	size_t varlength = sbuf_len(var);
-	// include assignment '='
-	int d = 1;
+indent_goalcol(struct Variable *var) {
+	size_t varlength = sbuf_len(var->name) + sbuf_len(var->modifier) + 1;
 	if (((varlength + 1) % 8) == 0) {
-		d++;
+		varlength++;
 	}
-	return ceil((varlength + d) / 8.0) * 8;
+	return ceil(varlength / 8.0) * 8;
 }
 
 int
-leave_unsorted(struct sbuf *varname)
+leave_unsorted(struct Variable *var)
 {
-	struct sbuf *var = strip_modifier(varname);
 	for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
-		if (strcmp(leave_unsorted_[i], sbuf_data(var)) == 0) {
-			sbuf_delete(var);
+		if (strcmp(leave_unsorted_[i], sbuf_data(var->name)) == 0) {
 			return 1;
 		}
 	}
 
-	if (sbuf_endswith(varname, "!") ||
-	    sbuf_endswith(var, "_CMD") ||
-	    sbuf_endswith(var, "_ALT") ||
-	    sbuf_endswith(var, "_REASON") ||
-	    sbuf_endswith(var, "_USE_GNOME_IMPL") ||
-	    sbuf_endswith(var, "FLAGS") ||
-	    matches(RE_LICENSE_NAME, var, NULL)) {
-		sbuf_delete(var);
+	if (sbuf_data(var->modifier)[0] == '!' ||
+	    sbuf_endswith(var->name, "_CMD") ||
+	    sbuf_endswith(var->name, "_ALT") ||
+	    sbuf_endswith(var->name, "_REASON") ||
+	    sbuf_endswith(var->name, "_USE_GNOME_IMPL") ||
+	    sbuf_endswith(var->name, "FLAGS") ||
+	    matches(RE_LICENSE_NAME, var->name, NULL)) {
 		return 1;
 	}
 
@@ -923,11 +913,10 @@ leave_unsorted(struct sbuf *varname)
 				sbuf_cat(t, helper);
 				sbuf_cat(t, "_OFF");
 				sbuf_finish(t);
-				if (sbuf_endswith(var, sbuf_data(s)) ||
-				    sbuf_endswith(var, sbuf_data(t))) {
+				if (sbuf_endswith(var->name, sbuf_data(s)) ||
+				    sbuf_endswith(var->name, sbuf_data(t))) {
 					sbuf_delete(s);
 					sbuf_delete(t);
-					sbuf_delete(var);
 					return 1;
 				}
 				sbuf_delete(s);
@@ -936,66 +925,42 @@ leave_unsorted(struct sbuf *varname)
 		}
 	}
 
-	sbuf_delete(var);
 	return 0;
 }
 
 int
-print_as_newlines(struct sbuf *varname)
+print_as_newlines(struct Variable *var)
 {
-	struct sbuf *var = strip_modifier(varname);
 	for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
-		if (strcmp(print_as_newlines_[i], sbuf_data(var)) == 0) {
-			sbuf_delete(var);
+		if (strcmp(print_as_newlines_[i], sbuf_data(var->name)) == 0) {
 			return 1;
 		}
 	}
 
-	if (sbuf_endswith(var, "_DESC")) {
-		sbuf_delete(var);
+	if (sbuf_endswith(var->name, "_DESC")) {
 		return 0;
 	}
 
-	if (matches(RE_OPTIONS_HELPER, var, NULL)) {
-		sbuf_delete(var);
+	if (matches(RE_OPTIONS_HELPER, var->name, NULL)) {
 		return 1;
 	}
 
-	sbuf_delete(var);
 	return 0;
 }
 
 int
-skip_goalcol(struct sbuf *varname) {
-	struct sbuf *var = strip_modifier(varname);
+skip_goalcol(struct Variable *var) {
 	for (size_t i = 0; i < nitems(skip_goalcol_); i++) {
-		if (strcmp(skip_goalcol_[i], sbuf_data(var)) == 0) {
-			sbuf_delete(var);
+		if (strcmp(skip_goalcol_[i], sbuf_data(var->name)) == 0) {
 			return 1;
 		}
 	}
 
-	if (matches(RE_LICENSE_NAME, var, NULL)) {
+	if (matches(RE_LICENSE_NAME, var->name, NULL)) {
 		return 1;
 	}
 
-	sbuf_delete(var);
 	return 0;
-}
-
-struct sbuf*
-assign_variable(struct sbuf *var)
-{
-	struct sbuf *r = sbuf_dup(var);
-	sbuf_putc(r, '=');
-	sbuf_finishx(r);
-	return r;
-}
-
-struct sbuf *
-strip_modifier(struct sbuf *s)
-{
-	return sub(RE_STRIP_MODIFIER, "", s);
 }
 
 static int
@@ -1112,3 +1077,27 @@ compile_regular_expressions()
 	}
 }
 
+struct Variable *
+variable_new(struct sbuf *var_with_mod) {
+	struct Variable *var= malloc(sizeof(struct Variable));
+	if (var == NULL) {
+		err(1, "malloc");
+	}
+
+	struct sbuf *tmp = sbuf_strip_all_dup(var_with_mod);
+	sbuf_finishx(tmp);
+
+	regmatch_t match;
+	if (!matches(RE_MODIFIER, tmp, &match)) {
+		errx(1, "Variable with no modifier");
+	}
+
+	var->name = sbuf_substr_dup(tmp, 0, match.rm_so);
+	sbuf_finishx(var->name);
+	var->modifier = sbuf_substr_dup(tmp, match.rm_so, match.rm_eo);
+	sbuf_finishx(var->modifier);
+
+	sbuf_delete(tmp);
+
+	return var;
+}

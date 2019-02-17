@@ -66,7 +66,7 @@ enum OutputType {
 struct Output {
 	enum OutputType type;
 	struct sbuf *data;
-	struct sbuf *var;
+	struct Variable *var;
 	int goalcol;
 };
 
@@ -173,10 +173,9 @@ parser_new()
 void
 parser_append(struct Parser *parser, enum OutputType type, struct sbuf *v)
 {
-	struct sbuf *var = NULL;
+	struct Variable *var = NULL;
 	if (parser->varname) {
-		var = sbuf_dup(parser->varname);
-		sbuf_finishx(var);
+		var = variable_new(parser->varname);
 	}
 	struct sbuf *data = NULL;
 	if (v) {
@@ -220,11 +219,8 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 		if (parser->varname) {
 			sbuf_delete(parser->varname);
 		}
-		struct sbuf *tmp = sbuf_substr_dup(line, 0, pos - 1);
-		sbuf_finishx(tmp);
-		parser->varname = sbuf_strip_all_dup(tmp);
+		parser->varname = sbuf_substr_dup(line, 0, pos);
 		sbuf_finishx(parser->varname);
-		sbuf_delete(tmp);
 	}
 
 	int dollar = 0;
@@ -366,11 +362,10 @@ parser_find_goalcols(struct Parser *parser)
 			}
 			tokens_end = i;
 
-			struct sbuf *var = o->var;
-			if (var && skip_goalcol(var)) {
-				o->goalcol = indent_goalcol(var);
+			if (o->var && skip_goalcol(o->var)) {
+				o->goalcol = indent_goalcol(o->var);
 			} else {
-				moving_goalcol = MAX(indent_goalcol(var), moving_goalcol);
+				moving_goalcol = MAX(indent_goalcol(o->var), moving_goalcol);
 			}
 			break;
 		case OUTPUT_COMMENT:
@@ -402,7 +397,9 @@ parser_find_goalcols(struct Parser *parser)
 void
 print_newline_array(struct Parser *parser, struct Array *arr) {
 	struct Output *o = array_get(arr, 0);
-	struct sbuf *start = assign_variable(o->var);
+	struct sbuf *start = sbuf_dup(o->var->name);
+	sbuf_cat(start, sbuf_data(o->var->modifier));
+	sbuf_finishx(start);
 	/* Handle variables with empty values */
 	if (array_len(arr) == 1 && (o->data == NULL || sbuf_len(o->data) == 0)) {
 		parser_enqueue_output(parser, start);
@@ -441,14 +438,14 @@ tokcompare(const void *a, const void *b)
 	struct Output *ao = *(struct Output**)a;
 	struct Output *bo = *(struct Output**)b;
 
-	if (sbuf_strcmp(ao->var, "USE_QT") == 0 &&
-	    sbuf_strcmp(bo->var, "USE_QT") == 0) {
+	if (sbuf_strcmp(ao->var->name, "USE_QT") == 0 &&
+	    sbuf_strcmp(bo->var->name, "USE_QT") == 0) {
 		return compare_use_qt(ao->data, bo->data);
-	} else if (matches(RE_LICENSE_PERMS, ao->var, NULL) &&
-		   matches(RE_LICENSE_PERMS, bo->var, NULL)) {
+	} else if (matches(RE_LICENSE_PERMS, ao->var->name, NULL) &&
+		   matches(RE_LICENSE_PERMS, bo->var->name, NULL)) {
 		return compare_license_perms(ao->data, bo->data);
-	} else if (matches(RE_PLIST_FILES, ao->var, NULL) &&
-		   matches(RE_PLIST_FILES, bo->var, NULL)) {
+	} else if (matches(RE_PLIST_FILES, ao->var->name, NULL) &&
+		   matches(RE_PLIST_FILES, bo->var->name, NULL)) {
 		/* Ignore plist keywords */
 		struct sbuf *as = sub(RE_PLIST_KEYWORDS, "", ao->data);
 		struct sbuf *bs = sub(RE_PLIST_KEYWORDS, "", bo->data);
@@ -480,9 +477,8 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 
 	struct Array *arr = array_new(sizeof(struct Output *));
 	struct Output *o = array_get(tokens, 0);
-	struct sbuf *var = o->var;
 	int wrapcol;
-	if (ignore_wrap_col(var)) {
+	if (ignore_wrap_col(o->var)) {
 		wrapcol = 99999999;
 	} else {
 		wrapcol = WRAPCOL - o->goalcol;
@@ -541,12 +537,12 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 void
 parser_generate_output(struct Parser *parser) {
 	struct Array *arr = array_new(sizeof(struct Output *));
-	struct sbuf *last_var = NULL;
+	struct Variable *last_var = NULL;
 	for (size_t i = 0; i < array_len(parser->output); i++) {
 		struct Output *o = array_get(parser->output, i);
 		switch (o->type) {
 		case OUTPUT_TOKENS:
-			if (last_var == NULL || sbuf_cmp(o->var, last_var) != 0) {
+			if (last_var == NULL || sbuf_cmp(o->var->name, last_var->name) != 0) {
 				if (array_len(arr) > 0) {
 					struct Output *arr0 = array_get(arr, 0);
 					if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
@@ -709,7 +705,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-#if HAVE_CAPSICUM
+#if HAVE_CAPSICUM2
 	cap_rights_t rights;
 
 	if (iflag) {

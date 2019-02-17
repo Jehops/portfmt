@@ -46,7 +46,7 @@ enum RegularExpression {
 	RE_OPTIONS_HELPER,
 	RE_PLIST_FILES,
 	RE_PLIST_KEYWORDS,
-	RE_STRIP_MODIFIER,
+	RE_MODIFIER,
 	RE_TARGET_2,
 	RE_TARGET,
 	RE_USE_QT,
@@ -54,15 +54,19 @@ enum RegularExpression {
 	//RE_VAR_SORT_HACK,
 };
 
-struct sbuf *assign_variable(struct sbuf *);
+struct Variable {
+	struct sbuf *name;
+	struct sbuf *modifier;
+};
+
 int compare_license_perms(struct sbuf *, struct sbuf *);
 int compare_use_qt(struct sbuf *, struct sbuf *);
 void compile_regular_expressions(void);
-int ignore_wrap_col(struct sbuf *);
-int indent_goalcol(struct sbuf *);
-int leave_unsorted(struct sbuf *);
+int ignore_wrap_col(struct Variable *);
+int indent_goalcol(struct Variable *);
+int leave_unsorted(struct Variable *);
 int matches(enum RegularExpression, struct sbuf *, regmatch_t *);
-int print_as_newlines(struct sbuf *);
-int skip_goalcol(struct sbuf *);
-struct sbuf *strip_modifier(struct sbuf *);
+int print_as_newlines(struct Variable *);
+int skip_goalcol(struct Variable *);
 struct sbuf *sub(enum RegularExpression, const char *, struct sbuf *);
+struct Variable *variable_new(struct sbuf *);
