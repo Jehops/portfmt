@@ -243,11 +243,18 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 			}
 		}
 		if (dollar) {
-			if (c == '{') {
+			if (dollar == 2) {
+				if (c == '(') {
+					i = consume_token(parser, line, i - 2, '(', ')', 0);
+					continue;
+				} else {
+					dollar = 0;
+				}
+			} else if (c == '{') {
 				i = consume_token(parser, line, i, '{', '}', 0);
 				dollar = 0;
 			} else if (c == '$') {
-				dollar = 0;
+				dollar++;
 			} else {
 				fprintf(stderr, "%s\n", linep);
 				errx(1, "tokenizer: %zu: expected {", parser->lineno);
