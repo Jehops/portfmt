@@ -92,8 +92,22 @@ variable_cmp(struct Variable *a, struct Variable *b)
 	return sbuf_cmp(a->name, b->name);
 }
 
+enum VariableModifier
+variable_modifier(struct Variable *var)
+{
+	assert(var != NULL);
+	return var->modifier;
+}
+
 struct sbuf *
-variable_cat(struct Variable *var)
+variable_name(struct Variable *var)
+{
+	assert(var != NULL);
+	return var->name;
+}
+
+struct sbuf *
+variable_tostring(struct Variable *var)
 {
 	assert(var != NULL);
 	struct sbuf *s = sbuf_dup(var->name);
@@ -123,18 +137,3 @@ variable_cat(struct Variable *var)
 	sbuf_finishx(s);
 	return s;
 }
-
-enum VariableModifier
-variable_modifier(struct Variable *var)
-{
-	assert(var != NULL);
-	return var->modifier;
-}
-
-struct sbuf *
-variable_name(struct Variable *var)
-{
-	assert(var != NULL);
-	return var->name;
-}
-

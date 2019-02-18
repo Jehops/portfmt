@@ -398,7 +398,7 @@ parser_find_goalcols(struct Parser *parser)
 void
 print_newline_array(struct Parser *parser, struct Array *arr) {
 	struct Output *o = array_get(arr, 0);
-	struct sbuf *start = variable_cat(o->var);
+	struct sbuf *start = variable_tostring(o->var);
 	/* Handle variables with empty values */
 	if (array_len(arr) == 1 && (o->data == NULL || sbuf_len(o->data) == 0)) {
 		parser_enqueue_output(parser, start);
