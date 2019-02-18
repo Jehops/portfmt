@@ -9,6 +9,8 @@ LDADD+=		-lm
 
 OBJS=	array.o compats.o portfmt.o rules.o util.o variable.o
 
+all: portfmt
+
 portfmt: ${OBJS}
 	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LDADD}
 
@@ -20,12 +22,10 @@ variable.o: rules.h util.h variable.c variable.h
 
 install:
 	${MKDIR} ${DESTDIR}${PREFIX}/bin \
-		${DESTDIR}${PREFIX}/libexec/portfmt \
 		${DESTDIR}${MANDIR}/man1
 	${INSTALL_MAN} portfmt.1 ${DESTDIR}${MANDIR}/man1
-	${INSTALL_SCRIPT} portfmt ${DESTDIR}${PREFIX}/bin
-	${INSTALL_SCRIPT} portfmt.awk ${DESTDIR}${PREFIX}/libexec/portfmt
-	if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
+	${INSTALL_PROGRAM} portfmt ${DESTDIR}${PREFIX}/bin
+	@if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
 		${SED} -i '' 's,/usr/local,${PREFIX},' ${DESTDIR}${PREFIX}/bin/portfmt; \
 	fi
 
