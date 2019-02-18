@@ -58,14 +58,14 @@
 #include "util.h"
 #include "variable.h"
 
-enum OutputType {
-	OUTPUT_COMMENT,
-	OUTPUT_INLINE_COMMENT,
-	OUTPUT_TOKENS,
+enum TokenType {
+	COMMENT = 0,
+	INLINE_COMMENT,
+	TOKEN,
 };
 
-struct Output {
-	enum OutputType type;
+struct Token {
+	enum TokenType type;
 	struct sbuf *data;
 	struct Variable *var;
 	int goalcol;
@@ -77,16 +77,16 @@ struct Parser {
 	int skip;
 	struct sbuf *varname;
 
-	struct Array *output;
+	struct Array *tokens;
 	struct Array *result;
 };
 
 static size_t consume_token(struct Parser *, struct sbuf *, size_t, char, char, int);
 static size_t consume_var(struct sbuf *);
 static struct Parser *parser_new(void);
-static void parser_append(struct Parser *, enum OutputType, struct sbuf *);
+static void parser_append_token(struct Parser *, enum TokenType, struct sbuf *);
 static void parser_enqueue_output(struct Parser *, struct sbuf *s);
-static struct Output *parser_get_output(struct Parser *, size_t i);
+static struct Token *parser_get_token(struct Parser *, size_t i);
 static void parser_find_goalcols(struct Parser *);
 static void parser_generate_output(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
@@ -164,7 +164,7 @@ parser_new()
 	}
 
 	parser->result = array_new(sizeof(struct sbuf *));
-	parser->output = array_new(sizeof(struct Output *));
+	parser->tokens = array_new(sizeof(struct Token *));
 
 	parser_reset(parser);
 
@@ -172,7 +172,7 @@ parser_new()
 }
 
 void
-parser_append(struct Parser *parser, enum OutputType type, struct sbuf *v)
+parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 {
 	struct Variable *var = NULL;
 	if (parser->varname) {
@@ -183,7 +183,7 @@ parser_append(struct Parser *parser, enum OutputType type, struct sbuf *v)
 		data = sbuf_dup(v);
 		sbuf_finishx(data);
 	}
-	struct Output *o = malloc(sizeof(struct Output));
+	struct Token *o = malloc(sizeof(struct Token));
 	if (o == NULL) {
 		err(1, "malloc");
 	}
@@ -191,7 +191,7 @@ parser_append(struct Parser *parser, enum OutputType type, struct sbuf *v)
 	o->data = data;
 	o->var = var;
 	o->goalcol = 0;
-	array_append(parser->output, o);
+	array_append(parser->tokens, o);
 }
 
 void
@@ -203,10 +203,10 @@ parser_enqueue_output(struct Parser *parser, struct sbuf *s)
 	array_append(parser->result, s);
 }
 
-struct Output *
-parser_get_output(struct Parser *parser, size_t i)
+struct Token *
+parser_get_token(struct Parser *parser, size_t i)
 {
-	return array_get(parser->output, i);
+	return array_get(parser->tokens, i);
 }
 
 void
@@ -264,7 +264,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 				sbuf_finishx(token);
 				sbuf_delete(tmp);
 				if (sbuf_strcmp(token, "") != 0 && sbuf_strcmp(token, "\\") != 0) {
-					parser_append(parser, OUTPUT_TOKENS, token);
+					parser_append_token(parser, TOKEN, token);
 				}
 				sbuf_delete(token);
 				token = NULL;
@@ -295,12 +295,12 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 				    sbuf_strcmp(token, "# empty") == 0 ||
 				    sbuf_strcmp(token, "#none") == 0 ||
 				    sbuf_strcmp(token, "# none") == 0) {
-					parser_append(parser, OUTPUT_TOKENS, token);
+					parser_append_token(parser, TOKEN, token);
 				} else {
-					parser_append(parser, OUTPUT_INLINE_COMMENT, token);
+					parser_append_token(parser, INLINE_COMMENT, token);
 					struct sbuf *tmp = sbuf_dupstr("");
 					sbuf_finish(tmp);
-					parser_append(parser, OUTPUT_TOKENS, tmp);
+					parser_append_token(parser, TOKEN, tmp);
 					sbuf_delete(tmp);
 				}
 
@@ -316,7 +316,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 	sbuf_finishx(token);
 	sbuf_delete(tmp);
 	if (sbuf_strcmp(token, "") != 0 && sbuf_strcmp(token, "\\") != 0) {
-		parser_append(parser, OUTPUT_TOKENS, token);
+		parser_append_token(parser, TOKEN, token);
 	}
 	sbuf_delete(token);
 	token = NULL;
@@ -340,7 +340,7 @@ parser_propagate_goalcol(struct Parser *parser, size_t start, size_t end, int mo
 {
 	moving_goalcol = MAX(16, moving_goalcol);
 	for (size_t k = start; k <= end; k++) {
-		struct Output *o = parser_get_output(parser, k);
+		struct Token *o = parser_get_token(parser, k);
 		if (o->var && !skip_goalcol(o->var)) {
 			o->goalcol = moving_goalcol;
 		}
@@ -354,10 +354,10 @@ parser_find_goalcols(struct Parser *parser)
 	int last = 0;
 	ssize_t tokens_start = -1;
 	ssize_t tokens_end = -1;
-	for (size_t i = 0; i < array_len(parser->output); i++) {
-		struct Output *o = parser_get_output(parser, i);
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *o = parser_get_token(parser, i);
 		switch(o->type) {
-		case OUTPUT_TOKENS:
+		case TOKEN:
 			if (tokens_start == -1) {
 				tokens_start = i;
 			}
@@ -369,7 +369,7 @@ parser_find_goalcols(struct Parser *parser)
 				moving_goalcol = MAX(indent_goalcol(o->var), moving_goalcol);
 			}
 			break;
-		case OUTPUT_COMMENT:
+		case COMMENT:
 			/* Ignore comments in between variables and
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
@@ -384,10 +384,10 @@ parser_find_goalcols(struct Parser *parser)
 				tokens_start = -1;
 			}
 			break;
-		case OUTPUT_INLINE_COMMENT:
+		case INLINE_COMMENT:
 			break;
 		default:
-			errx(1, "Unhandled output type: %i", o->type);
+			errx(1, "Unhandled token type: %i", o->type);
 		}
 	}
 	if (tokens_start != -1) {
@@ -397,7 +397,7 @@ parser_find_goalcols(struct Parser *parser)
 
 void
 print_newline_array(struct Parser *parser, struct Array *arr) {
-	struct Output *o = array_get(arr, 0);
+	struct Token *o = array_get(arr, 0);
 	struct sbuf *start = variable_tostring(o->var);
 	/* Handle variables with empty values */
 	if (array_len(arr) == 1 && (o->data == NULL || sbuf_len(o->data) == 0)) {
@@ -413,7 +413,7 @@ print_newline_array(struct Parser *parser, struct Array *arr) {
 	struct sbuf *end = sbuf_dupstr(" \\\n");
 
 	for (size_t i = 0; i < array_len(arr); i++) {
-		struct Output *o = array_get(arr, i);
+		struct Token *o = array_get(arr, i);
 		struct sbuf *line = o->data;
 		if (!line || sbuf_len(line) == 0) {
 			continue;
@@ -434,8 +434,8 @@ print_newline_array(struct Parser *parser, struct Array *arr) {
 int
 tokcompare(const void *a, const void *b)
 {
-	struct Output *ao = *(struct Output**)a;
-	struct Output *bo = *(struct Output**)b;
+	struct Token *ao = *(struct Token**)a;
+	struct Token *bo = *(struct Token**)b;
 	if (variable_cmp(ao->var, bo->var) == 0) {
 		return compare_tokens(ao->var, ao->data, bo->data);
 	}
@@ -458,8 +458,8 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		return;
 	}
 
-	struct Array *arr = array_new(sizeof(struct Output *));
-	struct Output *o = array_get(tokens, 0);
+	struct Array *arr = array_new(sizeof(struct Token *));
+	struct Token *o = array_get(tokens, 0);
 	int wrapcol;
 	if (ignore_wrap_col(o->var)) {
 		wrapcol = 99999999;
@@ -470,7 +470,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	struct sbuf *row = sbuf_dupstr(NULL);
 	sbuf_finishx(row);
 
-	struct Output *token;
+	struct Token *token;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		token = array_get(tokens, i);
 		if (sbuf_len(token->data) == 0) {
@@ -481,7 +481,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 				array_append(arr, token);
 				continue;
 			} else {
-				struct Output *o = malloc(sizeof(struct Output));
+				struct Token *o = malloc(sizeof(struct Token));
 				if (o == NULL) {
 					err(1, "malloc");
 				}
@@ -504,7 +504,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		}
 	}
 	if (sbuf_len(row) > 0 && array_len(arr) < array_len(tokens)) {
-		struct Output *o = malloc(sizeof(struct Output));
+		struct Token *o = malloc(sizeof(struct Token));
 		if (o == NULL) {
 			err(1, "malloc");
 		}
@@ -519,15 +519,15 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 
 void
 parser_generate_output(struct Parser *parser) {
-	struct Array *arr = array_new(sizeof(struct Output *));
+	struct Array *arr = array_new(sizeof(struct Token *));
 	struct Variable *last_var = NULL;
-	for (size_t i = 0; i < array_len(parser->output); i++) {
-		struct Output *o = array_get(parser->output, i);
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *o = array_get(parser->tokens, i);
 		switch (o->type) {
-		case OUTPUT_TOKENS:
+		case TOKEN:
 			if (last_var == NULL || variable_cmp(o->var, last_var) != 0) {
 				if (array_len(arr) > 0) {
-					struct Output *arr0 = array_get(arr, 0);
+					struct Token *arr0 = array_get(arr, 0);
 					if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
 						array_sort(arr, tokcompare);
 					}
@@ -541,9 +541,9 @@ parser_generate_output(struct Parser *parser) {
 			}
 			array_append(arr, o);
 			break;
-		case OUTPUT_COMMENT:
+		case COMMENT:
 			if (array_len(arr) > 0) {
-				struct Output *arr0 = array_get(arr, 0);
+				struct Token *arr0 = array_get(arr, 0);
 				if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
 					array_sort(arr, tokcompare);
 				}
@@ -557,7 +557,7 @@ parser_generate_output(struct Parser *parser) {
 			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
-		case OUTPUT_INLINE_COMMENT:
+		case INLINE_COMMENT:
 			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
@@ -567,7 +567,7 @@ parser_generate_output(struct Parser *parser) {
 		last_var = o->var;
 	}
 	if (array_len(arr) > 0) {
-		struct Output *arr0 = array_get(arr, 0);
+		struct Token *arr0 = array_get(arr, 0);
 		if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
 			array_sort(arr, tokcompare);
 		}
@@ -605,7 +605,7 @@ parser_read(struct Parser *parser, const char *line)
 	}
 
 	if (parser->skip) {
-		parser_append(parser, OUTPUT_COMMENT, buf);
+		parser_append_token(parser, COMMENT, buf);
 		if (!matches(RE_BACKSLASH_AT_END, buf, NULL) && !matches(RE_CONDITIONAL, buf, NULL)) {
 			parser->skip--;
 		}
