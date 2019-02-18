@@ -60,8 +60,10 @@
 
 enum TokenType {
 	COMMENT = 0,
+	CONDITIONAL,
 	EMPTY,
 	INLINE_COMMENT,
+	TARGET,
 	TOKEN,
 };
 
@@ -379,6 +381,8 @@ parser_find_goalcols(struct Parser *parser)
 			}
 			break;
 		case COMMENT:
+		case CONDITIONAL:
+		case TARGET:
 			/* Ignore comments in between variables and
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
@@ -547,6 +551,8 @@ parser_generate_output(struct Parser *parser) {
 			array_append(arr, o);
 			break;
 		case COMMENT:
+		case CONDITIONAL:
+		case TARGET:
 			if (array_len(arr) > 0) {
 				struct Token *arr0 = array_get(arr, 0);
 				if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
@@ -601,6 +607,12 @@ parser_dump_tokens(struct Parser *parser) {
 		case TOKEN:
 			type = "token";
 			break;
+		case TARGET:
+			type = "target";
+			break;
+		case CONDITIONAL:
+			type = "conditional";
+			break;
 		case EMPTY:
 			type = "empty";
 			break;
@@ -644,7 +656,13 @@ parser_read(struct Parser *parser, const char *line)
 	}
 
 	if (parser->skip) {
-		parser_append_token(parser, COMMENT, buf);
+		if (parser->in_target) {
+			parser_append_token(parser, TARGET, buf);
+		} else if (matches(RE_CONDITIONAL, buf, NULL)) {
+			parser_append_token(parser, CONDITIONAL, buf);
+		} else {
+			parser_append_token(parser, COMMENT, buf);
+		}
 		if (!matches(RE_BACKSLASH_AT_END, buf, NULL) && !matches(RE_CONDITIONAL, buf, NULL)) {
 			parser->skip--;
 		}
