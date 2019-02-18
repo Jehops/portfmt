@@ -881,7 +881,20 @@ ignore_wrap_col(struct Variable *var)
 
 int
 indent_goalcol(struct Variable *var) {
-	size_t varlength = sbuf_len(variable_name(var)) + sbuf_len(variable_modifier(var)) + 1;
+	size_t varlength = sbuf_len(variable_name(var)) + 1;
+	switch (variable_modifier(var)) {
+	case MODIFIER_ASSIGN:
+		varlength += 1;
+		break;
+	case MODIFIER_APPEND:
+	case MODIFIER_EXPAND:
+	case MODIFIER_OPTIONAL:
+	case MODIFIER_SHELL:
+		varlength += 2;
+		break;
+	default:
+		errx(1, "Unknown variable modifier: %d", variable_modifier(var));
+	}
 	if (((varlength + 1) % 8) == 0) {
 		varlength++;
 	}
@@ -897,7 +910,7 @@ leave_unsorted(struct Variable *var)
 		}
 	}
 
-	if (sbuf_data(variable_modifier(var))[0] == '!' ||
+	if (variable_modifier(var) == MODIFIER_SHELL ||
 	    sbuf_endswith(variable_name(var), "_CMD") ||
 	    sbuf_endswith(variable_name(var), "_ALT") ||
 	    sbuf_endswith(variable_name(var), "_REASON") ||

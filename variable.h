@@ -32,8 +32,16 @@
 
 struct Variable;
 
+enum VariableModifier {
+	MODIFIER_APPEND = 0,
+	MODIFIER_ASSIGN,
+	MODIFIER_EXPAND,
+	MODIFIER_OPTIONAL,
+	MODIFIER_SHELL,
+};
+
 struct Variable *variable_new(struct sbuf *);
 int variable_cmp(struct Variable *, struct Variable *);
 struct sbuf *variable_cat(struct Variable *);
-struct sbuf *variable_modifier(struct Variable *);
+enum VariableModifier variable_modifier(struct Variable *);
 struct sbuf *variable_name(struct Variable *);

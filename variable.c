@@ -41,7 +41,7 @@
 
 struct Variable {
 	struct sbuf *name;
-	struct sbuf *modifier;
+	enum VariableModifier modifier;
 };
 
 struct Variable *
@@ -59,10 +59,25 @@ variable_new(struct sbuf *var_with_mod) {
 		errx(1, "Variable with no modifier");
 	}
 
+	struct sbuf *modifier = sbuf_substr_dup(tmp, match.rm_so, match.rm_eo);
+	sbuf_finishx(modifier);
+
+	if (sbuf_strcmp(modifier, "+=") == 0) {
+		var->modifier = MODIFIER_APPEND;
+	} else if (sbuf_strcmp(modifier, "=") == 0) {
+		var->modifier = MODIFIER_ASSIGN;
+	} else if (sbuf_strcmp(modifier, ":=") == 0) {
+		var->modifier = MODIFIER_EXPAND;
+	} else if (sbuf_strcmp(modifier, "?=") == 0) {
+		var->modifier = MODIFIER_OPTIONAL;
+	} else if (sbuf_strcmp(modifier, "!=") == 0) {
+		var->modifier = MODIFIER_SHELL;
+	} else {
+		errx(1, "Unknown variable modifier: %s", sbuf_data(modifier));
+	}
+
 	var->name = sbuf_substr_dup(tmp, 0, match.rm_so);
 	sbuf_finishx(var->name);
-	var->modifier = sbuf_substr_dup(tmp, match.rm_so, match.rm_eo);
-	sbuf_finishx(var->modifier);
 
 	sbuf_delete(tmp);
 
@@ -82,12 +97,34 @@ variable_cat(struct Variable *var)
 {
 	assert(var != NULL);
 	struct sbuf *s = sbuf_dup(var->name);
-	sbuf_cat(s, sbuf_data(var->modifier));
+
+	const char *mod = NULL;
+	switch (var->modifier) {
+	case MODIFIER_APPEND:
+		mod = "+=";
+		break;
+	case MODIFIER_ASSIGN:
+		mod = "=";
+		break;
+	case MODIFIER_EXPAND:
+		mod = ":=";
+		break;
+	case MODIFIER_OPTIONAL:
+		mod = "?=";
+		break;
+	case MODIFIER_SHELL:
+		mod = "!=";
+		break;
+	default:
+		errx(1, "Unknown variable modifier: %d", var->modifier);
+	}
+
+	sbuf_cat(s, mod);
 	sbuf_finishx(s);
 	return s;
 }
 
-struct sbuf *
+enum VariableModifier
 variable_modifier(struct Variable *var)
 {
 	assert(var != NULL);
