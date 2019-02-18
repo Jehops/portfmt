@@ -72,6 +72,7 @@ struct Token {
 	struct sbuf *data;
 	struct Variable *var;
 	int goalcol;
+	size_t lineno;
 };
 
 struct Parser {
@@ -195,6 +196,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 	o->data = data;
 	o->var = var;
 	o->goalcol = 0;
+	o->lineno = parser->lineno;
 	array_append(parser->tokens, o);
 }
 
@@ -600,6 +602,16 @@ parser_generate_output(struct Parser *parser) {
 
 void
 parser_dump_tokens(struct Parser *parser) {
+	ssize_t maxvarlen = 0;
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *o = array_get(parser->tokens, i);
+		if (o->type == TOKEN && o->var) {
+			struct sbuf *var = variable_tostring(o->var);
+			maxvarlen = MAX(maxvarlen, sbuf_len(var));
+			sbuf_delete(var);
+		}
+	}
+
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
 		const char *type;
@@ -625,11 +637,23 @@ parser_dump_tokens(struct Parser *parser) {
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
-		printf("%-15s %-20s %s\n", type,
-		       o->type == TOKEN ? o->var ? sbuf_data(variable_tostring(o->var)) : "(null)" : "-",
-		       o->data ? sbuf_data(o->data) : "(null)");
+		struct sbuf *var = NULL;
+		ssize_t len = maxvarlen;
+		if (o->type == TOKEN && o->var) {
+			var = variable_tostring(o->var);
+			len = maxvarlen - sbuf_len(var);
+		} else {
+			len = maxvarlen - 1;
+		}
+		printf("%-15s %4zu %s", type, o->lineno, var ? sbuf_data(var) : "-");
+		for (ssize_t j = 0; j < len; j++) {
+			putchar(' ');
+		}
+		printf(" %s\n", o->data ? sbuf_data(o->data) : "-");
+		if (var) {
+			sbuf_delete(var);
+		}
 	}
-	exit(0);
 }
 
 void
@@ -737,6 +761,10 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
+	if (dflag) {
+		iflag = 0;
+	}
+
 	if (argc > 1) {
 		usage();
 	} else if (argc == 1) {
@@ -806,17 +834,17 @@ main(int argc, char *argv[])
 	} else {
 		parser_find_goalcols(parser);
 		parser_generate_output(parser);
-	}
 
-	if (iflag && !dflag) {
-		if (lseek(fd_out, 0, SEEK_SET) < 0) {
-			err(1, "lseek");
+		if (iflag) {
+			if (lseek(fd_out, 0, SEEK_SET) < 0) {
+				err(1, "lseek");
+			}
+			if (ftruncate(fd_out, 0) < 0) {
+				err(1, "ftruncate");
+			}
 		}
-		if (ftruncate(fd_out, 0) < 0) {
-			err(1, "ftruncate");
-		}
+		parser_write(parser, fd_out);
 	}
-	parser_write(parser, fd_out);
 
 	close(fd_out);
 	close(fd_in);
