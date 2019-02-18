@@ -26,42 +26,78 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#pragma once
 
 #include "config.h"
 
-#if HAVE_SBUF
-# include <sys/types.h>
-# include <sys/sbuf.h>
-#endif
+#include <sys/types.h>
+#include <assert.h>
+#include <err.h>
 #include <regex.h>
+#include <stdlib.h>
 
+#include "rules.h"
+#include "util.h"
 #include "variable.h"
 
-enum RegularExpression {
-	RE_BACKSLASH_AT_END = 0,
-	RE_COMMENT,
-	RE_CONDITIONAL,
-	RE_EMPTY_LINE,
-	RE_LICENSE_NAME,
-	RE_LICENSE_PERMS,
-	RE_OPTIONS_HELPER,
-	RE_PLIST_FILES,
-	RE_PLIST_KEYWORDS,
-	RE_MODIFIER,
-	RE_TARGET_2,
-	RE_TARGET,
-	RE_USE_QT,
-	RE_VAR,
-	//RE_VAR_SORT_HACK,
+struct Variable {
+	struct sbuf *name;
+	struct sbuf *modifier;
 };
 
-int compare_tokens(struct Variable *, struct sbuf *, struct sbuf *);
-void compile_regular_expressions(void);
-int ignore_wrap_col(struct Variable *);
-int indent_goalcol(struct Variable *);
-int leave_unsorted(struct Variable *);
-int matches(enum RegularExpression, struct sbuf *, regmatch_t *);
-int print_as_newlines(struct Variable *);
-int skip_goalcol(struct Variable *);
-struct sbuf *sub(enum RegularExpression, const char *, struct sbuf *);
+struct Variable *
+variable_new(struct sbuf *var_with_mod) {
+	struct Variable *var= malloc(sizeof(struct Variable));
+	if (var == NULL) {
+		err(1, "malloc");
+	}
+
+	struct sbuf *tmp = sbuf_strip_all_dup(var_with_mod);
+	sbuf_finishx(tmp);
+
+	regmatch_t match;
+	if (!matches(RE_MODIFIER, tmp, &match)) {
+		errx(1, "Variable with no modifier");
+	}
+
+	var->name = sbuf_substr_dup(tmp, 0, match.rm_so);
+	sbuf_finishx(var->name);
+	var->modifier = sbuf_substr_dup(tmp, match.rm_so, match.rm_eo);
+	sbuf_finishx(var->modifier);
+
+	sbuf_delete(tmp);
+
+	return var;
+}
+
+int
+variable_cmp(struct Variable *a, struct Variable *b)
+{
+	assert(a != NULL);
+	assert(b != NULL);
+	return sbuf_cmp(a->name, b->name);
+}
+
+struct sbuf *
+variable_cat(struct Variable *var)
+{
+	assert(var != NULL);
+	struct sbuf *s = sbuf_dup(var->name);
+	sbuf_cat(s, sbuf_data(var->modifier));
+	sbuf_finishx(s);
+	return s;
+}
+
+struct sbuf *
+variable_modifier(struct Variable *var)
+{
+	assert(var != NULL);
+	return var->modifier;
+}
+
+struct sbuf *
+variable_name(struct Variable *var)
+{
+	assert(var != NULL);
+	return var->name;
+}
+

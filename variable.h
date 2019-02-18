@@ -28,40 +28,12 @@
  */
 #pragma once
 
-#include "config.h"
+#include <sys/types.h>
 
-#if HAVE_SBUF
-# include <sys/types.h>
-# include <sys/sbuf.h>
-#endif
-#include <regex.h>
+struct Variable;
 
-#include "variable.h"
-
-enum RegularExpression {
-	RE_BACKSLASH_AT_END = 0,
-	RE_COMMENT,
-	RE_CONDITIONAL,
-	RE_EMPTY_LINE,
-	RE_LICENSE_NAME,
-	RE_LICENSE_PERMS,
-	RE_OPTIONS_HELPER,
-	RE_PLIST_FILES,
-	RE_PLIST_KEYWORDS,
-	RE_MODIFIER,
-	RE_TARGET_2,
-	RE_TARGET,
-	RE_USE_QT,
-	RE_VAR,
-	//RE_VAR_SORT_HACK,
-};
-
-int compare_tokens(struct Variable *, struct sbuf *, struct sbuf *);
-void compile_regular_expressions(void);
-int ignore_wrap_col(struct Variable *);
-int indent_goalcol(struct Variable *);
-int leave_unsorted(struct Variable *);
-int matches(enum RegularExpression, struct sbuf *, regmatch_t *);
-int print_as_newlines(struct Variable *);
-int skip_goalcol(struct Variable *);
-struct sbuf *sub(enum RegularExpression, const char *, struct sbuf *);
+struct Variable *variable_new(struct sbuf *);
+int variable_cmp(struct Variable *, struct Variable *);
+struct sbuf *variable_cat(struct Variable *);
+struct sbuf *variable_modifier(struct Variable *);
+struct sbuf *variable_name(struct Variable *);

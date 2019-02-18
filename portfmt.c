@@ -56,6 +56,7 @@
 #include "array.h"
 #include "rules.h"
 #include "util.h"
+#include "variable.h"
 
 enum OutputType {
 	OUTPUT_COMMENT,
@@ -397,9 +398,7 @@ parser_find_goalcols(struct Parser *parser)
 void
 print_newline_array(struct Parser *parser, struct Array *arr) {
 	struct Output *o = array_get(arr, 0);
-	struct sbuf *start = sbuf_dup(o->var->name);
-	sbuf_cat(start, sbuf_data(o->var->modifier));
-	sbuf_finishx(start);
+	struct sbuf *start = variable_cat(o->var);
 	/* Handle variables with empty values */
 	if (array_len(arr) == 1 && (o->data == NULL || sbuf_len(o->data) == 0)) {
 		parser_enqueue_output(parser, start);
@@ -437,7 +436,7 @@ tokcompare(const void *a, const void *b)
 {
 	struct Output *ao = *(struct Output**)a;
 	struct Output *bo = *(struct Output**)b;
-	if (sbuf_cmp(ao->var->name, bo->var->name) == 0) {
+	if (variable_cmp(ao->var, bo->var) == 0) {
 		return compare_tokens(ao->var, ao->data, bo->data);
 	}
 	return strcasecmp(sbuf_data(ao->data), sbuf_data(bo->data));
@@ -526,7 +525,7 @@ parser_generate_output(struct Parser *parser) {
 		struct Output *o = array_get(parser->output, i);
 		switch (o->type) {
 		case OUTPUT_TOKENS:
-			if (last_var == NULL || sbuf_cmp(o->var->name, last_var->name) != 0) {
+			if (last_var == NULL || variable_cmp(o->var, last_var) != 0) {
 				if (array_len(arr) > 0) {
 					struct Output *arr0 = array_get(arr, 0);
 					if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
