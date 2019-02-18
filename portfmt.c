@@ -298,10 +298,6 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 					parser_append_token(parser, TOKEN, token);
 				} else {
 					parser_append_token(parser, INLINE_COMMENT, token);
-					struct sbuf *tmp = sbuf_dupstr("");
-					sbuf_finish(tmp);
-					parser_append_token(parser, TOKEN, tmp);
-					sbuf_delete(tmp);
 				}
 
 				sbuf_delete(token);
