@@ -60,6 +60,7 @@
 
 enum TokenType {
 	COMMENT = 0,
+	EMPTY,
 	INLINE_COMMENT,
 	TOKEN,
 };
@@ -89,6 +90,7 @@ static void parser_enqueue_output(struct Parser *, struct sbuf *s);
 static struct Token *parser_get_token(struct Parser *, size_t i);
 static void parser_find_goalcols(struct Parser *);
 static void parser_generate_output(struct Parser *);
+static void parser_dump_tokens(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, const char *line);
 static void parser_write(struct Parser *, int fd_out);
@@ -210,8 +212,7 @@ parser_get_token(struct Parser *parser, size_t i)
 }
 
 void
-parser_tokenize(struct Parser *parser, struct sbuf *buf) {
-	struct sbuf *line = sub(RE_BACKSLASH_AT_END, NULL, buf);
+parser_tokenize(struct Parser *parser, struct sbuf *line) {
 	ssize_t pos = consume_var(line);
 	if (pos != 0) {
 		if (pos > sbuf_len(line)) {
@@ -230,6 +231,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 	char *linep = sbuf_data(line);
 	struct sbuf *token = NULL;
 	ssize_t i = pos;
+	size_t queued_tokens = 0;
 	for (; i < sbuf_len(line); i++) {
 		assert(i >= start);
 		char c = linep[i];
@@ -265,6 +267,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 				sbuf_delete(tmp);
 				if (sbuf_strcmp(token, "") != 0 && sbuf_strcmp(token, "\\") != 0) {
 					parser_append_token(parser, TOKEN, token);
+					queued_tokens++;
 				}
 				sbuf_delete(token);
 				token = NULL;
@@ -296,6 +299,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 				    sbuf_strcmp(token, "#none") == 0 ||
 				    sbuf_strcmp(token, "# none") == 0) {
 					parser_append_token(parser, TOKEN, token);
+					queued_tokens++;
 				} else {
 					parser_append_token(parser, INLINE_COMMENT, token);
 				}
@@ -306,18 +310,27 @@ parser_tokenize(struct Parser *parser, struct sbuf *buf) {
 			}
 		}
 	}
+	/* Ignore backslash at end of line */
+	if (escape) {
+		i--;
+		queued_tokens++;
+	}
 	struct sbuf *tmp = sbuf_substr_dup(line, start, i);
 	sbuf_finishx(tmp);
 	token = sbuf_strip_dup(tmp);
 	sbuf_finishx(token);
 	sbuf_delete(tmp);
-	if (sbuf_strcmp(token, "") != 0 && sbuf_strcmp(token, "\\") != 0) {
+	if (sbuf_strcmp(token, "") != 0) {
 		parser_append_token(parser, TOKEN, token);
+		queued_tokens++;
 	}
+
 	sbuf_delete(token);
 	token = NULL;
-
 cleanup:
+	if (queued_tokens == 0) {
+		parser_append_token(parser, EMPTY, NULL);
+	}
 	sbuf_delete(line);
 }
 
@@ -380,6 +393,7 @@ parser_find_goalcols(struct Parser *parser)
 				tokens_start = -1;
 			}
 			break;
+		case EMPTY:
 		case INLINE_COMMENT:
 			break;
 		default:
@@ -394,14 +408,9 @@ parser_find_goalcols(struct Parser *parser)
 void
 print_newline_array(struct Parser *parser, struct Array *arr) {
 	struct Token *o = array_get(arr, 0);
+	assert(o && o->data != NULL);
+	assert(sbuf_len(o->data) != 0);
 	struct sbuf *start = variable_tostring(o->var);
-	/* Handle variables with empty values */
-	if (array_len(arr) == 1 && (o->data == NULL || sbuf_len(o->data) == 0)) {
-		parser_enqueue_output(parser, start);
-		parser_enqueue_output(parser, sbuf_dupstr("\n"));
-		return;
-	}
-
 	size_t ntabs = ceil((MAX(16, o->goalcol) - sbuf_len(start)) / 8.0);
 	struct sbuf *sep = sbuf_dup(start);
 	sbuf_cat(sep, repeat('\t', ntabs));
@@ -553,7 +562,13 @@ parser_generate_output(struct Parser *parser) {
 			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
-		case INLINE_COMMENT:
+		case EMPTY: {
+			struct sbuf *v = variable_tostring(o->var);
+			sbuf_putc(v, '\n');
+			sbuf_finishx(v);
+			parser_enqueue_output(parser, v);
+			break;
+		} case INLINE_COMMENT:
 			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
@@ -575,6 +590,34 @@ parser_generate_output(struct Parser *parser) {
 	}
 
 	free(arr);
+}
+
+void
+parser_dump_tokens(struct Parser *parser) {
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *o = array_get(parser->tokens, i);
+		const char *type;
+		switch (o->type) {
+		case TOKEN:
+			type = "token";
+			break;
+		case EMPTY:
+			type = "empty";
+			break;
+		case INLINE_COMMENT:
+			type = "inline-comment";
+			break;
+		case COMMENT:
+			type = "comment";
+			break;
+		default:
+			errx(1, "Unhandled output type: %i", o->type);
+		}
+		printf("%-15s %-20s %s\n", type,
+		       o->type == TOKEN ? o->var ? sbuf_data(variable_tostring(o->var)) : "(null)" : "-",
+		       o->data ? sbuf_data(o->data) : "(null)");
+	}
+	exit(0);
 }
 
 void
@@ -649,9 +692,13 @@ main(int argc, char *argv[])
 {
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
+	int dflag = 0;
 	int iflag = 0;
-	while (getopt(argc, argv, "iuw:") != -1) {
+	while (getopt(argc, argv, "diuw:") != -1) {
 		switch (optopt) {
+		case 'd':
+			dflag = 1;
+			break;
 		case 'i':
 			iflag = 1;
 			break;
@@ -684,7 +731,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-#if HAVE_CAPSICUM2
+#if HAVE_CAPSICUM
 	cap_rights_t rights;
 
 	if (iflag) {
@@ -736,10 +783,14 @@ main(int argc, char *argv[])
 		parser_read(parser, line);
 	}
 
-	parser_find_goalcols(parser);
-	parser_generate_output(parser);
+	if (dflag) {
+		parser_dump_tokens(parser);
+	} else {
+		parser_find_goalcols(parser);
+		parser_generate_output(parser);
+	}
 
-	if (iflag) {
+	if (iflag && !dflag) {
 		if (lseek(fd_out, 0, SEEK_SET) < 0) {
 			err(1, "lseek");
 		}
