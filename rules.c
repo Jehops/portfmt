@@ -865,14 +865,21 @@ static const char *ignore_wrap_col_[] = {
 int
 ignore_wrap_col(struct Variable *var)
 {
-	if (sbuf_endswith(variable_name(var), "_DESC") ||
-	    matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
+	if (matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
 		return 1;
 	}
 
 	for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
-		if (strcmp(ignore_wrap_col_[i], sbuf_data(variable_name(var))) == 0) {
+		if (sbuf_strcmp(variable_name(var), ignore_wrap_col_[i]) == 0) {
 			return 1;
+		}
+	}
+
+	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
+		for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
+			if (sbuf_endswith(variable_name(var), ignore_wrap_col_[i])) {
+				return 1;
+			}
 		}
 	}
 
@@ -905,7 +912,7 @@ int
 leave_unsorted(struct Variable *var)
 {
 	for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
-		if (strcmp(leave_unsorted_[i], sbuf_data(variable_name(var))) == 0) {
+		if (sbuf_strcmp(variable_name(var), leave_unsorted_[i]) == 0) {
 			return 1;
 		}
 	}
@@ -920,25 +927,10 @@ leave_unsorted(struct Variable *var)
 		return 1;
 	}
 
-	for (size_t i = 0; i < nitems(options_helpers_); i++) {
-		const char *helper = options_helpers_[i];
-		for (size_t j = 0; j < nitems(leave_unsorted_); j++) {
-			if (strcmp(leave_unsorted_[j], helper) == 0) {
-				struct sbuf *s = sbuf_dupstr("_");
-				sbuf_cat(s, helper);
-				sbuf_finish(s);
-				struct sbuf *t = sbuf_dupstr("_");
-				sbuf_cat(t, helper);
-				sbuf_cat(t, "_OFF");
-				sbuf_finish(t);
-				if (sbuf_endswith(variable_name(var), sbuf_data(s)) ||
-				    sbuf_endswith(variable_name(var), sbuf_data(t))) {
-					sbuf_delete(s);
-					sbuf_delete(t);
-					return 1;
-				}
-				sbuf_delete(s);
-				sbuf_delete(t);
+	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
+		for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
+			if (sbuf_endswith(variable_name(var), leave_unsorted_[i])) {
+				return 1;
 			}
 		}
 	}
@@ -950,17 +942,17 @@ int
 print_as_newlines(struct Variable *var)
 {
 	for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
-		if (strcmp(print_as_newlines_[i], sbuf_data(variable_name(var))) == 0) {
+		if (sbuf_strcmp(variable_name(var), print_as_newlines_[i]) == 0) {
 			return 1;
 		}
 	}
 
-	if (sbuf_endswith(variable_name(var), "_DESC")) {
-		return 0;
-	}
-
 	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
-		return 1;
+		for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
+			if (sbuf_endswith(variable_name(var), print_as_newlines_[i])) {
+				return 1;
+			}
+		}
 	}
 
 	return 0;
@@ -968,14 +960,14 @@ print_as_newlines(struct Variable *var)
 
 int
 skip_goalcol(struct Variable *var) {
-	for (size_t i = 0; i < nitems(skip_goalcol_); i++) {
-		if (strcmp(skip_goalcol_[i], sbuf_data(variable_name(var))) == 0) {
-			return 1;
-		}
-	}
-
 	if (matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
 		return 1;
+	}
+
+	for (size_t i = 0; i < nitems(skip_goalcol_); i++) {
+		if (sbuf_strcmp(variable_name(var), skip_goalcol_[i]) == 0) {
+			return 1;
+		}
 	}
 
 	return 0;
@@ -987,10 +979,10 @@ compare_rel(const char *rel[], size_t rellen, struct sbuf *a, struct sbuf *b)
 	ssize_t ai = -1;
 	ssize_t bi = -1;
 	for (size_t i = 0; i < rellen; i++) {
-		if (ai == -1 && strcmp(sbuf_data(a), rel[i]) == 0) {
+		if (ai == -1 && sbuf_strcmp(a, rel[i]) == 0) {
 			ai = i;
 		}
-		if (bi == -1 && strcmp(sbuf_data(b), rel[i]) == 0) {
+		if (bi == -1 && sbuf_strcmp(b, rel[i]) == 0) {
 			bi = i;
 		}
 		if (ai != -1 && bi != -1) {
@@ -1076,13 +1068,15 @@ options_helpers_pattern() {
 		}
 	}
 	sbuf_cat(buf, ")$");
-	sbuf_finish(buf);
+	sbuf_finishx(buf);
 	return buf;
 }
 
 int
 matches(enum RegularExpression re, struct sbuf *s, regmatch_t *match)
 {
+	assert(sbuf_done(s));
+
 	int nmatch = 0;
 	if (match) {
 		nmatch = 1;
@@ -1093,6 +1087,8 @@ matches(enum RegularExpression re, struct sbuf *s, regmatch_t *match)
 struct sbuf *
 sub(enum RegularExpression re, const char *replacement, struct sbuf *s)
 {
+	assert(sbuf_done(s));
+
 	struct sbuf *buf = sbuf_dupstr(NULL);
 	regmatch_t pmatch[1];
 	if (regexec(&regular_expressions[re].re, sbuf_data(s), 1, pmatch, 0) == 0) {
@@ -1104,7 +1100,7 @@ sub(enum RegularExpression re, const char *replacement, struct sbuf *s)
 	} else {
 		sbuf_bcat(buf, sbuf_data(s), sbuf_len(s));
 	}
-	sbuf_finish(buf);
+	sbuf_finishx(buf);
 
 	return buf;
 }
