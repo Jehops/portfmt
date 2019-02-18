@@ -109,7 +109,9 @@ static int ALL_UNSORTED = 1;
 static int WRAPCOL = 80;
 
 size_t
-consume_token(struct Parser *parser, struct sbuf *line, size_t pos, char startchar, char endchar, int eol_ok) {
+consume_token(struct Parser *parser, struct sbuf *line, size_t pos,
+	      char startchar, char endchar, int eol_ok)
+{
 	char *linep = sbuf_data(line);
 	int counter = 0;
 	int escape = 0;
@@ -216,7 +218,8 @@ parser_get_token(struct Parser *parser, size_t i)
 }
 
 void
-parser_tokenize(struct Parser *parser, struct sbuf *line) {
+parser_tokenize(struct Parser *parser, struct sbuf *line)
+{
 	ssize_t pos = consume_var(line);
 	if (pos != 0) {
 		if (pos > sbuf_len(line)) {
@@ -349,7 +352,8 @@ parser_reset(struct Parser *parser)
 }
 
 void
-parser_propagate_goalcol(struct Parser *parser, size_t start, size_t end, int moving_goalcol)
+parser_propagate_goalcol(struct Parser *parser, size_t start, size_t end,
+			 int moving_goalcol)
 {
 	moving_goalcol = MAX(16, moving_goalcol);
 	for (size_t k = start; k <= end; k++) {
@@ -412,7 +416,8 @@ parser_find_goalcols(struct Parser *parser)
 }
 
 void
-print_newline_array(struct Parser *parser, struct Array *arr) {
+print_newline_array(struct Parser *parser, struct Array *arr)
+{
 	struct Token *o = array_get(arr, 0);
 	assert(o && o->data != NULL);
 	assert(sbuf_len(o->data) != 0);
@@ -529,7 +534,8 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 }
 
 void
-parser_generate_output(struct Parser *parser) {
+parser_generate_output(struct Parser *parser)
+{
 	struct Array *arr = array_new(sizeof(struct Token *));
 	struct Variable *last_var = NULL;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
@@ -601,7 +607,8 @@ parser_generate_output(struct Parser *parser) {
 }
 
 void
-parser_dump_tokens(struct Parser *parser) {
+parser_dump_tokens(struct Parser *parser)
+{
 	ssize_t maxvarlen = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
@@ -724,7 +731,8 @@ parser_write(struct Parser *parser, int fd)
 }
 
 void
-usage() {
+usage()
+{
 	fprintf(stderr, "usage: portfmt [-i] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }

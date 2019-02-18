@@ -892,7 +892,8 @@ ignore_wrap_col(struct Variable *var)
 }
 
 int
-indent_goalcol(struct Variable *var) {
+indent_goalcol(struct Variable *var)
+{
 	size_t varlength = sbuf_len(variable_name(var)) + 1;
 	switch (variable_modifier(var)) {
 	case MODIFIER_ASSIGN:
@@ -964,7 +965,8 @@ print_as_newlines(struct Variable *var)
 }
 
 int
-skip_goalcol(struct Variable *var) {
+skip_goalcol(struct Variable *var)
+{
 	if (matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
 		return 1;
 	}
@@ -1063,7 +1065,8 @@ compare_use_qt(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result
 }
 
 struct sbuf *
-options_helpers_pattern() {
+options_helpers_pattern()
+{
 	struct sbuf *buf = sbuf_dupstr("_(");
 	for (size_t i = 0; i < nitems(options_helpers_); i++) {
 		const char *helper = options_helpers_[i];
