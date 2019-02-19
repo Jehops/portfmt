@@ -66,6 +66,9 @@ enum TokenType {
 	INLINE_COMMENT,
 	TARGET,
 	TOKEN,
+	PORT_MK,
+	PORT_OPTIONS_MK,
+	PORT_PRE_MK,
 };
 
 struct Token {
@@ -389,6 +392,9 @@ parser_find_goalcols(struct Parser *parser)
 			break;
 		case COMMENT:
 		case CONDITIONAL:
+		case PORT_MK:
+		case PORT_PRE_MK:
+		case PORT_OPTIONS_MK:
 		case TARGET:
 			/* Ignore comments in between variables and
 			 * treat variables after them as part of the
@@ -539,6 +545,7 @@ parser_generate_output(struct Parser *parser)
 {
 	struct Array *arr = array_new(sizeof(struct Token *));
 	struct Variable *last_var = NULL;
+	int after_port_options_mk = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
 		switch (o->type) {
@@ -559,8 +566,12 @@ parser_generate_output(struct Parser *parser)
 			}
 			array_append(arr, o);
 			break;
+		case PORT_OPTIONS_MK:
+			after_port_options_mk = 1;
 		case COMMENT:
 		case CONDITIONAL:
+		case PORT_MK:
+		case PORT_PRE_MK:
 		case TARGET:
 			if (array_len(arr) > 0) {
 				struct Token *arr0 = array_get(arr, 0);
@@ -642,6 +653,15 @@ parser_dump_tokens(struct Parser *parser)
 		case COMMENT:
 			type = "comment";
 			break;
+		case PORT_MK:
+			type = "port-mk";
+			break;
+		case PORT_PRE_MK:
+			type = "port-pre-mk";
+			break;
+		case PORT_OPTIONS_MK:
+			type = "port-options-mk";
+			break;
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
@@ -691,7 +711,16 @@ parser_read(struct Parser *parser, const char *line)
 		if (parser->in_target) {
 			parser_append_token(parser, TARGET, buf);
 		} else if (matches(RE_CONDITIONAL, buf, NULL)) {
-			parser_append_token(parser, CONDITIONAL, buf);
+			if (sbuf_endswith(buf, "<bsd.port.options.mk>")) {
+				parser_append_token(parser, PORT_OPTIONS_MK, buf);
+			} else if (sbuf_endswith(buf, "<bsd.port.pre.mk>")) {
+				parser_append_token(parser, PORT_PRE_MK, buf);
+			} else if (sbuf_endswith(buf, "<bsd.port.post.mk>") ||
+				   sbuf_endswith(buf, "<bsd.port.mk>")) {
+				parser_append_token(parser, PORT_MK, buf);
+			} else {
+				parser_append_token(parser, CONDITIONAL, buf);
+			}
 		} else {
 			parser_append_token(parser, COMMENT, buf);
 		}
