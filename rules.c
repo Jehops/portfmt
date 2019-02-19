@@ -83,7 +83,7 @@ static struct {
 	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+:", 	      REG_EXTENDED, {} },
 	[RE_TARGET_2] 	      = { ":=", 				      0, {} },
 	[RE_USE_QT]	      = { "^USE_QT[+?:]?=",			      REG_EXTENDED, {} },
-	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[+!?:]?=", REG_EXTENDED, {} },
+	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[[:space:]]*[+!?:]?=", REG_EXTENDED, {} },
 	//[RE_VAR_SORT_HACK]    = { "[\$\{\}]",				      0, {} },
 };
 
