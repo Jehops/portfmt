@@ -54,8 +54,6 @@ static struct {
 	int flags;
 	regex_t re;
 } regular_expressions[] = {
-	[RE_BACKSLASH_AT_END] = { "\\\\$", 				      0, {} },
-	[RE_COMMENT] 	      = { "^#", 				      0, {} },
 	[RE_CONDITIONAL]      = { "^(include|\\.[[:space:]]*(error|export|export-env|"
 				  "export-literal|info|undef|unexport|for|endfor|"
 				  "unexport-env|warning|if|ifdef|ifndef|include|"
@@ -80,11 +78,8 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
-	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+:", 	      REG_EXTENDED, {} },
-	[RE_TARGET_2] 	      = { ":=", 				      0, {} },
-	[RE_USE_QT]	      = { "^USE_QT[+?:]?=",			      REG_EXTENDED, {} },
+	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+:([[:space:]]+|$)",     REG_EXTENDED, {} },
 	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[[:space:]]*[+!?:]?=", REG_EXTENDED, {} },
-	//[RE_VAR_SORT_HACK]    = { "[\$\{\}]",				      0, {} },
 };
 
 static const char *print_as_newlines_[] = {

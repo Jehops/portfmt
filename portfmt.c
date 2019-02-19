@@ -394,7 +394,7 @@ parser_find_goalcols(struct Parser *parser)
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
 			 */
-			if (matches(RE_COMMENT, o->data, NULL)) {
+			if (strncmp(sbuf_data(o->data), "#", 1) == 0) {
 				continue;
 			}
 			if (tokens_start != -1) {
@@ -675,12 +675,12 @@ parser_read(struct Parser *parser, const char *line)
 	if (matches(RE_EMPTY_LINE, buf, NULL)) {
 		parser->skip = 1;
 		parser->in_target = 0;
-	} else if (matches(RE_TARGET, buf, NULL) && !matches(RE_TARGET_2, buf, NULL)) {
+	} else if (matches(RE_TARGET, buf, NULL)) {
 		parser->skip = 1;
 		parser->in_target = 1;
-	} else if (matches(RE_COMMENT, buf, NULL) || matches(RE_CONDITIONAL, buf, NULL) || parser->in_target) {
+	} else if (strncmp(sbuf_data(buf), "#", 1) == 0 || matches(RE_CONDITIONAL, buf, NULL) || parser->in_target) {
 		parser->skip = 1;
-		if (matches(RE_BACKSLASH_AT_END, buf, NULL) || matches(RE_CONDITIONAL, buf, NULL)) {
+		if (sbuf_endswith(buf, "\\") || matches(RE_CONDITIONAL, buf, NULL)) {
 			parser->skip++;
 		}
 	} else if (matches(RE_VAR, buf, NULL)) {
@@ -695,7 +695,7 @@ parser_read(struct Parser *parser, const char *line)
 		} else {
 			parser_append_token(parser, COMMENT, buf);
 		}
-		if (!matches(RE_BACKSLASH_AT_END, buf, NULL) && !matches(RE_CONDITIONAL, buf, NULL)) {
+		if (!sbuf_endswith(buf, "\\") && !matches(RE_CONDITIONAL, buf, NULL)) {
 			parser->skip--;
 		}
 	} else {

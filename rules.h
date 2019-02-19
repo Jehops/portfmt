@@ -39,9 +39,7 @@
 #include "variable.h"
 
 enum RegularExpression {
-	RE_BACKSLASH_AT_END = 0,
-	RE_COMMENT,
-	RE_CONDITIONAL,
+	RE_CONDITIONAL = 0,
 	RE_EMPTY_LINE,
 	RE_LICENSE_NAME,
 	RE_LICENSE_PERMS,
@@ -49,11 +47,8 @@ enum RegularExpression {
 	RE_PLIST_FILES,
 	RE_PLIST_KEYWORDS,
 	RE_MODIFIER,
-	RE_TARGET_2,
 	RE_TARGET,
-	RE_USE_QT,
 	RE_VAR,
-	//RE_VAR_SORT_HACK,
 };
 
 int compare_tokens(struct Variable *, struct sbuf *, struct sbuf *);
