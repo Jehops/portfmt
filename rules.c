@@ -56,11 +56,11 @@ static struct {
 } regular_expressions[] = {
 	[RE_BACKSLASH_AT_END] = { "\\\\$", 				      0, {} },
 	[RE_COMMENT] 	      = { "^#", 				      0, {} },
-	[RE_CONDITIONAL]      = { "^\\.[[:space:]]*(error|export|export-env|"
+	[RE_CONDITIONAL]      = { "^(include|\\.[[:space:]]*(error|export|export-env|"
 				  "export-literal|info|undef|unexport|for|endfor|"
 				  "unexport-env|warning|if|ifdef|ifndef|include|"
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
-				  "elifmake|endif)([[:space:]]+|$)",
+				  "elifmake|endif))([[:space:]]+|$)",
 				  REG_EXTENDED, {} },
 	[RE_EMPTY_LINE]       = { "^[[:space:]]*$", 			      0, {} },
 	[RE_LICENSE_NAME]     = { "^(_?(-|LICENSE_NAME_[A-Za-z0-9._+ ])+|"
