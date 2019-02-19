@@ -93,14 +93,15 @@ static size_t consume_token(struct Parser *, struct sbuf *, size_t, char, char, 
 static size_t consume_var(struct sbuf *);
 static struct Parser *parser_new(void);
 static void parser_append_token(struct Parser *, enum TokenType, struct sbuf *);
-static void parser_enqueue_output(struct Parser *, struct sbuf *s);
-static struct Token *parser_get_token(struct Parser *, size_t i);
+static void parser_enqueue_output(struct Parser *, struct sbuf *);
+static struct Token *parser_get_token(struct Parser *, size_t);
 static void parser_find_goalcols(struct Parser *);
+static void parser_generate_output_helper(struct Parser *, struct Array *);
 static void parser_generate_output(struct Parser *);
 static void parser_dump_tokens(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, const char *line);
-static void parser_write(struct Parser *, int fd_out);
+static void parser_write(struct Parser *, int);
 static void parser_reset(struct Parser *);
 static void parser_tokenize(struct Parser *, struct sbuf *);
 
@@ -541,6 +542,24 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 }
 
 void
+parser_generate_output_helper(struct Parser *parser, struct Array *arr)
+{
+	if (array_len(arr) == 0) {
+		return;
+	}
+	struct Token *arr0 = array_get(arr, 0);
+	if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
+		array_sort(arr, tokcompare);
+	}
+	if (print_as_newlines(arr0->var)) {
+		print_newline_array(parser, arr);
+	} else {
+		print_token_array(parser, arr);
+	}
+	array_truncate(arr);
+}
+
+void
 parser_generate_output(struct Parser *parser)
 {
 	struct Array *arr = array_new(sizeof(struct Token *));
@@ -551,18 +570,7 @@ parser_generate_output(struct Parser *parser)
 		switch (o->type) {
 		case TOKEN:
 			if (last_var == NULL || variable_cmp(o->var, last_var) != 0) {
-				if (array_len(arr) > 0) {
-					struct Token *arr0 = array_get(arr, 0);
-					if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
-						array_sort(arr, tokcompare);
-					}
-					if (print_as_newlines(arr0->var)) {
-						print_newline_array(parser, arr);
-					} else {
-						print_token_array(parser, arr);
-					}
-					array_truncate(arr);
-				}
+				parser_generate_output_helper(parser, arr);
 			}
 			array_append(arr, o);
 			break;
@@ -573,18 +581,7 @@ parser_generate_output(struct Parser *parser)
 		case PORT_MK:
 		case PORT_PRE_MK:
 		case TARGET:
-			if (array_len(arr) > 0) {
-				struct Token *arr0 = array_get(arr, 0);
-				if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
-					array_sort(arr, tokcompare);
-				}
-				if (print_as_newlines(arr0->var)) {
-					print_newline_array(parser, arr);
-				} else {
-					print_token_array(parser, arr);
-				}
-				array_truncate(arr);
-			}
+			parser_generate_output_helper(parser, arr);
 			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
@@ -603,18 +600,7 @@ parser_generate_output(struct Parser *parser)
 		}
 		last_var = o->var;
 	}
-	if (array_len(arr) > 0) {
-		struct Token *arr0 = array_get(arr, 0);
-		if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
-			array_sort(arr, tokcompare);
-		}
-		if (print_as_newlines(arr0->var)) {
-			print_newline_array(parser, arr);
-		} else {
-			print_token_array(parser, arr);
-		}
-	}
-
+	parser_generate_output_helper(parser, arr);
 	free(arr);
 }
 
