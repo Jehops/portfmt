@@ -38,15 +38,16 @@
 #endif
 #if HAVE_CAPSICUM
 # include <sys/capsicum.h>
+# include "capsicum_helpers.h"
 #endif
 #include <ctype.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
-#include <errno.h>
 #include <fcntl.h>
 #include <math.h>
 #include <regex.h>
+#define _WITH_GETLINE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -786,36 +787,23 @@ main(int argc, char *argv[])
 	}
 
 #if HAVE_CAPSICUM
-	cap_rights_t rights;
-
 	if (iflag) {
-		cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_FTRUNCATE, CAP_SEEK);
-		/* fdopen */ cap_rights_set(&rights, CAP_FCNTL);
-		/* ??? */ cap_rights_set(&rights, CAP_FSTAT);
-		if (cap_rights_limit(fd_out, &rights) < 0 && errno != ENOSYS) {
-			err(1, "cap_rights_limit");
+		close(STDIN_FILENO);
+		close(STDOUT_FILENO);
+		if (caph_limit_stream(fd_in, CAPH_READ | CAPH_WRITE | CAPH_FTRUNCATE) < 0) {
+			err(1, "caph_limit_stream");
+		}
+		if (caph_limit_stderr() < 0) {
+			err(1, "caph_limit_stdio");
 		}
 	} else {
-		cap_rights_init(&rights, CAP_WRITE);
-		if (cap_rights_limit(fd_out, &rights) < 0 && errno != ENOSYS) {
-			err(1, "cap_rights_limit");
-		}
-
-		cap_rights_init(&rights, CAP_READ);
-		/* fdopen */ cap_rights_set(&rights, CAP_FCNTL);
-		/* ??? */ cap_rights_set(&rights, CAP_FSTAT);
-		if (cap_rights_limit(fd_in, &rights) < 0 && errno != ENOSYS) {
-			err(1, "cap_rights_limit");
+		if (caph_limit_stdio() < 0) {
+			err(1, "caph_limit_stdio");
 		}
 	}
 
-	cap_rights_init(&rights, CAP_WRITE);
-	if (cap_rights_limit(STDERR_FILENO, &rights) && errno != ENOSYS) {
-		err(1, "cap_rights_limit");
-	}
-
-	if (cap_enter() && errno != ENOSYS) {
-		err(1, "cap_enter");
+	if (caph_enter() < 0) {
+		err(1, "caph_enter");
 	}
 #endif
 

@@ -39,12 +39,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-
 #define	CAPH_IGNORE_EBADF	0x0001
 #define	CAPH_READ		0x0002
 #define	CAPH_WRITE		0x0004
 #define	CAPH_LOOKUP		0x0008
+#define	CAPH_FTRUNCATE		0x0016
 
 __BEGIN_DECLS
 
@@ -63,6 +62,8 @@ caph_limit_stream(int fd, int flags)
 		cap_rights_set(&rights, CAP_WRITE);
 	if ((flags & CAPH_LOOKUP) != 0)
 		cap_rights_set(&rights, CAP_LOOKUP);
+	if ((flags & CAPH_FTRUNCATE) != 0)
+		cap_rights_set(&rights, CAP_FTRUNCATE);
 
 	if (cap_rights_limit(fd, &rights) < 0 && errno != ENOSYS) {
 		if (errno == EBADF && (flags & CAPH_IGNORE_EBADF) != 0)
@@ -164,13 +165,6 @@ caph_fcntls_limit(int fd, uint32_t fcntlrights)
 		return (-1);
 
 	return (0);
-}
-
-static __inline int
-caph_enter_casper(void)
-{
-
-	return (CASPER_SUPPORT == 0 ? 0 : caph_enter());
 }
 
 __END_DECLS
