@@ -99,6 +99,13 @@ variable_modifier(struct Variable *var)
 	return var->modifier;
 }
 
+void
+variable_set_modifier(struct Variable *var, enum VariableModifier modifier)
+{
+	assert(var != NULL);
+	var->modifier = modifier;
+}
+
 struct sbuf *
 variable_name(struct Variable *var)
 {
