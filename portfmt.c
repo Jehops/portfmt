@@ -110,7 +110,7 @@ static void print_token_array(struct Parser *, struct Array *);
 static int tokcompare(const void *, const void *);
 static void usage(void);
 
-static int ALL_UNSORTED = 1;
+static int ALL_UNSORTED = 0;
 static int WRAPCOL = 80;
 
 size_t
@@ -548,7 +548,7 @@ parser_generate_output_helper(struct Parser *parser, struct Array *arr)
 		return;
 	}
 	struct Token *arr0 = array_get(arr, 0);
-	if (!ALL_UNSORTED || !leave_unsorted(arr0->var)) {
+	if (!ALL_UNSORTED && !leave_unsorted(arr0->var)) {
 		array_sort(arr, tokcompare);
 	}
 	if (print_as_newlines(arr0->var)) {
