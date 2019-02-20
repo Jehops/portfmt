@@ -809,7 +809,7 @@ main(int argc, char *argv[])
 			err(1, "caph_limit_stream");
 		}
 		if (caph_limit_stderr() < 0) {
-			err(1, "caph_limit_stdio");
+			err(1, "caph_limit_stderr");
 		}
 	} else {
 		if (caph_limit_stdio() < 0) {
