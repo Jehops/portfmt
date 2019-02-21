@@ -82,6 +82,17 @@ sbuf_endswith(struct sbuf *s, const char *end)
 	return strncmp(sbuf_data(s) + sbuf_len(s) - len, end, len) == 0;
 }
 
+int
+sbuf_startswith(struct sbuf *s, const char *start)
+{
+	assert(sbuf_done(s));
+	ssize_t len = strlen(start);
+	if (sbuf_len(s) < len) {
+		return 0;
+	}
+	return strncmp(sbuf_data(s), start, len) == 0;
+}
+
 struct sbuf *
 sbuf_dup(struct sbuf *s) {
 	if (s == NULL) {

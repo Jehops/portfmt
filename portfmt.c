@@ -401,7 +401,7 @@ parser_find_goalcols(struct Parser *parser)
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
 			 */
-			if (strncmp(sbuf_data(o->data), "#", 1) == 0) {
+			if (sbuf_startswith(o->data, "#")) {
 				continue;
 			}
 			if (tokens_start != -1) {
@@ -684,7 +684,7 @@ parser_read(struct Parser *parser, const char *line)
 	} else if (matches(RE_TARGET, buf, NULL)) {
 		parser->skip = 1;
 		parser->in_target = 1;
-	} else if (strncmp(sbuf_data(buf), "#", 1) == 0 || matches(RE_CONDITIONAL, buf, NULL) || parser->in_target) {
+	} else if (sbuf_startswith(buf, "#") || matches(RE_CONDITIONAL, buf, NULL) || parser->in_target) {
 		parser->skip = 1;
 		if (sbuf_endswith(buf, "\\") || matches(RE_CONDITIONAL, buf, NULL)) {
 			parser->skip++;

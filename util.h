@@ -45,6 +45,7 @@ char *repeat(char, size_t);
 int sbuf_cmp(struct sbuf *, struct sbuf *);
 int sbuf_strcmp(struct sbuf *, const char *);
 int sbuf_endswith(struct sbuf *, const char *);
+int sbuf_startswith(struct sbuf *, const char *);
 
 struct sbuf *sbuf_dup(struct sbuf *);
 struct sbuf *sbuf_dupstr(const char *);
