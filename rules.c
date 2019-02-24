@@ -864,7 +864,8 @@ static const char *ignore_wrap_col_[] = {
 int
 ignore_wrap_col(struct Variable *var)
 {
-	if (matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
+	if (variable_modifier(var) == MODIFIER_SHELL ||
+	    matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
 		return 1;
 	}
 

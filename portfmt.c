@@ -487,7 +487,8 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	if (ignore_wrap_col(o->var)) {
 		wrapcol = 99999999;
 	} else {
-		wrapcol = WRAPCOL - o->goalcol;
+		/* Minus ' \' at end of line */
+		wrapcol = WRAPCOL - o->goalcol - 2;
 	}
 
 	struct sbuf *row = sbuf_dupstr(NULL);
