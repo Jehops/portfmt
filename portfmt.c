@@ -63,11 +63,11 @@ enum TokenType {
 	CONDITIONAL,
 	EMPTY,
 	INLINE_COMMENT,
-	TARGET,
-	TOKEN,
 	PORT_MK,
 	PORT_OPTIONS_MK,
 	PORT_PRE_MK,
+	TARGET,
+	VARIABLE,
 };
 
 struct Token {
@@ -105,7 +105,7 @@ static void parser_dump_tokens(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, const char *line);
 static void parser_write(struct Parser *, int);
-static void parser_tokenize(struct Parser *, struct sbuf *);
+static void parser_tokenize_variable(struct Parser *, struct sbuf *);
 
 static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
@@ -256,7 +256,7 @@ parser_get_token(struct Parser *parser, size_t i)
 }
 
 void
-parser_tokenize(struct Parser *parser, struct sbuf *line)
+parser_tokenize_variable(struct Parser *parser, struct sbuf *line)
 {
 	ssize_t pos = consume_var(line);
 	if (pos != 0) {
@@ -311,7 +311,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *line)
 				sbuf_finishx(token);
 				sbuf_delete(tmp);
 				if (sbuf_strcmp(token, "") != 0 && sbuf_strcmp(token, "\\") != 0) {
-					parser_append_token(parser, TOKEN, token);
+					parser_append_token(parser, VARIABLE, token);
 					queued_tokens++;
 				}
 				sbuf_delete(token);
@@ -343,7 +343,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *line)
 				    sbuf_strcmp(token, "# empty") == 0 ||
 				    sbuf_strcmp(token, "#none") == 0 ||
 				    sbuf_strcmp(token, "# none") == 0) {
-					parser_append_token(parser, TOKEN, token);
+					parser_append_token(parser, VARIABLE, token);
 					queued_tokens++;
 				} else {
 					parser_append_token(parser, INLINE_COMMENT, token);
@@ -366,7 +366,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *line)
 	sbuf_finishx(token);
 	sbuf_delete(tmp);
 	if (sbuf_strcmp(token, "") != 0) {
-		parser_append_token(parser, TOKEN, token);
+		parser_append_token(parser, VARIABLE, token);
 		queued_tokens++;
 	}
 
@@ -401,7 +401,7 @@ parser_find_goalcols(struct Parser *parser)
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = parser_get_token(parser, i);
 		switch(o->type) {
-		case TOKEN:
+		case VARIABLE:
 			if (tokens_start == -1) {
 				tokens_start = i;
 			}
@@ -591,7 +591,7 @@ parser_generate_output(struct Parser *parser)
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
 		switch (o->type) {
-		case TOKEN:
+		case VARIABLE:
 			if (last_var == NULL || variable_cmp(o->var, last_var) != 0) {
 				parser_generate_output_helper(parser, arr);
 			}
@@ -633,7 +633,7 @@ parser_dump_tokens(struct Parser *parser)
 	ssize_t maxvarlen = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
-		if (o->type == TOKEN && o->var) {
+		if (o->type == VARIABLE && o->var) {
 			struct sbuf *var = variable_tostring(o->var);
 			maxvarlen = MAX(maxvarlen, sbuf_len(var));
 			sbuf_delete(var);
@@ -644,7 +644,7 @@ parser_dump_tokens(struct Parser *parser)
 		struct Token *o = array_get(parser->tokens, i);
 		const char *type;
 		switch (o->type) {
-		case TOKEN:
+		case VARIABLE:
 			type = "token";
 			break;
 		case TARGET:
@@ -676,7 +676,7 @@ parser_dump_tokens(struct Parser *parser)
 		}
 		struct sbuf *var = NULL;
 		ssize_t len = maxvarlen;
-		if (o->type == TOKEN && o->var) {
+		if (o->type == VARIABLE && o->var) {
 			var = variable_tostring(o->var);
 			len = maxvarlen - sbuf_len(var);
 		} else {
@@ -703,8 +703,8 @@ parser_read(struct Parser *parser, const char *line)
 	sbuf_finishx(buf);
 
 	if (parser->continued > -1) {
-		if (parser->continued == TOKEN) {
-			parser_tokenize(parser, buf);
+		if (parser->continued == VARIABLE) {
+			parser_tokenize_variable(parser, buf);
 		} else {
 			parser_append_token(parser, parser->continued, buf);
 		}
@@ -769,11 +769,11 @@ parser_read(struct Parser *parser, const char *line)
 		goto next;
 	}
 
-	parser_tokenize(parser, buf);
+	parser_tokenize_variable(parser, buf);
 	if (parser->varname == NULL) {
 		errx(1, "parser error on line %zu", parser->lineno);
 	}
-	parser->continued = TOKEN;
+	parser->continued = VARIABLE;
 next:
 	if (!sbuf_endswith(buf, "\\")) {
 		parser->continued = -1;
