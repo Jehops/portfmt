@@ -78,6 +78,7 @@ struct Token {
 	struct Variable *var;
 	int goalcol;
 	size_t lineno;
+	int ignore;
 };
 
 struct Parser {
@@ -240,6 +241,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 	o->var = var;
 	o->goalcol = 0;
 	o->lineno = parser->lineno;
+	o->ignore = 0;
 	array_append(parser->tokens, o);
 }
 
@@ -386,7 +388,7 @@ parser_propagate_goalcol(struct Parser *parser, size_t start, size_t end,
 	moving_goalcol = MAX(16, moving_goalcol);
 	for (size_t k = start; k <= end; k++) {
 		struct Token *o = parser_get_token(parser, k);
-		if (o->var && !skip_goalcol(o->var)) {
+		if (!o->ignore && o->var && !skip_goalcol(o->var)) {
 			o->goalcol = moving_goalcol;
 		}
 	}
@@ -401,6 +403,9 @@ parser_find_goalcols(struct Parser *parser)
 	ssize_t tokens_end = -1;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = parser_get_token(parser, i);
+		if (o->ignore) {
+			continue;
+		}
 		switch(o->type) {
 		case VARIABLE_END:
 		case VARIABLE_START:
@@ -593,6 +598,9 @@ parser_generate_output(struct Parser *parser)
 	int after_port_options_mk = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
+		if (o->ignore) {
+			continue;
+		}
 		switch (o->type) {
 		case VARIABLE_END:
 			parser_generate_output_helper(parser, arr);
@@ -637,6 +645,9 @@ parser_dump_tokens(struct Parser *parser)
 	ssize_t maxvarlen = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
+		if (o->ignore) {
+			continue;
+		}
 		if (o->type == VARIABLE_START && o->var) {
 			struct sbuf *var = variable_tostring(o->var);
 			maxvarlen = MAX(maxvarlen, sbuf_len(var));
@@ -646,6 +657,9 @@ parser_dump_tokens(struct Parser *parser)
 
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
+		if (o->ignore) {
+			continue;
+		}
 		const char *type;
 		switch (o->type) {
 		case VARIABLE_END:
@@ -807,6 +821,30 @@ parser_read_finish(struct Parser *parser)
 		parser_append_token(parser, VARIABLE_END, NULL);
 		sbuf_delete(parser->varname);
 		parser->varname = NULL;
+	}
+
+	/* Collapse adjacent variables (collapse_duplicate_vars_*) */
+	struct Variable *last_var = NULL;
+	struct Token *last = NULL;
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *o = array_get(parser->tokens, i);
+		switch (o->type) {
+		case VARIABLE_START:
+			if (last_var != NULL && variable_cmp(o->var, last_var) == 0) {
+				o->ignore = 1;
+				if (last) {
+					last->ignore = 1;
+					last = NULL;
+				}
+			}
+			break;
+		case VARIABLE_END:
+			last = o;
+			break;
+		default:
+			last_var = o->var;
+			break;
+		}
 	}
 }
 
