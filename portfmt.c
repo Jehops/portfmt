@@ -108,6 +108,7 @@ static void parser_dump_tokens(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, const char *line);
 static void parser_read_finish(struct Parser *);
+static void parser_sanitize_append_modifier(struct Parser *);
 static void parser_write(struct Parser *, int);
 static void parser_tokenize_variable(struct Parser *, struct sbuf *);
 
@@ -852,6 +853,62 @@ parser_read_finish(struct Parser *parser)
 }
 
 void
+parser_sanitize_append_modifier(struct Parser *parser)
+{
+	/* Sanitize += before bsd.options.mk */
+	ssize_t start = -1;
+	struct Array *seen = array_new(sizeof(struct Variable *));
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		if (t->ignore) {
+			continue;
+		}
+		switch(t->type) {
+		case VARIABLE_START:
+			start = i;
+			break;
+		case VARIABLE_END: {
+			if (start < 0) {
+				continue;
+			}
+			int found = 0;
+			for (size_t j = 0; j < array_len(seen); j++) {
+				struct Variable *var = array_get(seen, j);
+				if (variable_cmp(t->var, var) == 0) {
+					found = 1;
+					break;
+				}
+			}
+			if (found) {
+				start = -1;
+				continue;
+			} else {
+				array_append(seen, t->var);
+			}
+			for (size_t j = start; j <= i; j++) {
+				struct Token *o = array_get(parser->tokens, j);
+				if (sbuf_strcmp(variable_name(o->var), "CXXFLAGS") != 0 &&
+				    sbuf_strcmp(variable_name(o->var), "CFLAGS") != 0 &&
+				    sbuf_strcmp(variable_name(o->var), "LDFLAGS") != 0 &&
+				    variable_modifier(o->var) == MODIFIER_APPEND) {
+					variable_set_modifier(o->var, MODIFIER_ASSIGN);
+				}
+			}
+			start = -1;
+			break;
+		} case PORT_OPTIONS_MK:
+		case PORT_PRE_MK:
+		case PORT_MK:
+			goto end;
+		default:
+			break;
+		}
+	}
+end:
+	free(seen);
+}
+
+void
 parser_write(struct Parser *parser, int fd)
 {
 	size_t len = array_len(parser->result);
@@ -887,7 +944,7 @@ parser_write(struct Parser *parser, int fd)
 void
 usage()
 {
-	fprintf(stderr, "usage: portfmt [-i] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portfmt [-a] [-i] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
@@ -896,10 +953,14 @@ main(int argc, char *argv[])
 {
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
+	int aflag = 0;
 	int dflag = 0;
 	int iflag = 0;
-	while (getopt(argc, argv, "diuw:") != -1) {
+	while (getopt(argc, argv, "adiuw:") != -1) {
 		switch (optopt) {
+		case 'a':
+			aflag = 1;
+			break;
 		case 'd':
 			dflag = 1;
 			break;
@@ -978,6 +1039,9 @@ main(int argc, char *argv[])
 		parser_read(parser, line);
 	}
 	parser_read_finish(parser);
+	if (aflag) {
+		parser_sanitize_append_modifier(parser);
+	}
 
 	if (dflag) {
 		parser_dump_tokens(parser);
