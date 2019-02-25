@@ -263,14 +263,17 @@ parser_get_token(struct Parser *parser, size_t i)
 void
 parser_tokenize_variable(struct Parser *parser, struct sbuf *line)
 {
-	ssize_t pos = consume_var(line);
-	if (pos != 0) {
-		if (pos > sbuf_len(line)) {
-			errx(1, "parser->varname too small");
+	ssize_t pos = 0;
+	if (parser->continued == -1) {
+		pos = consume_var(line);
+		if (pos != 0) {
+			if (pos > sbuf_len(line)) {
+				errx(1, "parser->varname too small");
+			}
+			parser->varname = sbuf_substr_dup(line, 0, pos);
+			sbuf_finishx(parser->varname);
+			parser_append_token(parser, VARIABLE_START, NULL);
 		}
-		parser->varname = sbuf_substr_dup(line, 0, pos);
-		sbuf_finishx(parser->varname);
-		parser_append_token(parser, VARIABLE_START, NULL);
 	}
 
 	int dollar = 0;
