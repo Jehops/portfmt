@@ -54,7 +54,7 @@ static struct {
 	regex_t re;
 } regular_expressions[] = {
 	[RE_CONDITIONAL]      = { "^(include|\\.[[:space:]]*(error|export|export-env|"
-				  "export-literal|info|undef|unexport|for|endfor|"
+				  "export\\.env|export-literal|info|undef|unexport|for|endfor|"
 				  "unexport-env|warning|if|ifdef|ifndef|include|"
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
 				  "elifmake|endif))([[:space:]]+|$)",
@@ -77,7 +77,7 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
-	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+:([[:space:]]+|$)",     REG_EXTENDED, {} },
+	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+::?([[:space:]]+|$)",     REG_EXTENDED, {} },
 	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[[:space:]]*[+!?:]?=", REG_EXTENDED, {} },
 };
 
