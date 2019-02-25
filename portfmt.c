@@ -159,7 +159,7 @@ consume_token(struct Parser *parser, struct sbuf *line, size_t pos,
 	int counter = 0;
 	int escape = 0;
 	ssize_t i = pos;
-	for (; i <= sbuf_len(line); i++) {
+	for (; i < sbuf_len(line); i++) {
 		char c = linep[i];
 		if (escape) {
 			escape = 0;
