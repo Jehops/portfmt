@@ -79,6 +79,7 @@ struct Token {
 };
 
 struct Parser {
+	int continued;
 	int in_target;
 	size_t lineno;
 	int skip;
@@ -88,6 +89,9 @@ struct Parser {
 	struct Array *result;
 };
 
+static size_t consume_comment(struct sbuf *);
+static size_t consume_conditional(struct sbuf *);
+static size_t consume_target(struct sbuf *);
 static size_t consume_token(struct Parser *, struct sbuf *, size_t, char, char, int);
 static size_t consume_var(struct sbuf *);
 static struct Parser *parser_new(void);
@@ -101,7 +105,6 @@ static void parser_dump_tokens(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, const char *line);
 static void parser_write(struct Parser *, int);
-static void parser_reset(struct Parser *);
 static void parser_tokenize(struct Parser *, struct sbuf *);
 
 static void print_newline_array(struct Parser *, struct Array *);
@@ -111,6 +114,38 @@ static void usage(void);
 
 static int ALL_UNSORTED = 0;
 static int WRAPCOL = 80;
+
+size_t
+consume_comment(struct sbuf *buf)
+{
+	size_t pos = 0;
+	if (sbuf_startswith(buf, "#")) {
+		pos = sbuf_len(buf);
+	}
+	return pos;
+}
+
+size_t
+consume_conditional(struct sbuf *buf)
+{
+	size_t pos = 0;
+	regmatch_t match[1];
+	if (matches(RE_CONDITIONAL, buf, match)) {
+		pos = match->rm_eo - match->rm_so;
+	}
+	return pos;
+}
+
+size_t
+consume_target(struct sbuf *buf)
+{
+	size_t pos = 0;
+	regmatch_t match[1];
+	if (matches(RE_TARGET, buf, match)) {
+		pos = match->rm_eo - match->rm_so;
+	}
+	return pos;
+}
 
 size_t
 consume_token(struct Parser *parser, struct sbuf *line, size_t pos,
@@ -176,8 +211,7 @@ parser_new()
 
 	parser->result = array_new(sizeof(struct sbuf *));
 	parser->tokens = array_new(sizeof(struct Token *));
-
-	parser_reset(parser);
+	parser->continued = -1;
 
 	return parser;
 }
@@ -342,17 +376,6 @@ cleanup:
 	if (queued_tokens == 0) {
 		parser_append_token(parser, EMPTY, NULL);
 	}
-	sbuf_delete(line);
-}
-
-void
-parser_reset(struct Parser *parser)
-{
-	parser->in_target = 0;
-	if (parser->varname) {
-		sbuf_delete(parser->varname);
-	}
-	parser->varname = NULL;
 }
 
 void
@@ -673,50 +696,90 @@ parser_dump_tokens(struct Parser *parser)
 void
 parser_read(struct Parser *parser, const char *line)
 {
+	size_t pos;
 	parser->lineno++;
 	struct sbuf *buf = sbuf_dupstr(line);
 	sbuf_trim(buf);
 	sbuf_finishx(buf);
 
-	if (matches(RE_EMPTY_LINE, buf, NULL)) {
-		parser->skip = 1;
-		parser->in_target = 0;
-	} else if (matches(RE_TARGET, buf, NULL)) {
-		parser->skip = 1;
-		parser->in_target = 1;
-	} else if (sbuf_startswith(buf, "#") || matches(RE_CONDITIONAL, buf, NULL) || parser->in_target) {
-		parser->skip = 1;
-		if (sbuf_endswith(buf, "\\") || matches(RE_CONDITIONAL, buf, NULL)) {
-			parser->skip++;
+	if (parser->continued > -1) {
+		if (parser->continued == TOKEN) {
+			parser_tokenize(parser, buf);
+		} else {
+			parser_append_token(parser, parser->continued, buf);
 		}
-	} else if (matches(RE_VAR, buf, NULL)) {
-		parser_reset(parser);
+		goto next;
 	}
 
-	if (parser->skip) {
-		if (parser->in_target) {
+	pos = consume_comment(buf);
+	if (pos > 0 || matches(RE_EMPTY_LINE, buf, NULL)) {
+		parser_append_token(parser, COMMENT, buf);
+		parser->continued = COMMENT;
+		goto next;
+	}
+
+	if (parser->in_target) {
+		pos = consume_var(buf);
+		if (pos == 0) {
 			parser_append_token(parser, TARGET, buf);
-		} else if (matches(RE_CONDITIONAL, buf, NULL)) {
-			if (sbuf_endswith(buf, "<bsd.port.options.mk>")) {
-				parser_append_token(parser, PORT_OPTIONS_MK, buf);
-			} else if (sbuf_endswith(buf, "<bsd.port.pre.mk>")) {
-				parser_append_token(parser, PORT_PRE_MK, buf);
-			} else if (sbuf_endswith(buf, "<bsd.port.post.mk>") ||
-				   sbuf_endswith(buf, "<bsd.port.mk>")) {
-				parser_append_token(parser, PORT_MK, buf);
+			parser->continued = TARGET;
+			goto next;
+		}
+		pos = consume_conditional(buf);
+		if (pos > 0) {
+			parser_append_token(parser, TARGET, buf);
+			parser->continued = TARGET;
+			goto next;
+		}
+		parser->in_target = 0;
+	}
+
+	pos = consume_target(buf);
+	if (pos > 0) {
+		parser->in_target = 1;
+		parser_append_token(parser, TARGET, buf);
+		parser->continued = TARGET;
+		goto next;
+	}
+
+	pos = consume_conditional(buf);
+	if (pos > 0) {
+		if (sbuf_endswith(buf, "<bsd.port.options.mk>")) {
+			parser_append_token(parser, PORT_OPTIONS_MK, buf);
+			parser->continued = PORT_OPTIONS_MK;
+			goto next;
+		} else if (sbuf_endswith(buf, "<bsd.port.pre.mk>")) {
+			parser_append_token(parser, PORT_PRE_MK, buf);
+			parser->continued = PORT_PRE_MK;
+			goto next;
+		} else if (sbuf_endswith(buf, "<bsd.port.post.mk>") ||
+			   sbuf_endswith(buf, "<bsd.port.mk>")) {
+			parser_append_token(parser, PORT_MK, buf);
+			parser->continued = PORT_MK;
+			goto next;
+		} else {
+			if (parser->in_target) {
+				parser_append_token(parser, TARGET, buf);
+				parser->continued = TARGET;
 			} else {
 				parser_append_token(parser, CONDITIONAL, buf);
+				parser->continued = CONDITIONAL;
 			}
-		} else {
-			parser_append_token(parser, COMMENT, buf);
 		}
-		if (!sbuf_endswith(buf, "\\") && !matches(RE_CONDITIONAL, buf, NULL)) {
-			parser->skip--;
-		}
-	} else {
-		parser_tokenize(parser, buf);
-		if (parser->varname == NULL) {
-			errx(1, "parser error on line %zu", parser->lineno);
+		goto next;
+	}
+
+	parser_tokenize(parser, buf);
+	if (parser->varname == NULL) {
+		errx(1, "parser error on line %zu", parser->lineno);
+	}
+	parser->continued = TOKEN;
+next:
+	if (!sbuf_endswith(buf, "\\")) {
+		parser->continued = -1;
+		if (parser->varname) {
+			sbuf_delete(parser->varname);
+			parser->varname = NULL;
 		}
 	}
 	sbuf_delete(buf);
