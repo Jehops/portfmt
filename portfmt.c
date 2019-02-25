@@ -106,6 +106,7 @@ static void parser_generate_output(struct Parser *);
 static void parser_dump_tokens(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, const char *line);
+static void parser_read_finish(struct Parser *);
 static void parser_write(struct Parser *, int);
 static void parser_tokenize_variable(struct Parser *, struct sbuf *);
 
@@ -799,6 +800,17 @@ next:
 }
 
 void
+parser_read_finish(struct Parser *parser)
+{
+	if (parser->continued && parser->varname) {
+		parser_append_token(parser, EMPTY, NULL);
+		parser_append_token(parser, VARIABLE_END, NULL);
+		sbuf_delete(parser->varname);
+		parser->varname = NULL;
+	}
+}
+
+void
 parser_write(struct Parser *parser, int fd)
 {
 	struct iovec *iov = reallocarray(NULL, array_len(parser->result),
@@ -915,6 +927,7 @@ main(int argc, char *argv[])
 	while ((linelen = getline(&line, &linecap, fp)) > 0) {
 		parser_read(parser, line);
 	}
+	parser_read_finish(parser);
 
 	if (dflag) {
 		parser_dump_tokens(parser);
