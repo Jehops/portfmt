@@ -851,18 +851,27 @@ parser_read_finish(struct Parser *parser)
 void
 parser_write(struct Parser *parser, int fd)
 {
-	struct iovec *iov = reallocarray(NULL, array_len(parser->result),
-					 sizeof(struct iovec));
+	size_t len = array_len(parser->result);
+	if (len == 0) {
+		return;
+	}
+
+	size_t iov_len = MIN(len, IOV_MAX);
+	struct iovec *iov = reallocarray(NULL, iov_len, sizeof(struct iovec));
 	if (iov == NULL) {
 		err(1, "reallocarray");
 	}
-	for (size_t i = 0; i < array_len(parser->result); i++) {
-		struct sbuf *s = array_get(parser->result, i);
-		iov[i].iov_base = sbuf_data(s);
-		iov[i].iov_len = sbuf_len(s);
-	}
-	if (writev(fd, iov, array_len(parser->result)) < 0) {
-		err(1, "writev");
+
+	for (size_t i = 0; i < len;) {
+		size_t j = 0;
+		for (; i < len && j < iov_len; j++) {
+			struct sbuf *s = array_get(parser->result, i++);
+			iov[j].iov_base = sbuf_data(s);
+			iov[j].iov_len = sbuf_len(s);
+		}
+		if (writev(fd, iov, j) < 0) {
+			err(1, "writev");
+		}
 	}
 
 	/* Collect garbage */
