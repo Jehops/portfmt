@@ -799,6 +799,7 @@ static const char *ignore_wrap_col_[] = {
 	"BROKEN",
 	"CARGO_CARGO_RUN",
 	"COMMENT",
+	"DESC",
 	"DEV_ERROR",
 	"DEV_WARNING",
 	"DISTFILES",
