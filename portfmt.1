@@ -88,7 +88,8 @@ It will be ignored for several variables like COMMENT, DISTFILES,
 MASTER_SITES, etc.
 .Pp
 With a value of -1 it is ignored for all variables.
-Previously wrapped variable will be concatenated onto a single line.
+Variables with wrapped tokens over multiple lines will be concatenated
+onto a single line.
 .El
 .Sh EDITOR INTEGRATION
 You can integrate Portfmt into your editor to conveniently run it
@@ -121,7 +122,6 @@ In-place format
 .Bd -literal -offset indent
 portfmt -i /usr/ports/audio/sndio/Makefile
 .Ed
-.Pp
 .Sh SEE ALSO
 .Xr ports 7
 .Sh AUTHORS
