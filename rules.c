@@ -257,6 +257,8 @@ static const char *options_helpers_[] = {
 	"CMAKE_ON",
 	"CMAKE_OFF",
 	"DESC",
+	"MESON_DISABLED",
+	"MESON_ENABLED",
 	"MESON_TRUE",
 	"MESON_FALSE",
 	"MESON_YES",
