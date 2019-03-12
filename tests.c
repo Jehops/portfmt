@@ -58,6 +58,18 @@ main(void)
 	return 1;
 }
 #endif /* TEST_ERR */
+#if TEST_EXPLICIT_BZERO
+#include <string.h>
+
+int
+main(void)
+{
+	char foo[10];
+
+	explicit_bzero(foo, sizeof(foo));
+	return(0);
+}
+#endif /* TEST_EXPLICIT_BZERO */
 #if TEST_GETPROGNAME
 #include <stdlib.h>
 
@@ -112,6 +124,16 @@ main(void)
 	return(NULL == res ? 1 : 0);
 }
 #endif /* TEST_MEMRCHR */
+#if TEST_MEMSET_S
+#include <string.h>
+
+int main(void)
+{
+	char buf[10];
+	memset_s(buf, 0, 'c', sizeof(buf));
+	return 0;
+}
+#endif /* TEST_MEMSET_S */
 #if TEST_PATH_MAX
 /*
  * POSIX allows PATH_MAX to not be defined, see
