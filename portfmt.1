@@ -25,7 +25,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd February 25, 2019
+.Dd March 12, 2019
 .Dt PORTFMT 1
 .Os
 .Sh NAME
@@ -90,6 +90,31 @@ MASTER_SITES, etc.
 With a value of -1 it is ignored for all variables.
 Previously wrapped variable will be concatenated onto a single line.
 .El
+.Sh EDITOR INTEGRATION
+You can integrate Portfmt into your editor to conveniently run it
+only on parts of the port, e.g., to reformat USES after adding a
+new item to it.
+.Ss Kakoune
+Add this to
+.Pa ~/.config/kak/kakrc
+for filtering the current selection through
+.Nm
+with
+.Sy ,1 :
+.Bd -literal -offset indent
+map global user 1 '|portfmt<ret>;' \\
+	-docstring "portfmt on selection"
+.Ed
+.Ss Vim
+Add this to
+.Pa ~/.vimrc
+for filtering the current selection through
+.Nm
+with
+.Sy \\\1 :
+.Bd -literal -offset indent
+xnoremap <leader>1 <esc>:'<,'>!portfmt<CR>
+.Ed
 .Sh EXAMPLES
 In-place format
 .Pa /usr/ports/audio/sndio/Makefile :
@@ -97,15 +122,6 @@ In-place format
 portfmt -i /usr/ports/audio/sndio/Makefile
 .Ed
 .Pp
-For integrating
-.Nm
-with the Kakoune editor, add this to your
-.Pa ~/.config/kak/kakrc ,
-which maps portfmt to
-.Sy ,1 :
-.Bd -literal -offset 0
-map global user 1 '|portfmt<ret>;' -docstring "portfmt on selection"
-.Ed
 .Sh SEE ALSO
 .Xr ports 7
 .Sh AUTHORS

@@ -85,8 +85,16 @@ new item to it.
 
 ### Kakoune
 
-In your `~/.config/kak/kakrc` mapped to `,1`:
+Add this to `~/.config/kak/kakrc` for filtering the current selection
+through portfmt with `,1`:
 ```
 map global user 1 '|portfmt<ret>;' -docstring "portfmt on selection"
 ```
 
+### Vim
+
+Add this to `~/.vimrc` for filtering the current selection through
+portfmt with `\1`:
+```
+xnoremap <leader>1 <esc>:'<,'>!portfmt<CR>
+```
