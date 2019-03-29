@@ -58,6 +58,12 @@
 #include "util.h"
 #include "variable.h"
 
+enum PortfmtBehavior {
+	PORTFMT_DEFAULT = 0,
+	PORTFMT_SANITIZE_APPEND = 2,
+	PORTFMT_UNSORTED_VARIABLES = 4,
+};
+
 enum TokenType {
 	COMMENT = 0,
 	CONDITIONAL,
@@ -117,7 +123,7 @@ static void print_token_array(struct Parser *, struct Array *);
 static int tokcompare(const void *, const void *);
 static void usage(void);
 
-static int ALL_UNSORTED = 0;
+static int behavior = PORTFMT_DEFAULT;
 static int WRAPCOL = 80;
 
 size_t
@@ -584,7 +590,7 @@ parser_generate_output_helper(struct Parser *parser, struct Array *arr)
 		return;
 	}
 	struct Token *arr0 = array_get(arr, 0);
-	if (!ALL_UNSORTED && !leave_unsorted(arr0->var)) {
+	if (!(behavior & PORTFMT_UNSORTED_VARIABLES) && !leave_unsorted(arr0->var)) {
 		array_sort(arr, tokcompare);
 	}
 	if (print_as_newlines(arr0->var)) {
@@ -953,13 +959,12 @@ main(int argc, char *argv[])
 {
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
-	int aflag = 0;
 	int dflag = 0;
 	int iflag = 0;
 	while (getopt(argc, argv, "adiuw:") != -1) {
 		switch (optopt) {
 		case 'a':
-			aflag = 1;
+			behavior |= PORTFMT_SANITIZE_APPEND;
 			break;
 		case 'd':
 			dflag = 1;
@@ -968,7 +973,7 @@ main(int argc, char *argv[])
 			iflag = 1;
 			break;
 		case 'u':
-			ALL_UNSORTED = 1;
+			behavior |= PORTFMT_UNSORTED_VARIABLES;
 			break;
 		case 'w': {
 			const char *errstr = NULL;
@@ -1039,7 +1044,7 @@ main(int argc, char *argv[])
 		parser_read(parser, line);
 	}
 	parser_read_finish(parser);
-	if (aflag) {
+	if (behavior & PORTFMT_SANITIZE_APPEND) {
 		parser_sanitize_append_modifier(parser);
 	}
 
