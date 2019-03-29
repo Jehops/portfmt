@@ -84,7 +84,6 @@ static struct {
 static const char *print_as_newlines_[] = {
 	"BUILD_DEPENDS",
 	"CARGO_CRATES",
-	"CARGO_GH_CARGOTOML",
 	"CFLAGS",
 	"CMAKE_ARGS",
 	"CMAKE_BOOL",
