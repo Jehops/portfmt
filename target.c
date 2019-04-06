@@ -31,12 +31,14 @@
 #include <assert.h>
 #include <err.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "util.h"
 #include "target.h"
 
 struct Target {
 	struct sbuf *name;
+	struct sbuf *deps;
 };
 
 struct Target *
@@ -45,8 +47,19 @@ target_new(struct sbuf *buf) {
 	if (target == NULL) {
 		err(1, "malloc");
 	}
-	target->name = sbuf_dup(buf);
+
+	char *after_target = memchr(sbuf_data(buf), ':', sbuf_len(buf));
+	if (after_target == NULL || after_target < sbuf_data(buf)) {
+		errx(1, "invalid target: %s", sbuf_data(buf));
+	}
+
+	target->name = sbuf_dupstr(NULL);
+	sbuf_bcpy(target->name, sbuf_data(buf), after_target - sbuf_data(buf));
+	sbuf_trim(target->name);
 	sbuf_finishx(target->name);
+
+	target->deps = sbuf_dupstr(after_target + 1);
+	sbuf_finishx(target->deps);
 
 	return target;
 }
