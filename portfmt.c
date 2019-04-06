@@ -781,6 +781,7 @@ parser_dump_tokens(struct Parser *parser)
 		} else if (o->target &&
 			   (o->type == TARGET_COMMAND ||
 			    o->type == TARGET_CONDITIONAL ||
+			    o->type == TARGET_START ||
 			    o->type == TARGET_END)) {
 			var = target_name(o->target);
 			len = maxvarlen - sbuf_len(var);
