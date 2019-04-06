@@ -10,5 +10,5 @@ ${stage}-${name}-script:
 .endif
 
 ${PKGFILE}: ${WRKDIR_PKGFILE} ${PKGREPOSITORY}
-	@${LN} -f ${WRKDIR_PKGFILE} ${PKGFILE} 2>/dev/null \
-		|| ${CP} -f ${WRKDIR_PKGFILE} ${PKGFILE}
+	@${LN} -f ${WRKDIR_PKGFILE} ${PKGFILE} 2>/dev/null || ${CP} -f \
+		${WRKDIR_PKGFILE} ${PKGFILE}

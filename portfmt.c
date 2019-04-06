@@ -505,13 +505,17 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	struct Token *o = array_get(arr, 0);
 	assert(o && o->data != NULL);
 	assert(sbuf_len(o->data) != 0);
-	struct sbuf *start = variable_tostring(o->var);
-	size_t ntabs = ceil((MAX(16, o->goalcol) - sbuf_len(start)) / 8.0);
-	struct sbuf *sep = sbuf_dup(start);
-	sbuf_cat(sep, repeat('\t', ntabs));
+	struct sbuf *sep;
+	if (o->var) {
+		struct sbuf *start = variable_tostring(o->var);
+		size_t ntabs = ceil((MAX(16, o->goalcol) - sbuf_len(start)) / 8.0);
+		sep = sbuf_dup(start);
+		sbuf_cat(sep, repeat('\t', ntabs));
+	} else {
+		sep = sbuf_dupstr("\t");
+	}
 
 	struct sbuf *end = sbuf_dupstr(" \\\n");
-
 	for (size_t i = 0; i < array_len(arr); i++) {
 		struct Token *o = array_get(arr, i);
 		struct sbuf *line = o->data;
@@ -524,9 +528,13 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		parser_enqueue_output(parser, sep);
 		parser_enqueue_output(parser, line);
 		parser_enqueue_output(parser, end);
-		if (i == 0) {
-			ntabs = ceil(MAX(16, o->goalcol) / 8.0);
-			sep = sbuf_dupstr(repeat('\t', ntabs));
+		if (o->var) {
+			if (i == 0) {
+				size_t ntabs = ceil(MAX(16, o->goalcol) / 8.0);
+				sep = sbuf_dupstr(repeat('\t', ntabs));
+			}
+		} else {
+			sep = sbuf_dupstr(repeat('\t', 2));
 		}
 	}
 }
@@ -561,7 +569,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	struct Array *arr = array_new(sizeof(struct Token *));
 	struct Token *o = array_get(tokens, 0);
 	int wrapcol;
-	if (ignore_wrap_col(o->var)) {
+	if (o->var && ignore_wrap_col(o->var)) {
 		wrapcol = 99999999;
 	} else {
 		/* Minus ' \' at end of line */
@@ -587,6 +595,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 					err(1, "malloc");
 				}
 				o->data = row;
+				o->target = token->target;
 				o->var = token->var;
 				o->goalcol = token->goalcol;
 				array_append(arr, o);
@@ -610,6 +619,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 			err(1, "malloc");
 		}
 		o->data = row;
+		o->target = token->target;
 		o->var = token->var;
 		o->goalcol = token->goalcol;
 		array_append(arr, o);
@@ -643,7 +653,8 @@ parser_generate_output_helper(struct Parser *parser, struct Array *arr)
 void
 parser_generate_output(struct Parser *parser)
 {
-	struct Array *arr = array_new(sizeof(struct Token *));
+	struct Array *target_arr = array_new(sizeof(struct Token *));
+	struct Array *variable_arr = array_new(sizeof(struct Token *));
 	int after_port_options_mk = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
@@ -652,20 +663,24 @@ parser_generate_output(struct Parser *parser)
 		}
 		switch (o->type) {
 		case VARIABLE_END:
-			parser_generate_output_helper(parser, arr);
+			parser_generate_output_helper(parser, variable_arr);
 			break;
 		case VARIABLE_START:
 			break;
 		case VARIABLE_TOKEN:
-			array_append(arr, o);
+			array_append(variable_arr, o);
 			break;
 		case PORT_OPTIONS_MK:
 			after_port_options_mk = 1;
 			break;
 		case TARGET_COMMAND_END:
+			print_token_array(parser, target_arr);
+			array_truncate(target_arr);
+			break;
 		case TARGET_COMMAND_START:
 			break;
 		case TARGET_COMMAND_TOKEN:
+			array_append(target_arr, o);
 			break;
 		case TARGET_END:
 			break;
@@ -675,7 +690,7 @@ parser_generate_output(struct Parser *parser)
 		case PORT_PRE_MK:
 		case TARGET_CONDITIONAL:
 		case TARGET_START:
-			parser_generate_output_helper(parser, arr);
+			parser_generate_output_helper(parser, variable_arr);
 			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
@@ -693,8 +708,13 @@ parser_generate_output(struct Parser *parser)
 			errx(1, "Unhandled output type: %i", o->type);
 		}
 	}
-	parser_generate_output_helper(parser, arr);
-	array_free(arr);
+	if (array_len(target_arr) > 0) {
+		print_token_array(parser, target_arr);
+		array_truncate(target_arr);
+	}
+	parser_generate_output_helper(parser, variable_arr);
+	array_free(target_arr);
+	array_free(variable_arr);
 }
 
 void
