@@ -113,6 +113,7 @@ static size_t consume_var(struct sbuf *);
 static struct Parser *parser_new(void);
 static void parser_append_token(struct Parser *, enum TokenType, struct sbuf *);
 static void parser_enqueue_output(struct Parser *, struct sbuf *);
+static void parser_free(struct Parser *);
 static struct Token *parser_get_token(struct Parser *, size_t);
 static void parser_find_goalcols(struct Parser *);
 static void parser_generate_output_helper(struct Parser *, struct Array *);
@@ -233,6 +234,34 @@ parser_new()
 	parser->inbuf = sbuf_dupstr(NULL);
 
 	return parser;
+}
+
+void
+parser_free(struct Parser *parser)
+{
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		if (t->data) {
+			sbuf_delete(t->data);
+		}
+		if (t->var) {
+			variable_free(t->var);
+		}
+		if (t->target) {
+			target_free(t->target);
+		}
+		free(t);
+	}
+	array_free(parser->tokens);
+
+	for (size_t i = 0; i < array_len(parser->result); i++) {
+		struct sbuf *s = array_get(parser->result, i);
+		sbuf_delete(s);
+	}
+	array_free(parser->result);
+
+	sbuf_delete(parser->inbuf);
+	free(parser);
 }
 
 void
@@ -594,7 +623,11 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		array_append(arr, o);
 	}
 	print_newline_array(parser, arr);
-	free(arr);
+	for (size_t i = 0; i < array_len(arr); i++) {
+		struct Token *t = array_get(arr, i);
+		free(t);
+	}
+	array_free(arr);
 }
 
 void
@@ -666,7 +699,7 @@ parser_generate_output(struct Parser *parser)
 		}
 	}
 	parser_generate_output_helper(parser, arr);
-	free(arr);
+	array_free(arr);
 }
 
 void
@@ -976,7 +1009,7 @@ parser_sanitize_append_modifier(struct Parser *parser)
 		}
 	}
 end:
-	free(seen);
+	array_free(seen);
 }
 
 void
@@ -1135,7 +1168,7 @@ main(int argc, char *argv[])
 	close(fd_in);
 
 	free(line);
-	free(parser);
+	parser_free(parser);
 
 	return 0;
 }

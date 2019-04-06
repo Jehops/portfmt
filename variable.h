@@ -45,6 +45,7 @@ enum VariableModifier {
 
 struct Variable *variable_new(struct sbuf *);
 int variable_cmp(struct Variable *, struct Variable *);
+void variable_free(struct Variable *);
 enum VariableModifier variable_modifier(struct Variable *);
 void variable_set_modifier(struct Variable *, enum VariableModifier);
 struct sbuf *variable_name(struct Variable *);

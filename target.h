@@ -36,4 +36,5 @@
 struct Target;
 
 struct Target *target_new(struct sbuf *);
+void target_free(struct Target *);
 struct sbuf *target_name(struct Target *);

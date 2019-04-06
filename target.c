@@ -64,6 +64,14 @@ target_new(struct sbuf *buf) {
 	return target;
 }
 
+void
+target_free(struct Target *target)
+{
+	sbuf_delete(target->name);
+	sbuf_delete(target->deps);
+	free(target);
+}
+
 struct sbuf *
 target_name(struct Target *target)
 {

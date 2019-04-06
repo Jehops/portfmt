@@ -81,6 +81,13 @@ array_append(struct Array *array, void *v)
 	}
 }
 
+void
+array_free(struct Array *array)
+{
+	free(array->buf);
+	free(array);
+}
+
 void *
 array_get(struct Array *array, size_t i)
 {

@@ -83,6 +83,13 @@ variable_new(struct sbuf *var_with_mod) {
 	return var;
 }
 
+void
+variable_free(struct Variable *var)
+{
+	sbuf_delete(var->name);
+	free(var);
+}
+
 int
 variable_cmp(struct Variable *a, struct Variable *b)
 {
