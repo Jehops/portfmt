@@ -950,7 +950,7 @@ parser_write(struct Parser *parser, int fd)
 void
 usage()
 {
-	fprintf(stderr, "usage: portfmt [-a] [-i] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portfmt [-a] [-i] [-u] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
