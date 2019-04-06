@@ -55,6 +55,7 @@
 
 #include "array.h"
 #include "rules.h"
+#include "target.h"
 #include "util.h"
 #include "variable.h"
 
@@ -85,7 +86,7 @@ struct Token {
 	enum TokenType type;
 	struct sbuf *data;
 	struct Variable *var;
-	struct sbuf *target;
+	struct Target *target;
 	int goalcol;
 	size_t lineno;
 	int ignore;
@@ -242,10 +243,9 @@ parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 		var = variable_new(parser->varname);
 	}
 
-	struct sbuf *target = NULL;
+	struct Target *target = NULL;
 	if (parser->targetname) {
-		target = sbuf_dup(parser->targetname);
-		sbuf_finishx(target);
+		target = target_new(parser->targetname);
 	}
 
 	struct sbuf *data = NULL;
@@ -754,7 +754,7 @@ parser_dump_tokens(struct Parser *parser)
 			   (o->type == TARGET_COMMAND ||
 			    o->type == TARGET_CONDITIONAL ||
 			    o->type == TARGET_END)) {
-			var = o->target;
+			var = target_name(o->target);
 			len = maxvarlen - sbuf_len(var);
 		} else {
 			len = maxvarlen - 1;
