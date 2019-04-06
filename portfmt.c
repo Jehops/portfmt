@@ -730,9 +730,6 @@ parser_generate_output(struct Parser *parser)
 		case VARIABLE_TOKEN:
 			array_append(variable_arr, o);
 			break;
-		case PORT_OPTIONS_MK:
-			after_port_options_mk = 1;
-			break;
 		case TARGET_COMMAND_END:
 			print_token_array(parser, target_arr);
 			array_truncate(target_arr);
@@ -745,6 +742,8 @@ parser_generate_output(struct Parser *parser)
 			break;
 		case TARGET_END:
 			break;
+		case PORT_OPTIONS_MK:
+			after_port_options_mk = 1;
 		case COMMENT:
 		case PORT_MK:
 		case PORT_PRE_MK:
