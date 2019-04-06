@@ -554,15 +554,22 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		parser_enqueue_output(parser, sep);
 		parser_enqueue_output(parser, line);
 		parser_enqueue_output(parser, end);
-		if (o->var) {
+		switch (o->type) {
+		case VARIABLE_TOKEN:
 			if (i == 0) {
 				size_t ntabs = ceil(MAX(16, o->goalcol) / 8.0);
 				sep = sbuf_dupstr(repeat('\t', ntabs));
 			}
-		} else if (o->cond) {
+			break;
+		case CONDITIONAL_TOKEN:
+		case TARGET_CONDITIONAL_TOKEN:
 			sep = sbuf_dupstr("\t");
-		} else {
+			break;
+		case TARGET_COMMAND_TOKEN:
 			sep = sbuf_dupstr(repeat('\t', 2));
+			break;
+		default:
+			errx(1, "unhandled token type: %i", o->type);
 		}
 	}
 }
