@@ -666,6 +666,7 @@ parser_generate_output(struct Parser *parser)
 			parser_generate_output_helper(parser, variable_arr);
 			break;
 		case VARIABLE_START:
+			array_truncate(variable_arr);
 			break;
 		case VARIABLE_TOKEN:
 			array_append(variable_arr, o);
@@ -678,6 +679,7 @@ parser_generate_output(struct Parser *parser)
 			array_truncate(target_arr);
 			break;
 		case TARGET_COMMAND_START:
+			array_truncate(target_arr);
 			break;
 		case TARGET_COMMAND_TOKEN:
 			array_append(target_arr, o);
