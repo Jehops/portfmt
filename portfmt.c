@@ -383,11 +383,6 @@ parser_tokenize_variable(struct Parser *parser, struct sbuf *line)
 			}
 		}
 	}
-	/* Ignore backslash at end of line */
-	if (escape) {
-		i--;
-		queued_tokens++;
-	}
 	struct sbuf *tmp = sbuf_substr_dup(line, start, i);
 	sbuf_finishx(tmp);
 	token = sbuf_strip_dup(tmp);
