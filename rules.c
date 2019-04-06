@@ -45,6 +45,7 @@
 static int compare_rel(const char *[], size_t, struct sbuf *, struct sbuf *);
 static int compare_license_perms(struct Variable *, struct sbuf *, struct sbuf *, int *);
 static int compare_plist_files(struct Variable *, struct sbuf *, struct sbuf *, int *);
+static int compare_use_pyqt(struct Variable *, struct sbuf *, struct sbuf *, int *);
 static int compare_use_qt(struct Variable *, struct sbuf *, struct sbuf *, int *);
 static struct sbuf *options_helpers_pattern(void);
 
@@ -508,6 +509,97 @@ static const char *use_qt_rel[] = {
 	"x11extras_build",
 	"xml_build",
 	"xmlpatterns_build",
+};
+
+static const char *use_pyqt_rel[] = {
+	"core",
+	"dbus",
+	"dbussupport",
+	"demo",
+	"designer",
+	"designerplugin",
+	"gui",
+	"help",
+	"multimedia",
+	"network",
+	"opengl",
+	"qscintilla2",
+	"sql",
+	"svg",
+	"test",
+	"webkit",
+	"xml",
+	"xmlpatterns",
+	"sip",
+	"multimediawidgets",
+	"printsupport",
+	"qml",
+	"quickwidgets",
+	"serialport",
+	"webchannel",
+	"webengine",
+	"webkitwidgets",
+	"widgets",
+
+	// _build variants of the above
+	"core_build",
+	"dbus_build",
+	"dbussupport_build",
+	"demo_build",
+	"designer_build",
+	"designerplugin_build",
+	"gui_build",
+	"help_build",
+	"multimedia_build",
+	"network_build",
+	"opengl_build",
+	"qscintilla2_build",
+	"sql_build",
+	"svg_build",
+	"test_build",
+	"webkit_build",
+	"xml_build",
+	"xmlpatterns_build",
+	"sip_build",
+	"multimediawidgets_build",
+	"printsupport_build",
+	"qml_build",
+	"quickwidgets_build",
+	"serialport_build",
+	"webchannel_build",
+	"webengine_build",
+	"webkitwidgets_build",
+	"widgets_build",
+
+	// _run variants of the above
+	"core_run",
+	"dbus_run",
+	"dbussupport_run",
+	"demo_run",
+	"designer_run",
+	"designerplugin_run",
+	"gui_run",
+	"help_run",
+	"multimedia_run",
+	"network_run",
+	"opengl_run",
+	"qscintilla2_run",
+	"sql_run",
+	"svg_run",
+	"test_run",
+	"webkit_run",
+	"xml_run",
+	"xmlpatterns_run",
+	"sip_run",
+	"multimediawidgets_run",
+	"printsupport_run",
+	"qml_run",
+	"quickwidgets_run",
+	"serialport_run",
+	"webchannel_run",
+	"webengine_run",
+	"webkitwidgets_run",
+	"widgets_run",
 };
 
 // Sanitize whitespace but do *not* sort tokens; more complicated
@@ -1009,6 +1101,7 @@ compare_tokens(struct Variable *var, struct sbuf *a, struct sbuf *b)
 	int result;
 	if (compare_license_perms(var, a, b, &result) ||
 	    compare_plist_files(var, a, b, &result) ||
+	    compare_use_pyqt(var, a, b, &result) ||
 	    compare_use_qt(var, a, b, &result)) {
 		return result;
 	}
@@ -1045,6 +1138,19 @@ compare_plist_files(struct Variable *var, struct sbuf *a, struct sbuf *b, int *r
 	sbuf_delete(as);
 	sbuf_delete(bs);
 
+	return 1;
+}
+
+int
+compare_use_pyqt(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result)
+{
+	assert(result != NULL);
+
+	if (sbuf_strcmp(variable_name(var), "USE_PYQT") != 0) {
+		return 0;
+	}
+
+	*result = compare_rel(use_pyqt_rel, nitems(use_pyqt_rel), a, b);
 	return 1;
 }
 
