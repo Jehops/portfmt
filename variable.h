@@ -27,7 +27,11 @@
  */
 #pragma once
 
-#include <sys/types.h>
+#include "config.h"
+
+#if HAVE_SBUF
+# include <sys/sbuf.h>
+#endif
 
 struct Variable;
 
