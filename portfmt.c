@@ -93,6 +93,7 @@ struct Parser {
 	size_t lineno;
 	int skip;
 	struct sbuf *varname;
+	struct sbuf *inbuf;
 
 	struct Array *tokens;
 	struct Array *result;
@@ -112,7 +113,8 @@ static void parser_generate_output_helper(struct Parser *, struct Array *);
 static void parser_generate_output(struct Parser *);
 static void parser_dump_tokens(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
-static void parser_read(struct Parser *, const char *line);
+static void parser_read(struct Parser *, char *);
+static void parser_read_internal(struct Parser *, struct sbuf *);
 static void parser_read_finish(struct Parser *);
 static void parser_sanitize_append_modifier(struct Parser *);
 static void parser_write(struct Parser *, int);
@@ -222,7 +224,7 @@ parser_new()
 
 	parser->result = array_new(sizeof(struct sbuf *));
 	parser->tokens = array_new(sizeof(struct Token *));
-	parser->continued = -1;
+	parser->inbuf = sbuf_dupstr(NULL);
 
 	return parser;
 }
@@ -271,16 +273,14 @@ void
 parser_tokenize_variable(struct Parser *parser, struct sbuf *line)
 {
 	ssize_t pos = 0;
-	if (parser->continued == -1) {
-		pos = consume_var(line);
-		if (pos != 0) {
-			if (pos > sbuf_len(line)) {
-				errx(1, "parser->varname too small");
-			}
-			parser->varname = sbuf_substr_dup(line, 0, pos);
-			sbuf_finishx(parser->varname);
-			parser_append_token(parser, VARIABLE_START, NULL);
+	pos = consume_var(line);
+	if (pos != 0) {
+		if (pos > sbuf_len(line)) {
+			errx(1, "parser->varname too small");
 		}
+		parser->varname = sbuf_substr_dup(line, 0, pos);
+		sbuf_finishx(parser->varname);
+		parser_append_token(parser, VARIABLE_START, NULL);
 	}
 
 	int dollar = 0;
@@ -731,27 +731,50 @@ parser_dump_tokens(struct Parser *parser)
 }
 
 void
-parser_read(struct Parser *parser, const char *line)
+parser_read(struct Parser *parser, char *line)
+{
+	size_t linelen = strlen(line);
+	struct sbuf *buf = sbuf_dupstr(line);
+	sbuf_finishx(buf);
+
+	int will_continue = matches(RE_CONTINUE_LINE, buf, NULL);
+	if (will_continue) {
+		line[linelen - 1] = 0;
+	}
+
+	if (parser->continued) {
+		/* Replace all whitespace at the beginning with a single
+		 * space which is what make seems to do.
+		*/
+		for (;isblank(*line); line++);
+		if (strlen(line) < 1) {
+			sbuf_putc(parser->inbuf, ' ');
+		}
+	}
+
+	sbuf_cat(parser->inbuf, line);
+
+	if (!will_continue) {
+		sbuf_trim(parser->inbuf);
+		sbuf_finishx(parser->inbuf);
+		parser_read_internal(parser, parser->inbuf);
+		sbuf_delete(parser->inbuf);
+		parser->inbuf = sbuf_dupstr(NULL);
+	}
+
+	parser->continued = will_continue;
+	sbuf_delete(buf);
+}
+
+void
+parser_read_internal(struct Parser *parser, struct sbuf *buf)
 {
 	size_t pos;
 	parser->lineno++;
-	struct sbuf *buf = sbuf_dupstr(line);
-	sbuf_trim(buf);
-	sbuf_finishx(buf);
-
-	if (parser->continued > -1) {
-		if (parser->continued == VARIABLE_TOKEN) {
-			parser_tokenize_variable(parser, buf);
-		} else {
-			parser_append_token(parser, parser->continued, buf);
-		}
-		goto next;
-	}
 
 	pos = consume_comment(buf);
 	if (pos > 0 || matches(RE_EMPTY_LINE, buf, NULL)) {
 		parser_append_token(parser, COMMENT, buf);
-		parser->continued = COMMENT;
 		goto next;
 	}
 
@@ -759,13 +782,11 @@ parser_read(struct Parser *parser, const char *line)
 		pos = consume_var(buf);
 		if (pos == 0) {
 			parser_append_token(parser, TARGET, buf);
-			parser->continued = TARGET;
 			goto next;
 		}
 		pos = consume_conditional(buf);
 		if (pos > 0) {
 			parser_append_token(parser, TARGET, buf);
-			parser->continued = TARGET;
 			goto next;
 		}
 		parser->in_target = 0;
@@ -775,7 +796,6 @@ parser_read(struct Parser *parser, const char *line)
 	if (pos > 0) {
 		parser->in_target = 1;
 		parser_append_token(parser, TARGET, buf);
-		parser->continued = TARGET;
 		goto next;
 	}
 
@@ -783,24 +803,19 @@ parser_read(struct Parser *parser, const char *line)
 	if (pos > 0) {
 		if (sbuf_endswith(buf, "<bsd.port.options.mk>")) {
 			parser_append_token(parser, PORT_OPTIONS_MK, buf);
-			parser->continued = PORT_OPTIONS_MK;
 			goto next;
 		} else if (sbuf_endswith(buf, "<bsd.port.pre.mk>")) {
 			parser_append_token(parser, PORT_PRE_MK, buf);
-			parser->continued = PORT_PRE_MK;
 			goto next;
 		} else if (sbuf_endswith(buf, "<bsd.port.post.mk>") ||
 			   sbuf_endswith(buf, "<bsd.port.mk>")) {
 			parser_append_token(parser, PORT_MK, buf);
-			parser->continued = PORT_MK;
 			goto next;
 		} else {
 			if (parser->in_target) {
 				parser_append_token(parser, TARGET, buf);
-				parser->continued = TARGET;
 			} else {
 				parser_append_token(parser, CONDITIONAL, buf);
-				parser->continued = CONDITIONAL;
 			}
 		}
 		goto next;
@@ -810,27 +825,21 @@ parser_read(struct Parser *parser, const char *line)
 	if (parser->varname == NULL) {
 		errx(1, "parser error on line %zu", parser->lineno);
 	}
-	parser->continued = VARIABLE_TOKEN;
 next:
-	if (!sbuf_endswith(buf, "\\")) {
-		parser->continued = -1;
-		if (parser->varname) {
-			parser_append_token(parser, VARIABLE_END, NULL);
-			sbuf_delete(parser->varname);
-			parser->varname = NULL;
-		}
+	if (parser->varname) {
+		parser_append_token(parser, VARIABLE_END, NULL);
+		sbuf_delete(parser->varname);
+		parser->varname = NULL;
 	}
-	sbuf_delete(buf);
 }
 
 void
 parser_read_finish(struct Parser *parser)
 {
-	if (parser->continued && parser->varname) {
-		parser_append_token(parser, EMPTY, NULL);
-		parser_append_token(parser, VARIABLE_END, NULL);
-		sbuf_delete(parser->varname);
-		parser->varname = NULL;
+	if (sbuf_len(parser->inbuf) > 0) {
+		sbuf_trim(parser->inbuf);
+		sbuf_finishx(parser->inbuf);
+		parser_read_internal(parser, parser->inbuf);
 	}
 
 	/* Collapse adjacent variables (collapse_duplicate_vars_*) */
@@ -1041,6 +1050,7 @@ main(int argc, char *argv[])
 		err(1, "fdopen");
 	}
 	while ((linelen = getline(&line, &linecap, fp)) > 0) {
+		line[linelen - 1] = 0;
 		parser_read(parser, line);
 	}
 	parser_read_finish(parser);

@@ -60,6 +60,7 @@ static struct {
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
 				  "elifmake|endif))([[:space:]]+|$)",
 				  REG_EXTENDED, {} },
+	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$", REG_EXTENDED, {} },
 	[RE_EMPTY_LINE]       = { "^[[:space:]]*$", 			      0, {} },
 	[RE_LICENSE_NAME]     = { "^(_?(-|LICENSE_NAME_[A-Za-z0-9._+ ])+|"
 				  "^LICENSE_(FILE|NAME)_|"
