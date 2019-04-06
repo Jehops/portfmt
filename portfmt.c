@@ -67,7 +67,9 @@ enum PortfmtBehavior {
 
 enum TokenType {
 	COMMENT = 0,
-	CONDITIONAL,
+	CONDITIONAL_END,
+	CONDITIONAL_TOKEN,
+	CONDITIONAL_START,
 	EMPTY,
 	INLINE_COMMENT,
 	PORT_MK,
@@ -87,6 +89,7 @@ enum TokenType {
 struct Token {
 	enum TokenType type;
 	struct sbuf *data;
+	struct sbuf *cond;
 	struct Variable *var;
 	struct Target *target;
 	int goalcol;
@@ -100,6 +103,7 @@ struct Parser {
 	size_t lineno;
 	int skip;
 	struct sbuf *inbuf;
+	struct sbuf *condname;
 	struct sbuf *targetname;
 	struct sbuf *varname;
 
@@ -269,14 +273,20 @@ parser_free(struct Parser *parser)
 void
 parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 {
-	struct Variable *var = NULL;
-	if (parser->varname) {
-		var = variable_new(parser->varname);
+	struct sbuf *cond = NULL;
+	if (parser->condname) {
+		cond = sbuf_dup(parser->condname);
+		sbuf_finishx(cond);
 	}
 
 	struct Target *target = NULL;
 	if (parser->targetname) {
 		target = target_new(parser->targetname);
+	}
+
+	struct Variable *var = NULL;
+	if (parser->varname) {
+		var = variable_new(parser->varname);
 	}
 
 	struct sbuf *data = NULL;
@@ -292,6 +302,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 
 	o->type = type;
 	o->data = data;
+	o->cond = cond;
 	o->target = target;
 	o->var = var;
 	o->goalcol = 0;
@@ -468,7 +479,9 @@ parser_find_goalcols(struct Parser *parser)
 		case TARGET_COMMAND_TOKEN:
 			break;
 		case COMMENT:
-		case CONDITIONAL:
+		case CONDITIONAL_END:
+		case CONDITIONAL_START:
+		case CONDITIONAL_TOKEN:
 		case PORT_MK:
 		case PORT_OPTIONS_MK:
 		case PORT_PRE_MK:
@@ -687,7 +700,9 @@ parser_generate_output(struct Parser *parser)
 		case TARGET_END:
 			break;
 		case COMMENT:
-		case CONDITIONAL:
+		case CONDITIONAL_END:
+		case CONDITIONAL_START:
+		case CONDITIONAL_TOKEN:
 		case PORT_MK:
 		case PORT_PRE_MK:
 		case TARGET_CONDITIONAL:
@@ -769,8 +784,14 @@ parser_dump_tokens(struct Parser *parser)
 		case TARGET_START:
 			type = "target-start";
 			break;
-		case CONDITIONAL:
-			type = "conditional";
+		case CONDITIONAL_END:
+			type = "conditional-end";
+			break;
+		case CONDITIONAL_START:
+			type = "conditional-start";
+			break;
+		case CONDITIONAL_TOKEN:
+			type = "conditional-token";
 			break;
 		case EMPTY:
 			type = "empty";
@@ -800,6 +821,12 @@ parser_dump_tokens(struct Parser *parser)
 		     o->type == VARIABLE_START ||
 		     o->type == VARIABLE_END)) {
 			var = variable_tostring(o->var);
+			len = maxvarlen - sbuf_len(var);
+		} else if (o->cond &&
+			   (o->type == CONDITIONAL_END ||
+			    o->type == CONDITIONAL_START ||
+			    o->type == CONDITIONAL_TOKEN)) {
+			var = o->cond;
 			len = maxvarlen - sbuf_len(var);
 		} else if (o->target &&
 			   (o->type == TARGET_COMMAND_END ||
@@ -925,10 +952,19 @@ parser_read_internal(struct Parser *parser, struct sbuf *buf)
 			parser_append_token(parser, PORT_MK, buf);
 			goto next;
 		} else {
+			if (parser->condname) {
+				sbuf_delete(parser->condname);
+				parser->condname = NULL;
+			}
+			parser->condname = sbuf_substr_dup(buf, 0, pos);
+			sbuf_finishx(parser->condname);
+
 			if (parser->in_target) {
 				parser_append_token(parser, TARGET_CONDITIONAL, buf);
 			} else {
-				parser_append_token(parser, CONDITIONAL, buf);
+				parser_append_token(parser, CONDITIONAL_START, NULL);
+				parser_tokenize(parser, buf, CONDITIONAL_TOKEN, pos);
+				parser_append_token(parser, CONDITIONAL_END, NULL);
 			}
 		}
 		goto next;
