@@ -54,6 +54,7 @@
 #include <unistd.h>
 
 #include "array.h"
+#include "conditional.h"
 #include "rules.h"
 #include "target.h"
 #include "util.h"
@@ -91,7 +92,7 @@ enum TokenType {
 struct Token {
 	enum TokenType type;
 	struct sbuf *data;
-	struct sbuf *cond;
+	struct Conditional *cond;
 	struct Variable *var;
 	struct Target *target;
 	int goalcol;
@@ -275,15 +276,14 @@ parser_free(struct Parser *parser)
 void
 parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 {
-	struct sbuf *cond = NULL;
-	if (parser->condname) {
-		cond = sbuf_dup(parser->condname);
-		sbuf_finishx(cond);
-	}
-
 	struct Target *target = NULL;
 	if (parser->targetname) {
 		target = target_new(parser->targetname);
+	}
+
+	struct Conditional *cond = NULL;
+	if (parser->condname) {
+		cond = conditional_new(parser->condname, target);
 	}
 
 	struct Variable *var = NULL;
@@ -882,17 +882,11 @@ parser_dump_tokens(struct Parser *parser)
 		} else if (o->cond &&
 			   (o->type == CONDITIONAL_END ||
 			    o->type == CONDITIONAL_START ||
-			    o->type == CONDITIONAL_TOKEN)) {
-			var = o->cond;
-			len = maxvarlen - sbuf_len(var);
-		} else if (o->cond && o->target &&
-			   (o->type == TARGET_CONDITIONAL_END ||
+			    o->type == CONDITIONAL_TOKEN ||
+			    o->type == TARGET_CONDITIONAL_END ||
 			    o->type == TARGET_CONDITIONAL_START ||
 			    o->type == TARGET_CONDITIONAL_TOKEN)) {
-			var = sbuf_dupstr(NULL);
-			sbuf_printf(var, "%s/%s", sbuf_data(target_name(o->target)),
-				    sbuf_data(o->cond));
-			sbuf_finishx(var);
+			var = conditional_tostring(o->cond);
 			len = maxvarlen - sbuf_len(var);
 		} else if (o->target &&
 			   (o->type == TARGET_COMMAND_END ||
