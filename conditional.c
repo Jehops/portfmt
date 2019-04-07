@@ -37,12 +37,11 @@
 #include "util.h"
 
 struct Conditional {
-	struct Target *target;
 	enum ConditionalType type;
 };
 
 struct Conditional *
-conditional_new(struct sbuf *s, struct Target *target)
+conditional_new(struct sbuf *s)
 {
 	struct Conditional *cond = malloc(sizeof(struct Conditional));
 	if (cond == NULL) {
@@ -134,8 +133,6 @@ conditional_new(struct sbuf *s, struct Target *target)
 	}
 	sbuf_delete(type);
 
-	cond->target = target;
-
 	return cond;
 }
 
@@ -226,15 +223,7 @@ conditional_tostring(struct Conditional *cond)
 	}
 	assert(type != NULL);
 
-	struct sbuf *buf;
-	if (cond->target != NULL) {
-		buf = sbuf_dupstr(NULL);
-		sbuf_printf(buf, "%s/%s",
-			    sbuf_data(target_name(cond->target)),
-			    type);
-	} else {
-		buf = sbuf_dupstr(type);
-	}
+	struct sbuf *buf = sbuf_dupstr(type);
 	sbuf_finishx(buf);
 	return buf;
 }
