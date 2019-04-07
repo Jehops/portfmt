@@ -37,7 +37,33 @@
 
 struct Conditional;
 
+enum ConditionalType {
+	COND_ELIF,
+	COND_ELIFDEF,
+	COND_ELIFMAKE,
+	COND_ELIFNDEF,
+	COND_ELSE,
+	COND_ENDFOR,
+	COND_ENDIF,
+	COND_ERROR,
+	COND_EXPORT_ENV,
+	COND_EXPORT_LITERAL,
+	COND_EXPORT,
+	COND_FOR,
+	COND_IF,
+	COND_IFDEF,
+	COND_IFMAKE,
+	COND_IFNDEF,
+	COND_IFNMAKE,
+	COND_INCLUDE_POSIX,
+	COND_INCLUDE,
+	COND_INFO,
+	COND_UNDEF,
+	COND_UNEXPORT_ENV,
+	COND_UNEXPORT,
+	COND_WARNING,
+};
+
 struct Conditional *conditional_new(struct sbuf *, struct Target *);
 void conditional_free(struct Conditional *);
-struct sbuf *conditional_name(struct Conditional *);
 struct sbuf *conditional_tostring(struct Conditional *);
