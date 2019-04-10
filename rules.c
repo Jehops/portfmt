@@ -1237,10 +1237,7 @@ compile_regular_expressions()
 				    regular_expressions[i].flags);
 		if (error != 0) {
 			size_t errbuflen = regerror(error, &regular_expressions[i].re, NULL, 0);
-			char *errbuf = malloc(errbuflen);
-			if (errbuf == NULL) {
-				err(1, "malloc");
-			}
+			char *errbuf = xmalloc(errbuflen);
 			regerror(error, &regular_expressions[i].re, errbuf, errbuflen);
 			errx(1, "regcomp: %zu: %s", i, errbuf);
 		}

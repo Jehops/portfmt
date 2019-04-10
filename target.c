@@ -43,10 +43,7 @@ struct Target {
 
 struct Target *
 target_new(struct sbuf *buf) {
-	struct Target *target = malloc(sizeof(struct Target));
-	if (target == NULL) {
-		err(1, "malloc");
-	}
+	struct Target *target = xmalloc(sizeof(struct Target));
 
 	char *after_target = memchr(sbuf_data(buf), ':', sbuf_len(buf));
 	if (after_target == NULL || after_target < sbuf_data(buf)) {

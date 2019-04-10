@@ -34,6 +34,7 @@
 #include <stdlib.h>
 
 #include "array.h"
+#include "util.h"
 
 struct Array {
 	void **buf;
@@ -45,10 +46,7 @@ struct Array {
 struct Array *
 array_new(size_t value_size)
 {
-	struct Array *array = malloc(sizeof(struct Array));
-	if (array == NULL) {
-		err(1, "malloc");
-	}
+	struct Array *array = xmalloc(sizeof(struct Array));
 
 	array->cap = 1024;
 	array->len = 0;
@@ -56,7 +54,7 @@ array_new(size_t value_size)
 
 	array->buf = reallocarray(NULL, array->cap, value_size);
 	if (array->buf == NULL) {
-		err(1, "malloc");
+		err(1, "reallocarray");
 	}
 
 	return array;

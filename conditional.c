@@ -43,10 +43,7 @@ struct Conditional {
 struct Conditional *
 conditional_new(struct sbuf *s)
 {
-	struct Conditional *cond = malloc(sizeof(struct Conditional));
-	if (cond == NULL) {
-		err(1, "malloc");
-	}
+	struct Conditional *cond = xmalloc(sizeof(struct Conditional));
 
 	regmatch_t match;
 	if (!matches(RE_CONDITIONAL, s, &match)) {

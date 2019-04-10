@@ -322,11 +322,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 		sbuf_finishx(data);
 	}
 
-	struct Token *o = malloc(sizeof(struct Token));
-	if (o == NULL) {
-		err(1, "malloc");
-	}
-
+	struct Token *o = xmalloc(sizeof(struct Token));
 	o->type = type;
 	o->data = data;
 	o->cond = cond;
@@ -645,16 +641,9 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 				array_append(arr, token);
 				continue;
 			} else {
-				struct Token *o = malloc(sizeof(struct Token));
-				if (o == NULL) {
-					err(1, "malloc");
-				}
+				struct Token *o = xmalloc(sizeof(struct Token));
+				memcpy(o, token, sizeof(struct Token));
 				o->data = row;
-				o->target = token->target;
-				o->type = token->type;
-				o->var = token->var;
-				o->goalcol = token->goalcol;
-				o->lines = token->lines;
 				array_append(arr, o);
 				row = sbuf_dupstr(NULL);
 				//sbuf_finishx(row);
@@ -671,16 +660,9 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		}
 	}
 	if (sbuf_len(row) > 0 && array_len(arr) < array_len(tokens)) {
-		struct Token *o = malloc(sizeof(struct Token));
-		if (o == NULL) {
-			err(1, "malloc");
-		}
+		struct Token *o = xmalloc(sizeof(struct Token));
+		memcpy(o, token, sizeof(struct Token));
 		o->data = row;
-		o->target = token->target;
-		o->type = token->type;
-		o->var = token->var;
-		o->goalcol = token->goalcol;
-		o->lines = token->lines;
 		array_append(arr, o);
 	}
 	print_newline_array(parser, arr);
