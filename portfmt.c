@@ -87,6 +87,11 @@ enum TokenType {
 	VARIABLE_TOKEN,
 };
 
+struct Range {
+	size_t start;
+	size_t end;
+};
+
 struct Token {
 	enum TokenType type;
 	struct sbuf *data;
@@ -94,7 +99,7 @@ struct Token {
 	struct Variable *var;
 	struct Target *target;
 	int goalcol;
-	size_t lineno;
+	struct Range lines;
 	int ignore;
 };
 
@@ -102,7 +107,7 @@ struct Parser {
 	enum ParserBehavior behavior;
 	int continued;
 	int in_target;
-	size_t lineno;
+	struct Range lines;
 	int skip;
 	struct sbuf *inbuf;
 	struct sbuf *condname;
@@ -118,6 +123,7 @@ static size_t consume_conditional(struct sbuf *);
 static size_t consume_target(struct sbuf *);
 static size_t consume_token(struct Parser *, struct sbuf *, size_t, char, char, int);
 static size_t consume_var(struct sbuf *);
+static struct sbuf *range_tostring(struct Range *);
 static struct Parser *parser_new(enum ParserBehavior);
 static void parser_append_token(struct Parser *, enum TokenType, struct sbuf *);
 static void parser_enqueue_output(struct Parser *, struct sbuf *);
@@ -212,7 +218,7 @@ consume_token(struct Parser *parser, struct sbuf *line, size_t pos,
 		}
 	}
 	if (!eol_ok) {
-		errx(1, "tokenizer: %zu: expected %c", parser->lineno, endchar);
+		errx(1, "tokenizer: %s: expected %c", sbuf_data(range_tostring(&parser->lines)), endchar);
 	} else {
 		return i;
 	}
@@ -229,6 +235,23 @@ consume_var(struct sbuf *buf)
 	return pos;
 }
 
+struct sbuf *
+range_tostring(struct Range *range)
+{
+	assert(range);
+	assert(range->start < range->end);
+
+	struct sbuf *s = sbuf_dup(NULL);
+	if (range->start == range->end - 1) {
+		sbuf_printf(s, "%zu", range->start);
+	} else {
+		sbuf_printf(s, "%zu-%zu", range->start, range->end - 1);
+	}
+	sbuf_finishx(s);
+
+	return s;
+}
+
 struct Parser *
 parser_new(enum ParserBehavior behavior)
 {
@@ -240,6 +263,8 @@ parser_new(enum ParserBehavior behavior)
 	parser->behavior = behavior;
 	parser->result = array_new(sizeof(struct sbuf *));
 	parser->tokens = array_new(sizeof(struct Token *));
+	parser->lines.start = 1;
+	parser->lines.end = 1;
 	parser->inbuf = sbuf_dupstr(NULL);
 
 	return parser;
@@ -308,7 +333,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 	o->target = target;
 	o->var = var;
 	o->goalcol = 0;
-	o->lineno = parser->lineno;
+	o->lines = parser->lines;
 	o->ignore = 0;
 	array_append(parser->tokens, o);
 }
@@ -361,7 +386,7 @@ parser_tokenize(struct Parser *parser, struct sbuf *line, enum TokenType type, s
 				dollar++;
 			} else {
 				fprintf(stderr, "%s\n", linep);
-				errx(1, "tokenizer: %zu: expected {", parser->lineno);
+				errx(1, "tokenizer: %s: expected {", sbuf_data(range_tostring(&parser->lines)));
 			}
 		} else {
 			if (c == ' ' || c == '\t') {
@@ -629,6 +654,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 				o->type = token->type;
 				o->var = token->var;
 				o->goalcol = token->goalcol;
+				o->lines = token->lines;
 				array_append(arr, o);
 				row = sbuf_dupstr(NULL);
 				//sbuf_finishx(row);
@@ -654,6 +680,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		o->type = token->type;
 		o->var = token->var;
 		o->goalcol = token->goalcol;
+		o->lines = token->lines;
 		array_append(arr, o);
 	}
 	print_newline_array(parser, arr);
@@ -866,7 +893,9 @@ parser_dump_tokens(struct Parser *parser)
 		} else {
 			len = maxvarlen - 1;
 		}
-		printf("%-20s%4zu %s", type, o->lineno, var ? sbuf_data(var) : "-");
+		struct sbuf *range = range_tostring(&o->lines);
+		printf("%-20s %8s %s", type, sbuf_data(range), var ? sbuf_data(var) : "-");
+		sbuf_delete(range);
 		for (ssize_t j = 0; j < len; j++) {
 			putchar(' ');
 		}
@@ -883,6 +912,8 @@ parser_read(struct Parser *parser, char *line)
 	size_t linelen = strlen(line);
 	struct sbuf *buf = sbuf_dupstr(line);
 	sbuf_finishx(buf);
+
+	parser->lines.end++;
 
 	int will_continue = matches(RE_CONTINUE_LINE, buf, NULL);
 	if (will_continue) {
@@ -905,6 +936,7 @@ parser_read(struct Parser *parser, char *line)
 		sbuf_trim(parser->inbuf);
 		sbuf_finishx(parser->inbuf);
 		parser_read_internal(parser, parser->inbuf);
+		parser->lines.start = parser->lines.end;
 		sbuf_delete(parser->inbuf);
 		parser->inbuf = sbuf_dupstr(NULL);
 	}
@@ -917,7 +949,6 @@ void
 parser_read_internal(struct Parser *parser, struct sbuf *buf)
 {
 	ssize_t pos;
-	parser->lineno++;
 
 	pos = consume_comment(buf);
 	if (pos > 0) {
@@ -1016,7 +1047,7 @@ parser_read_internal(struct Parser *parser, struct sbuf *buf)
 	}
 	parser_tokenize(parser, buf, VARIABLE_TOKEN, pos);
 	if (parser->varname == NULL) {
-		errx(1, "parser error on line %zu", parser->lineno);
+		errx(1, "parser error on line %s", sbuf_data(range_tostring(&parser->lines)));
 	}
 next:
 	if (parser->varname) {
@@ -1029,6 +1060,8 @@ next:
 void
 parser_read_finish(struct Parser *parser)
 {
+	parser->lines.end++;
+
 	if (sbuf_len(parser->inbuf) > 0) {
 		sbuf_trim(parser->inbuf);
 		sbuf_finishx(parser->inbuf);
