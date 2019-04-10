@@ -62,8 +62,9 @@
 
 enum ParserBehavior {
 	PARSER_DEFAULT = 0,
-	PARSER_SANITIZE_APPEND = 2,
-	PARSER_UNSORTED_VARIABLES = 4,
+	PARSER_COLLAPSE_ADJACENT_VARIABLES = 2,
+	PARSER_SANITIZE_APPEND = 4,
+	PARSER_UNSORTED_VARIABLES = 8,
 };
 
 enum TokenType {
@@ -130,6 +131,7 @@ static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, char *);
 static void parser_read_internal(struct Parser *, struct sbuf *);
 static void parser_read_finish(struct Parser *);
+static void parser_collapse_adjacent_variables(struct Parser *);
 static void parser_sanitize_append_modifier(struct Parser *);
 static void parser_write(struct Parser *, int);
 static void parser_tokenize(struct Parser *, struct sbuf *, enum TokenType, ssize_t);
@@ -1037,7 +1039,18 @@ parser_read_finish(struct Parser *parser)
 		parser_append_token(parser, TARGET_END, NULL);
 	}
 
-	/* Collapse adjacent variables (collapse_duplicate_vars_*) */
+	if (parser->behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES) {
+		parser_collapse_adjacent_variables(parser);
+	}
+
+	if (parser->behavior & PARSER_SANITIZE_APPEND) {
+		parser_sanitize_append_modifier(parser);
+	}
+}
+
+void
+parser_collapse_adjacent_variables(struct Parser *parser)
+{
 	struct Variable *last_var = NULL;
 	struct Token *last = NULL;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
@@ -1059,10 +1072,6 @@ parser_read_finish(struct Parser *parser)
 			last_var = o->var;
 			break;
 		}
-	}
-
-	if (parser->behavior & PARSER_SANITIZE_APPEND) {
-		parser_sanitize_append_modifier(parser);
 	}
 }
 
@@ -1165,7 +1174,7 @@ usage()
 int
 main(int argc, char *argv[])
 {
-	enum ParserBehavior behavior = PARSER_DEFAULT;
+	enum ParserBehavior behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES;
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
 	int dflag = 0;
