@@ -79,7 +79,7 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
-	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+::?([[:space:]]+|$)",     REG_EXTENDED, {} },
+	[RE_TARGET] 	      = { "^[\\$\\{:\\}A-Za-z0-9\\/\\._-]+::?([[:space:]]+|$)",	  REG_EXTENDED, {} },
 	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[[:space:]]*[+!?:]?=", REG_EXTENDED, {} },
 };
 
