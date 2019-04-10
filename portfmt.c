@@ -60,10 +60,10 @@
 #include "util.h"
 #include "variable.h"
 
-enum PortfmtBehavior {
-	PORTFMT_DEFAULT = 0,
-	PORTFMT_SANITIZE_APPEND = 2,
-	PORTFMT_UNSORTED_VARIABLES = 4,
+enum ParserBehavior {
+	PARSER_DEFAULT = 0,
+	PARSER_SANITIZE_APPEND = 2,
+	PARSER_UNSORTED_VARIABLES = 4,
 };
 
 enum TokenType {
@@ -98,6 +98,7 @@ struct Token {
 };
 
 struct Parser {
+	enum ParserBehavior behavior;
 	int continued;
 	int in_target;
 	size_t lineno;
@@ -116,7 +117,7 @@ static size_t consume_conditional(struct sbuf *);
 static size_t consume_target(struct sbuf *);
 static size_t consume_token(struct Parser *, struct sbuf *, size_t, char, char, int);
 static size_t consume_var(struct sbuf *);
-static struct Parser *parser_new(void);
+static struct Parser *parser_new(enum ParserBehavior);
 static void parser_append_token(struct Parser *, enum TokenType, struct sbuf *);
 static void parser_enqueue_output(struct Parser *, struct sbuf *);
 static void parser_free(struct Parser *);
@@ -138,7 +139,6 @@ static void print_token_array(struct Parser *, struct Array *);
 static int tokcompare(const void *, const void *);
 static void usage(void);
 
-static int behavior = PORTFMT_DEFAULT;
 static int WRAPCOL = 80;
 
 size_t
@@ -228,13 +228,14 @@ consume_var(struct sbuf *buf)
 }
 
 struct Parser *
-parser_new()
+parser_new(enum ParserBehavior behavior)
 {
 	struct Parser *parser = calloc(1, sizeof(struct Parser));
 	if (parser == NULL) {
 		err(1, "calloc");
 	}
 
+	parser->behavior = behavior;
 	parser->result = array_new(sizeof(struct sbuf *));
 	parser->tokens = array_new(sizeof(struct Token *));
 	parser->inbuf = sbuf_dupstr(NULL);
@@ -668,7 +669,7 @@ parser_generate_output_helper(struct Parser *parser, struct Array *arr)
 		return;
 	}
 	struct Token *arr0 = array_get(arr, 0);
-	if (!(behavior & PORTFMT_UNSORTED_VARIABLES) && !leave_unsorted(arr0->var)) {
+	if (!(parser->behavior & PARSER_UNSORTED_VARIABLES) && !leave_unsorted(arr0->var)) {
 		array_sort(arr, tokcompare);
 	}
 	if (print_as_newlines(arr0->var)) {
@@ -1059,6 +1060,10 @@ parser_read_finish(struct Parser *parser)
 			break;
 		}
 	}
+
+	if (parser->behavior & PARSER_SANITIZE_APPEND) {
+		parser_sanitize_append_modifier(parser);
+	}
 }
 
 void
@@ -1160,6 +1165,7 @@ usage()
 int
 main(int argc, char *argv[])
 {
+	enum ParserBehavior behavior = PARSER_DEFAULT;
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
 	int dflag = 0;
@@ -1167,7 +1173,7 @@ main(int argc, char *argv[])
 	while (getopt(argc, argv, "adiuw:") != -1) {
 		switch (optopt) {
 		case 'a':
-			behavior |= PORTFMT_SANITIZE_APPEND;
+			behavior |= PARSER_SANITIZE_APPEND;
 			break;
 		case 'd':
 			dflag = 1;
@@ -1176,7 +1182,7 @@ main(int argc, char *argv[])
 			iflag = 1;
 			break;
 		case 'u':
-			behavior |= PORTFMT_UNSORTED_VARIABLES;
+			behavior |= PARSER_UNSORTED_VARIABLES;
 			break;
 		case 'w': {
 			const char *errstr = NULL;
@@ -1231,7 +1237,7 @@ main(int argc, char *argv[])
 
 	compile_regular_expressions();
 
-	struct Parser *parser = parser_new();
+	struct Parser *parser = parser_new(behavior);
 	if (parser == NULL) {
 		err(1, "calloc");
 	}
@@ -1248,9 +1254,6 @@ main(int argc, char *argv[])
 		parser_read(parser, line);
 	}
 	parser_read_finish(parser);
-	if (behavior & PORTFMT_SANITIZE_APPEND) {
-		parser_sanitize_append_modifier(parser);
-	}
 
 	if (dflag) {
 		parser_dump_tokens(parser);
