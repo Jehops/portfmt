@@ -63,8 +63,9 @@
 enum ParserBehavior {
 	PARSER_DEFAULT = 0,
 	PARSER_COLLAPSE_ADJACENT_VARIABLES = 2,
-	PARSER_SANITIZE_APPEND = 4,
-	PARSER_UNSORTED_VARIABLES = 8,
+	PARSER_OUTPUT_REFORMAT = 4,
+	PARSER_SANITIZE_APPEND = 8,
+	PARSER_UNSORTED_VARIABLES = 16,
 };
 
 enum TokenType {
@@ -130,9 +131,10 @@ static void parser_enqueue_output(struct Parser *, struct sbuf *);
 static void parser_free(struct Parser *);
 static struct Token *parser_get_token(struct Parser *, size_t);
 static void parser_find_goalcols(struct Parser *);
-static void parser_generate_output_helper(struct Parser *, struct Array *);
-static void parser_generate_output(struct Parser *);
 static void parser_dump_tokens(struct Parser *);
+static void parser_output_generate(struct Parser *);
+static void parser_output_reformatted(struct Parser *);
+static void parser_output_reformatted_helper(struct Parser *, struct Array *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, char *);
 static void parser_read_internal(struct Parser *, struct sbuf *);
@@ -674,7 +676,16 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 }
 
 void
-parser_generate_output_helper(struct Parser *parser, struct Array *arr)
+parser_output_generate(struct Parser *parser)
+{
+	if (parser->behavior & PARSER_OUTPUT_REFORMAT) {
+		parser_output_reformatted(parser);
+	} else {
+	}
+}
+
+void
+parser_output_reformatted_helper(struct Parser *parser, struct Array *arr)
 {
 	if (array_len(arr) == 0) {
 		return;
@@ -692,8 +703,10 @@ parser_generate_output_helper(struct Parser *parser, struct Array *arr)
 }
 
 void
-parser_generate_output(struct Parser *parser)
+parser_output_reformatted(struct Parser *parser)
 {
+	parser_find_goalcols(parser);
+
 	struct Array *cond_arr = array_new(sizeof(struct Token *));
 	struct Array *target_arr = array_new(sizeof(struct Token *));
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
@@ -715,7 +728,7 @@ parser_generate_output(struct Parser *parser)
 			array_append(cond_arr, o);
 			break;
 		case VARIABLE_END:
-			parser_generate_output_helper(parser, variable_arr);
+			parser_output_reformatted_helper(parser, variable_arr);
 			break;
 		case VARIABLE_START:
 			array_truncate(variable_arr);
@@ -741,7 +754,7 @@ parser_generate_output(struct Parser *parser)
 		case PORT_MK:
 		case PORT_PRE_MK:
 		case TARGET_START:
-			parser_generate_output_helper(parser, variable_arr);
+			parser_output_reformatted_helper(parser, variable_arr);
 			parser_enqueue_output(parser, o->data);
 			parser_enqueue_output(parser, sbuf_dupstr("\n"));
 			break;
@@ -767,7 +780,7 @@ parser_generate_output(struct Parser *parser)
 		print_token_array(parser, target_arr);
 		array_truncate(target_arr);
 	}
-	parser_generate_output_helper(parser, variable_arr);
+	parser_output_reformatted_helper(parser, variable_arr);
 	array_free(cond_arr);
 	array_free(target_arr);
 	array_free(variable_arr);
@@ -1189,7 +1202,7 @@ usage()
 int
 main(int argc, char *argv[])
 {
-	enum ParserBehavior behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES;
+	enum ParserBehavior behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES | PARSER_OUTPUT_REFORMAT;
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
 	int dflag = 0;
@@ -1282,8 +1295,7 @@ main(int argc, char *argv[])
 	if (dflag) {
 		parser_dump_tokens(parser);
 	} else {
-		parser_find_goalcols(parser);
-		parser_generate_output(parser);
+		parser_output_generate(parser);
 
 		if (iflag) {
 			if (lseek(fd_out, 0, SEEK_SET) < 0) {
