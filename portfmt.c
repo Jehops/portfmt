@@ -135,13 +135,13 @@ static void parser_dump_tokens(struct Parser *);
 static void parser_output_generate(struct Parser *);
 static void parser_output_reformatted(struct Parser *);
 static void parser_output_reformatted_helper(struct Parser *, struct Array *);
+static void parser_output_write(struct Parser *, int);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, char *);
 static void parser_read_internal(struct Parser *, struct sbuf *);
 static void parser_read_finish(struct Parser *);
 static void parser_collapse_adjacent_variables(struct Parser *);
 static void parser_sanitize_append_modifier(struct Parser *);
-static void parser_write(struct Parser *, int);
 static void parser_tokenize(struct Parser *, struct sbuf *, enum TokenType, ssize_t);
 
 static void print_newline_array(struct Parser *, struct Array *);
@@ -1160,7 +1160,7 @@ end:
 }
 
 void
-parser_write(struct Parser *parser, int fd)
+parser_output_write(struct Parser *parser, int fd)
 {
 	size_t len = array_len(parser->result);
 	if (len == 0) {
@@ -1305,7 +1305,7 @@ main(int argc, char *argv[])
 				err(1, "ftruncate");
 			}
 		}
-		parser_write(parser, fd_out);
+		parser_output_write(parser, fd_out);
 	}
 
 	close(fd_out);
