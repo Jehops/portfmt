@@ -668,10 +668,6 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		array_append(arr, o);
 	}
 	print_newline_array(parser, arr);
-	for (size_t i = 0; i < array_len(arr); i++) {
-		struct Token *t = array_get(arr, i);
-		free(t);
-	}
 	array_free(arr);
 }
 
