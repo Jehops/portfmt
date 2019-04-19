@@ -632,7 +632,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	struct sbuf *row = sbuf_dupstr(NULL);
 	sbuf_finishx(row);
 
-	struct Token *token;
+	struct Token *token = NULL;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		token = array_get(tokens, i);
 		if (sbuf_len(token->data) == 0) {
@@ -661,7 +661,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 			row = s;
 		}
 	}
-	if (sbuf_len(row) > 0 && array_len(arr) < array_len(tokens)) {
+	if (token && sbuf_len(row) > 0 && array_len(arr) < array_len(tokens)) {
 		struct Token *o = xmalloc(sizeof(struct Token));
 		memcpy(o, token, sizeof(struct Token));
 		o->data = row;
