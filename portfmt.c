@@ -342,7 +342,9 @@ parser_enqueue_output(struct Parser *parser, struct sbuf *s)
 	if (!sbuf_done(s)) {
 		sbuf_finishx(s);
 	}
-	array_append(parser->result, s);
+	struct sbuf *tmp = sbuf_dup(s);
+	sbuf_finishx(tmp);
+	array_append(parser->result, tmp);
 }
 
 struct Token *
