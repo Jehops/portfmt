@@ -1205,8 +1205,9 @@ main(int argc, char *argv[])
 	int fd_out = STDOUT_FILENO;
 	int dflag = 0;
 	int iflag = 0;
-	while (getopt(argc, argv, "adiuw:") != -1) {
-		switch (optopt) {
+	int ch;
+	while ((ch = getopt(argc, argv, "adiuw:")) != -1) {
+		switch (ch) {
 		case 'a':
 			behavior |= PARSER_SANITIZE_APPEND;
 			break;
