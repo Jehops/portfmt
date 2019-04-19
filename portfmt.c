@@ -1238,7 +1238,7 @@ main(int argc, char *argv[])
 		iflag = 0;
 	}
 
-	if (argc > 1) {
+	if (argc > 1 || (iflag && argc == 0)) {
 		usage();
 	} else if (argc == 1) {
 		fd_in = open(argv[0], iflag ? O_RDWR : O_RDONLY);
@@ -1247,13 +1247,13 @@ main(int argc, char *argv[])
 		}
 		if (iflag) {
 			fd_out = fd_in;
+			close(STDIN_FILENO);
+			close(STDOUT_FILENO);
 		}
 	}
 
 #if HAVE_CAPSICUM
 	if (iflag) {
-		close(STDIN_FILENO);
-		close(STDOUT_FILENO);
 		if (caph_limit_stream(fd_in, CAPH_READ | CAPH_WRITE | CAPH_FTRUNCATE) < 0) {
 			err(1, "caph_limit_stream");
 		}
@@ -1268,6 +1268,11 @@ main(int argc, char *argv[])
 
 	if (caph_enter() < 0) {
 		err(1, "caph_enter");
+	}
+#endif
+#if HAVE_PLEDGE
+	if (pledge("stdio", NULL) == -1) {
+		err(1, "pledge");
 	}
 #endif
 
