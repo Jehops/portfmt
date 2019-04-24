@@ -86,6 +86,17 @@ array_free(struct Array *array)
 	free(array);
 }
 
+ssize_t
+array_find(struct Array *array, void *k)
+{
+	for (size_t i = 0; i < array_len(array); i++) {
+		if (array_get(array, i) == k) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 void *
 array_get(struct Array *array, size_t i)
 {

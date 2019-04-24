@@ -135,6 +135,7 @@ static void parser_dump_tokens(struct Parser *);
 static void parser_output_generate(struct Parser *);
 static void parser_output_reformatted(struct Parser *);
 static void parser_output_reformatted_helper(struct Parser *, struct Array *);
+static void parser_output_print_target_command(struct Parser *, struct Array *);
 static void parser_output_write(struct Parser *, int);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read(struct Parser *, char *);
@@ -150,6 +151,7 @@ static int tokcompare(const void *, const void *);
 static void usage(void);
 
 static int WRAPCOL = 80;
+static int TARGET_COMMAND_WRAPCOL = 65;
 
 size_t
 consume_comment(struct sbuf *buf)
@@ -674,6 +676,88 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 }
 
 void
+parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
+{
+	if (array_len(tokens) == 0) {
+		return;
+	}
+
+	struct sbuf *endnext = sbuf_dupstr(" \\\n");
+	struct sbuf *endword = sbuf_dupstr(" ");
+	struct sbuf *endline = sbuf_dupstr("\n");
+	struct sbuf *startlv0 = sbuf_dupstr("");
+	struct sbuf *startlv1 = sbuf_dupstr("\t");
+	struct sbuf *startlv2 = sbuf_dupstr("\t\t");
+	struct sbuf *start = startlv0;
+
+	/* Find the places we need to wrap to the next line.
+	 * TODO: This is broken as wrapping changes the next place we need to wrap
+	 */
+	struct Array *wraps = array_new(sizeof(int));
+	int column = 8;
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		struct sbuf *word = t->data;
+
+		assert(t->type == TARGET_COMMAND_TOKEN);
+		assert(sbuf_len(word) != 0);
+
+		if (start == startlv1 || start == startlv2) {
+			start = startlv0;
+		}
+
+		column += sbuf_len(start) * 8 + sbuf_len(word);
+		if (column > TARGET_COMMAND_WRAPCOL ||
+		    sbuf_strcmp(word, "&&") == 0 ||
+		    sbuf_strcmp(word, "||") == 0 ||
+		    (sbuf_endswith(word, ";")) || // && !sbuf_endswith(word, "\\;")) ||
+		    sbuf_strcmp(word, "|") == 0) {
+			start = startlv2;
+			column = 16;
+			array_append(wraps, (void*)i);
+		}
+	}
+
+	parser_enqueue_output(parser, startlv1);
+	int wrapped = 0;
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		struct sbuf *word = t->data;
+
+		if (wrapped) {
+			if (i == 0) {
+				parser_enqueue_output(parser, startlv1);
+			} else {
+				parser_enqueue_output(parser, startlv2);
+			}
+		}
+		wrapped = array_find(wraps, (void*)i) > -1;
+
+		parser_enqueue_output(parser, word);
+		if (wrapped) {
+			if (i == array_len(tokens) - 1) {
+				parser_enqueue_output(parser, endline);
+			} else {
+				parser_enqueue_output(parser, endnext);
+			}
+		} else {
+			if (i == array_len(tokens) - 1) {
+				parser_enqueue_output(parser, endline);
+			} else {
+				parser_enqueue_output(parser, endword);
+			}
+		}
+	}
+
+	array_free(wraps);
+	sbuf_delete(endline);
+	sbuf_delete(endnext);
+	sbuf_delete(endword);
+	sbuf_delete(startlv1);
+	sbuf_delete(startlv2);
+}
+
+void
 parser_output_generate(struct Parser *parser)
 {
 	if (parser->behavior & PARSER_OUTPUT_REFORMAT) {
@@ -735,7 +819,7 @@ parser_output_reformatted(struct Parser *parser)
 			array_append(variable_arr, o);
 			break;
 		case TARGET_COMMAND_END:
-			print_token_array(parser, target_arr);
+			parser_output_print_target_command(parser, target_arr);
 			array_truncate(target_arr);
 			break;
 		case TARGET_COMMAND_START:
