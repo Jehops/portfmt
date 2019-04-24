@@ -270,6 +270,9 @@ static const char *options_helpers_[] = {
 	"CONFIGURE_OFF",
 	"MESON_OFF",
 	"QMAKE_OFF",
+	"CABAL_FLAGS",
+	"EXECUTABLES",
+	"USE_CABAL",
 };
 
 static const char *license_perms_rel[] = {
