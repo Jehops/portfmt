@@ -66,6 +66,7 @@ enum ParserBehavior {
 	PARSER_OUTPUT_REFORMAT = 4,
 	PARSER_SANITIZE_APPEND = 8,
 	PARSER_UNSORTED_VARIABLES = 16,
+	PARSER_FORMAT_TARGET_COMMANDS = 32,
 };
 
 enum TokenType {
@@ -117,6 +118,7 @@ struct Parser {
 
 	struct Array *tokens;
 	struct Array *result;
+	struct Array *rawlines;
 };
 
 static size_t consume_comment(struct sbuf *);
@@ -151,7 +153,8 @@ static int tokcompare(const void *, const void *);
 static void usage(void);
 
 static int WRAPCOL = 80;
-static int TARGET_COMMAND_WRAPCOL = 65;
+static int TARGET_COMMAND_FORMAT_WRAPCOL = 65;
+static int TARGET_COMMAND_FORMAT_THRESHOLD = 8;
 
 size_t
 consume_comment(struct sbuf *buf)
@@ -265,6 +268,7 @@ parser_new(enum ParserBehavior behavior)
 	}
 
 	parser->behavior = behavior;
+	parser->rawlines = array_new(sizeof(struct sbuf *));
 	parser->result = array_new(sizeof(struct sbuf *));
 	parser->tokens = array_new(sizeof(struct Token *));
 	parser->lines.start = 1;
@@ -297,6 +301,13 @@ parser_free(struct Parser *parser)
 		sbuf_delete(s);
 	}
 	array_free(parser->result);
+
+
+	for (size_t i = 0; i < array_len(parser->rawlines); i++) {
+		struct sbuf *s = array_get(parser->rawlines, i);
+		sbuf_delete(s);
+	}
+	array_free(parser->rawlines);
 
 	sbuf_delete(parser->inbuf);
 	free(parser);
@@ -682,9 +693,9 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		return;
 	}
 
+	struct sbuf *endline = sbuf_dupstr("\n");
 	struct sbuf *endnext = sbuf_dupstr(" \\\n");
 	struct sbuf *endword = sbuf_dupstr(" ");
-	struct sbuf *endline = sbuf_dupstr("\n");
 	struct sbuf *startlv0 = sbuf_dupstr("");
 	struct sbuf *startlv1 = sbuf_dupstr("\t");
 	struct sbuf *startlv2 = sbuf_dupstr("\t\t");
@@ -695,6 +706,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	 */
 	struct Array *wraps = array_new(sizeof(int));
 	int column = 8;
+	int complexity = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		struct sbuf *word = t->data;
@@ -707,15 +719,36 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		}
 
 		column += sbuf_len(start) * 8 + sbuf_len(word);
-		if (column > TARGET_COMMAND_WRAPCOL ||
+		if (column > TARGET_COMMAND_FORMAT_WRAPCOL ||
 		    sbuf_strcmp(word, "&&") == 0 ||
 		    sbuf_strcmp(word, "||") == 0 ||
-		    (sbuf_endswith(word, ";")) || // && !sbuf_endswith(word, "\\;")) ||
+		    (sbuf_endswith(word, ";") && !sbuf_endswith(word, "\\;")) ||
 		    sbuf_strcmp(word, "|") == 0) {
 			start = startlv2;
 			column = 16;
 			array_append(wraps, (void*)i);
 		}
+
+		for (char *c = sbuf_data(word); *c != 0; c++) {
+			switch (*c) {
+			case '`':
+			case '(':
+			case ')':
+			case ';':
+				complexity++;
+				break;
+			}
+		}
+	}
+
+	if (!(parser->behavior & PARSER_FORMAT_TARGET_COMMANDS) ||
+	    complexity > TARGET_COMMAND_FORMAT_THRESHOLD) {
+		struct Token *t = array_get(tokens, 0);
+		for (size_t i = t->lines.start; i < t->lines.end; i++) {
+			parser_enqueue_output(parser, array_get(parser->rawlines, i - 1));
+			parser_enqueue_output(parser, endline);
+		}
+		goto cleanup;
 	}
 
 	parser_enqueue_output(parser, startlv1);
@@ -749,6 +782,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		}
 	}
 
+cleanup:
 	array_free(wraps);
 	sbuf_delete(endline);
 	sbuf_delete(endnext);
@@ -1019,7 +1053,8 @@ parser_read(struct Parser *parser, char *line)
 	}
 
 	parser->continued = will_continue;
-	sbuf_delete(buf);
+
+	array_append(parser->rawlines, buf);
 }
 
 void
@@ -1284,7 +1319,7 @@ usage()
 int
 main(int argc, char *argv[])
 {
-	enum ParserBehavior behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES | PARSER_OUTPUT_REFORMAT;
+	enum ParserBehavior behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES | PARSER_OUTPUT_REFORMAT | PARSER_FORMAT_TARGET_COMMANDS;
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
 	int dflag = 0;
