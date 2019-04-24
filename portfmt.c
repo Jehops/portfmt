@@ -714,21 +714,6 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		assert(t->type == TARGET_COMMAND_TOKEN);
 		assert(sbuf_len(word) != 0);
 
-		if (start == startlv1 || start == startlv2) {
-			start = startlv0;
-		}
-
-		column += sbuf_len(start) * 8 + sbuf_len(word);
-		if (column > TARGET_COMMAND_FORMAT_WRAPCOL ||
-		    sbuf_strcmp(word, "&&") == 0 ||
-		    sbuf_strcmp(word, "||") == 0 ||
-		    (sbuf_endswith(word, ";") && !sbuf_endswith(word, "\\;")) ||
-		    sbuf_strcmp(word, "|") == 0) {
-			start = startlv2;
-			column = 16;
-			array_append(wraps, (void*)i);
-		}
-
 		for (char *c = sbuf_data(word); *c != 0; c++) {
 			switch (*c) {
 			case '`':
@@ -738,6 +723,24 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 				complexity++;
 				break;
 			}
+		}
+
+		if (start == startlv1 || start == startlv2) {
+			start = startlv0;
+		}
+
+		column += sbuf_len(start) * 8 + sbuf_len(word);
+		if (column > TARGET_COMMAND_FORMAT_WRAPCOL ||
+		    target_command_should_wrap(word)) {
+			if (i + 1 < array_len(tokens)) {
+				struct Token *next = array_get(tokens, i + 1);
+				if (target_command_should_wrap(next->data)) {
+					continue;
+				}
+			}
+			start = startlv2;
+			column = 16;
+			array_append(wraps, (void*)i);
 		}
 	}
 

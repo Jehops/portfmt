@@ -60,3 +60,4 @@ int matches(enum RegularExpression, struct sbuf *, regmatch_t *);
 int print_as_newlines(struct Variable *);
 int skip_goalcol(struct Variable *);
 struct sbuf *sub(enum RegularExpression, const char *, struct sbuf *);
+int target_command_should_wrap(struct sbuf *);

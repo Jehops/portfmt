@@ -1188,6 +1188,19 @@ options_helpers_pattern()
 }
 
 int
+target_command_should_wrap(struct sbuf *word)
+{
+	if (sbuf_strcmp(word, "&&") == 0 ||
+	    sbuf_strcmp(word, "||") == 0 ||
+	    (sbuf_endswith(word, ";") && !sbuf_endswith(word, "\\;")) ||
+	    sbuf_strcmp(word, "|") == 0) {
+		return 1;
+	}
+
+	return 0;
+}
+
+int
 matches(enum RegularExpression re, struct sbuf *s, regmatch_t *match)
 {
 	assert(sbuf_done(s));
