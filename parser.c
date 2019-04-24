@@ -116,6 +116,7 @@ static void parser_append_token(struct Parser *, enum TokenType, struct sbuf *);
 static void parser_collapse_adjacent_variables(struct Parser *);
 static void parser_enqueue_output(struct Parser *, struct sbuf *);
 static void parser_find_goalcols(struct Parser *);
+static void parser_output_dump_tokens(struct Parser *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
 static void parser_output_reformatted_helper(struct Parser *, struct Array *);
 static void parser_output_reformatted(struct Parser *);
@@ -779,11 +780,12 @@ cleanup:
 }
 
 void
-parser_output_generate(struct Parser *parser)
+parser_output_prepare(struct Parser *parser)
 {
-	if (parser->settings.behavior & PARSER_OUTPUT_REFORMAT) {
+	if (parser->settings.behavior & PARSER_DUMP_TOKENS) {
+		parser_output_dump_tokens(parser);
+	} else if (parser->settings.behavior & PARSER_OUTPUT_REFORMAT) {
 		parser_output_reformatted(parser);
-	} else {
 	}
 }
 
@@ -890,7 +892,7 @@ parser_output_reformatted(struct Parser *parser)
 }
 
 void
-parser_dump_tokens(struct Parser *parser)
+parser_output_dump_tokens(struct Parser *parser)
 {
 	ssize_t maxvarlen = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
@@ -992,12 +994,27 @@ parser_dump_tokens(struct Parser *parser)
 			len = maxvarlen - 1;
 		}
 		struct sbuf *range = range_tostring(&o->lines);
-		printf("%-20s %8s %s", type, sbuf_data(range), var ? sbuf_data(var) : "-");
+		struct sbuf *out = sbuf_dup(NULL);
+		sbuf_printf(out, "%-20s %8s ", type, sbuf_data(range));
 		sbuf_delete(range);
-		for (ssize_t j = 0; j < len; j++) {
-			putchar(' ');
+		if (var) {
+			sbuf_cat(out, sbuf_data(var));
+		} else {
+			sbuf_putc(out, '-');
 		}
-		printf(" %s\n", o->data ? sbuf_data(o->data) : "-");
+		for (ssize_t j = 0; j < len; j++) {
+			sbuf_putc(out, ' ');
+		}
+		sbuf_putc(out, ' ');
+		if (o->data) {
+			sbuf_cat(out, sbuf_data(o->data));
+		} else {
+			sbuf_putc(out, '-');
+		}
+		sbuf_putc(out, '\n');
+		sbuf_finishx(out);
+		parser_enqueue_output(parser, out);
+		sbuf_delete(out);
 		if (var) {
 			sbuf_delete(var);
 		}

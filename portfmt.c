@@ -57,7 +57,6 @@ main(int argc, char *argv[])
 {
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
-	int dflag = 0;
 	int iflag = 0;
 	struct ParserSettings settings;
 
@@ -73,7 +72,7 @@ main(int argc, char *argv[])
 			settings.behavior |= PARSER_SANITIZE_APPEND;
 			break;
 		case 'd':
-			dflag = 1;
+			settings.behavior |= PARSER_DUMP_TOKENS;
 			break;
 		case 'i':
 			iflag = 1;
@@ -95,7 +94,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (dflag) {
+	if (settings.behavior & PARSER_DUMP_TOKENS) {
 		iflag = 0;
 	}
 
@@ -155,21 +154,16 @@ main(int argc, char *argv[])
 	}
 	parser_read_finish(parser);
 
-	if (dflag) {
-		parser_dump_tokens(parser);
-	} else {
-		parser_output_generate(parser);
-
-		if (iflag) {
-			if (lseek(fd_out, 0, SEEK_SET) < 0) {
-				err(1, "lseek");
-			}
-			if (ftruncate(fd_out, 0) < 0) {
-				err(1, "ftruncate");
-			}
+	parser_output_prepare(parser);
+	if (iflag) {
+		if (lseek(fd_out, 0, SEEK_SET) < 0) {
+			err(1, "lseek");
 		}
-		parser_output_write(parser, fd_out);
+		if (ftruncate(fd_out, 0) < 0) {
+			err(1, "ftruncate");
+		}
 	}
+	parser_output_write(parser, fd_out);
 
 	close(fd_out);
 	close(fd_in);
