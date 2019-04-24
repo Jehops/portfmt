@@ -1206,7 +1206,9 @@ parser_collapse_adjacent_variables(struct Parser *parser)
 		struct Token *o = array_get(parser->tokens, i);
 		switch (o->type) {
 		case VARIABLE_START:
-			if (last_var != NULL && variable_cmp(o->var, last_var) == 0) {
+			if (last_var != NULL && variable_cmp(o->var, last_var) == 0 &&
+			    variable_modifier(last_var) != MODIFIER_EXPAND &&
+			    variable_modifier(o->var) != MODIFIER_EXPAND) {
 				o->ignore = 1;
 				if (last) {
 					last->ignore = 1;
@@ -1311,5 +1313,6 @@ parser_output_write(struct Parser *parser, int fd)
 		sbuf_delete((struct sbuf *)array_get(parser->result, i));
 	}
 	array_truncate(parser->result);
+	free(iov);
 }
 
