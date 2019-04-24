@@ -36,9 +36,17 @@ enum ParserBehavior {
 	PARSER_FORMAT_TARGET_COMMANDS = 32,
 };
 
+struct ParserSettings {
+	enum ParserBehavior behavior;
+	int target_command_format_threshold;
+	int target_command_format_wrapcol;
+	int wrapcol;
+};
+
 struct Parser;
 
-struct Parser *parser_new(enum ParserBehavior);
+struct Parser *parser_new(struct ParserSettings *);
+void parser_init_settings(struct ParserSettings *);
 void parser_dump_tokens(struct Parser *);
 void parser_read(struct Parser *, char *);
 void parser_free(struct Parser *);

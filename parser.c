@@ -92,7 +92,7 @@ struct Token {
 };
 
 struct Parser {
-	enum ParserBehavior behavior;
+	struct ParserSettings settings;
 	int continued;
 	int in_target;
 	struct Range lines;
@@ -128,10 +128,6 @@ static void print_token_array(struct Parser *, struct Array *);
 static struct sbuf *range_tostring(struct Range *);
 static int tokcompare(const void *, const void *);
 static struct Token *parser_get_token(struct Parser *, size_t);
-
-static int WRAPCOL = 80;
-static int TARGET_COMMAND_FORMAT_WRAPCOL = 65;
-static int TARGET_COMMAND_FORMAT_THRESHOLD = 8;
 
 size_t
 consume_comment(struct sbuf *buf)
@@ -236,21 +232,30 @@ range_tostring(struct Range *range)
 	return s;
 }
 
+void
+parser_init_settings(struct ParserSettings *settings)
+{
+	settings->behavior = 0;
+	settings->target_command_format_threshold = 8;
+	settings->target_command_format_wrapcol = 65;
+	settings->wrapcol = 80;
+}
+
 struct Parser *
-parser_new(enum ParserBehavior behavior)
+parser_new(struct ParserSettings *settings)
 {
 	struct Parser *parser = calloc(1, sizeof(struct Parser));
 	if (parser == NULL) {
 		err(1, "calloc");
 	}
 
-	parser->behavior = behavior;
 	parser->rawlines = array_new(sizeof(struct sbuf *));
 	parser->result = array_new(sizeof(struct sbuf *));
 	parser->tokens = array_new(sizeof(struct Token *));
 	parser->lines.start = 1;
 	parser->lines.end = 1;
 	parser->inbuf = sbuf_dupstr(NULL);
+	parser->settings = *settings;
 
 	compile_regular_expressions();
 
@@ -620,7 +625,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		wrapcol = 99999999;
 	} else {
 		/* Minus ' \' at end of line */
-		wrapcol = WRAPCOL - o->goalcol - 2;
+		wrapcol = parser->settings.wrapcol - o->goalcol - 2;
 	}
 
 	struct sbuf *row = sbuf_dupstr(NULL);
@@ -709,7 +714,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		}
 
 		column += sbuf_len(start) * 8 + sbuf_len(word);
-		if (column > TARGET_COMMAND_FORMAT_WRAPCOL ||
+		if (column > parser->settings.target_command_format_wrapcol ||
 		    target_command_should_wrap(word)) {
 			if (i + 1 < array_len(tokens)) {
 				struct Token *next = array_get(tokens, i + 1);
@@ -723,8 +728,8 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		}
 	}
 
-	if (!(parser->behavior & PARSER_FORMAT_TARGET_COMMANDS) ||
-	    complexity > TARGET_COMMAND_FORMAT_THRESHOLD) {
+	if (!(parser->settings.behavior & PARSER_FORMAT_TARGET_COMMANDS) ||
+	    complexity > parser->settings.target_command_format_threshold) {
 		struct Token *t = array_get(tokens, 0);
 		for (size_t i = t->lines.start; i < t->lines.end; i++) {
 			parser_enqueue_output(parser, array_get(parser->rawlines, i - 1));
@@ -776,7 +781,7 @@ cleanup:
 void
 parser_output_generate(struct Parser *parser)
 {
-	if (parser->behavior & PARSER_OUTPUT_REFORMAT) {
+	if (parser->settings.behavior & PARSER_OUTPUT_REFORMAT) {
 		parser_output_reformatted(parser);
 	} else {
 	}
@@ -789,7 +794,7 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr)
 		return;
 	}
 	struct Token *arr0 = array_get(arr, 0);
-	if (!(parser->behavior & PARSER_UNSORTED_VARIABLES) && !leave_unsorted(arr0->var)) {
+	if (!(parser->settings.behavior & PARSER_UNSORTED_VARIABLES) && !leave_unsorted(arr0->var)) {
 		array_sort(arr, tokcompare);
 	}
 	if (print_as_newlines(arr0->var)) {
@@ -1166,11 +1171,11 @@ parser_read_finish(struct Parser *parser)
 		parser_append_token(parser, TARGET_END, NULL);
 	}
 
-	if (parser->behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES) {
+	if (parser->settings.behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES) {
 		parser_collapse_adjacent_variables(parser);
 	}
 
-	if (parser->behavior & PARSER_SANITIZE_APPEND) {
+	if (parser->settings.behavior & PARSER_SANITIZE_APPEND) {
 		parser_sanitize_append_modifier(parser);
 	}
 }

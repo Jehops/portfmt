@@ -45,10 +45,6 @@
 
 static void usage(void);
 
-static int WRAPCOL = 80;
-static int TARGET_COMMAND_FORMAT_WRAPCOL = 65;
-static int TARGET_COMMAND_FORMAT_THRESHOLD = 8;
-
 void
 usage()
 {
@@ -59,16 +55,22 @@ usage()
 int
 main(int argc, char *argv[])
 {
-	enum ParserBehavior behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES | PARSER_OUTPUT_REFORMAT | PARSER_FORMAT_TARGET_COMMANDS;
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
 	int dflag = 0;
 	int iflag = 0;
+	struct ParserSettings settings;
+
+	parser_init_settings(&settings);
+	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
+		PARSER_OUTPUT_REFORMAT |
+		PARSER_FORMAT_TARGET_COMMANDS;
+
 	int ch;
 	while ((ch = getopt(argc, argv, "adiuw:")) != -1) {
 		switch (ch) {
 		case 'a':
-			behavior |= PARSER_SANITIZE_APPEND;
+			settings.behavior |= PARSER_SANITIZE_APPEND;
 			break;
 		case 'd':
 			dflag = 1;
@@ -77,11 +79,11 @@ main(int argc, char *argv[])
 			iflag = 1;
 			break;
 		case 'u':
-			behavior |= PARSER_UNSORTED_VARIABLES;
+			settings.behavior |= PARSER_UNSORTED_VARIABLES;
 			break;
 		case 'w': {
 			const char *errstr = NULL;
-			WRAPCOL = strtonum(optarg, -1, INT_MAX, &errstr);
+			settings.wrapcol = strtonum(optarg, -1, INT_MAX, &errstr);
 			if (errstr != NULL) {
 				errx(1, "strtonum: %s", errstr);
 			}
@@ -135,7 +137,7 @@ main(int argc, char *argv[])
 	}
 #endif
 
-	struct Parser *parser = parser_new(behavior);
+	struct Parser *parser = parser_new(&settings);
 	if (parser == NULL) {
 		err(1, "calloc");
 	}
