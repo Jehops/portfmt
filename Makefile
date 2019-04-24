@@ -6,21 +6,22 @@ SED?=		sed
 CFLAGS+=	-std=c99
 LDADD+=		-lm
 
-OBJS=		array.o compats.o conditional.o portfmt.o rules.o target.o \
-		util.o variable.o
+OBJS=		array.o compats.o conditional.o parser.o portfmt.o rules.o \
+		target.o util.o variable.o
 
 all: portfmt
 
 portfmt: ${OBJS}
 	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LDADD}
 
-array.o: array.c array.h
-conditional.o: conditional.c conditional.h
-portfmt.o: array.h conditional.h portfmt.c rules.h target.h util.h variable.h
-rules.o: rules.c rules.h util.h variable.h
-target.o: target.h util.h
-util.o: util.c util.h
-variable.o: rules.h util.h variable.c variable.h
+array.o: config.h array.c array.h
+conditional.o: config.h conditional.c conditional.h
+portfmt.o: config.h parser.h portfmt.c
+rules.o: config.h rules.c rules.h util.h variable.h
+parser.o: config.h array.h conditional.h parser.c parser.h rules.h target.h util.h variable.h
+target.o: config.h target.h util.h
+util.o: config.h util.c util.h
+variable.o: config.h rules.h util.h variable.c variable.h
 
 install:
 	${MKDIR} ${DESTDIR}${PREFIX}/bin \
