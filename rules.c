@@ -60,6 +60,7 @@ static struct {
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
 				  "elifmake|endif))([[:space:]]+|$)",
 				  REG_EXTENDED, {} },
+	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$", REG_EXTENDED, {} },
 	[RE_EMPTY_LINE]       = { "^[[:space:]]*$", 			      0, {} },
 	[RE_LICENSE_NAME]     = { "^(_?(-|LICENSE_NAME_[A-Za-z0-9._+ ])+|"
 				  "^LICENSE_(FILE|NAME)_|"
@@ -78,7 +79,7 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
-	[RE_TARGET] 	      = { "^[\\$\\{\\}A-Za-z0-9\\/\\._-]+::?([[:space:]]+|$)",     REG_EXTENDED, {} },
+	[RE_TARGET] 	      = { "^[\\$\\{:\\}A-Za-z0-9\\/\\._-]+::?([[:space:]]+|$)",	  REG_EXTENDED, {} },
 	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[[:space:]]*[+!?:]?=", REG_EXTENDED, {} },
 };
 
@@ -269,6 +270,9 @@ static const char *options_helpers_[] = {
 	"CONFIGURE_OFF",
 	"MESON_OFF",
 	"QMAKE_OFF",
+	"CABAL_FLAGS",
+	"EXECUTABLES",
+	"USE_CABAL",
 };
 
 static const char *license_perms_rel[] = {
@@ -1184,6 +1188,19 @@ options_helpers_pattern()
 }
 
 int
+target_command_should_wrap(struct sbuf *word)
+{
+	if (sbuf_strcmp(word, "&&") == 0 ||
+	    sbuf_strcmp(word, "||") == 0 ||
+	    (sbuf_endswith(word, ";") && !sbuf_endswith(word, "\\;")) ||
+	    sbuf_strcmp(word, "|") == 0) {
+		return 1;
+	}
+
+	return 0;
+}
+
+int
 matches(enum RegularExpression re, struct sbuf *s, regmatch_t *match)
 {
 	assert(sbuf_done(s));
@@ -1236,10 +1253,7 @@ compile_regular_expressions()
 				    regular_expressions[i].flags);
 		if (error != 0) {
 			size_t errbuflen = regerror(error, &regular_expressions[i].re, NULL, 0);
-			char *errbuf = malloc(errbuflen);
-			if (errbuf == NULL) {
-				err(1, "malloc");
-			}
+			char *errbuf = xmalloc(errbuflen);
 			regerror(error, &regular_expressions[i].re, errbuf, errbuflen);
 			errx(1, "regcomp: %zu: %s", i, errbuf);
 		}

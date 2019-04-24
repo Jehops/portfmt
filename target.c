@@ -28,98 +28,51 @@
 
 #include "config.h"
 
-#include <sys/types.h>
 #include <assert.h>
 #include <err.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "array.h"
 #include "util.h"
+#include "target.h"
 
-struct Array {
-	void **buf;
-	size_t cap;
-	size_t len;
-	size_t value_size;
+struct Target {
+	struct sbuf *name;
+	struct sbuf *deps;
 };
 
-struct Array *
-array_new(size_t value_size)
-{
-	struct Array *array = xmalloc(sizeof(struct Array));
+struct Target *
+target_new(struct sbuf *buf) {
+	struct Target *target = xmalloc(sizeof(struct Target));
 
-	array->cap = 1024;
-	array->len = 0;
-	array->value_size = value_size;
-
-	array->buf = reallocarray(NULL, array->cap, value_size);
-	if (array->buf == NULL) {
-		err(1, "reallocarray");
+	char *after_target = memchr(sbuf_data(buf), ':', sbuf_len(buf));
+	if (after_target == NULL || after_target < sbuf_data(buf)) {
+		errx(1, "invalid target: %s", sbuf_data(buf));
 	}
 
-	return array;
+	target->name = sbuf_dupstr(NULL);
+	sbuf_bcpy(target->name, sbuf_data(buf), after_target - sbuf_data(buf));
+	sbuf_trim(target->name);
+	sbuf_finishx(target->name);
+
+	target->deps = sbuf_dupstr(after_target + 1);
+	sbuf_finishx(target->deps);
+
+	return target;
 }
 
 void
-array_append(struct Array *array, void *v)
+target_free(struct Target *target)
 {
-	assert(array->cap > 0);
-	assert(array->cap > array->len);
-
-	array->buf[array->len++] = v;
-	if (array->len >= array->cap) {
-		size_t new_cap = array->cap * 2;
-		assert(new_cap > array->cap);
-		void **new_array = reallocarray(array->buf, new_cap, array->value_size);
-		if (new_array == NULL) {
-			err(1, "reallocarray");
-		}
-		array->buf = new_array;
-		array->cap = new_cap;
-	}
+	sbuf_delete(target->name);
+	sbuf_delete(target->deps);
+	free(target);
 }
 
-void
-array_free(struct Array *array)
+struct sbuf *
+target_name(struct Target *target)
 {
-	free(array->buf);
-	free(array);
+	assert(target != NULL);
+	return target->name;
 }
 
-ssize_t
-array_find(struct Array *array, void *k)
-{
-	for (size_t i = 0; i < array_len(array); i++) {
-		if (array_get(array, i) == k) {
-			return i;
-		}
-	}
-	return -1;
-}
-
-void *
-array_get(struct Array *array, size_t i)
-{
-	if (i < array->len) {
-		return array->buf[i];
-	}
-	return NULL;
-}
-
-size_t
-array_len(struct Array *array)
-{
-	return array->len;
-}
-
-void
-array_sort(struct Array *array, int (*compar)(const void *, const void *))
-{
-	qsort(array->buf, array->len, array->value_size, compar);
-}
-
-void
-array_truncate(struct Array *array)
-{
-	array->len = 0;
-}

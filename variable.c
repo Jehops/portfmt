@@ -45,10 +45,7 @@ struct Variable {
 
 struct Variable *
 variable_new(struct sbuf *var_with_mod) {
-	struct Variable *var= malloc(sizeof(struct Variable));
-	if (var == NULL) {
-		err(1, "malloc");
-	}
+	struct Variable *var = xmalloc(sizeof(struct Variable));
 
 	struct sbuf *tmp = sbuf_strip_all_dup(var_with_mod);
 	sbuf_finishx(tmp);
@@ -81,6 +78,13 @@ variable_new(struct sbuf *var_with_mod) {
 	sbuf_delete(tmp);
 
 	return var;
+}
+
+void
+variable_free(struct Variable *var)
+{
+	sbuf_delete(var->name);
+	free(var);
 }
 
 int

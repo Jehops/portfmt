@@ -52,3 +52,5 @@ struct sbuf *sbuf_strip_all_dup(struct sbuf *);
 struct sbuf *sbuf_strip_dup(struct sbuf *);
 struct sbuf *sbuf_substr_dup(struct sbuf *, size_t, size_t);
 void sbuf_finishx(struct sbuf *);
+
+void *xmalloc(size_t);

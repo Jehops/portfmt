@@ -33,6 +33,7 @@
 #if HAVE_ERR
 # include <err.h>
 #endif
+#include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
 
@@ -155,4 +156,14 @@ sbuf_finishx(struct sbuf *s)
 	if (sbuf_finish(s) != 0) {
 		errx(1, "sbuf_finish");
 	}
+}
+
+void *
+xmalloc(size_t size)
+{
+	void *x = malloc(size);
+	if (x == NULL) {
+		err(1, "malloc");
+	}
+	return x;
 }

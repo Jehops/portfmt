@@ -34,6 +34,7 @@
 #define	_SYS_SBUF_H_
 
 #include <sys/types.h>
+#include <stdarg.h>
 #include <stdio.h>
 
 struct sbuf;

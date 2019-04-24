@@ -30,34 +30,38 @@
 #include "config.h"
 
 #if HAVE_SBUF
-# include <sys/types.h>
 # include <sys/sbuf.h>
 #endif
-#include <regex.h>
 
-#include "variable.h"
+struct Conditional;
 
-enum RegularExpression {
-	RE_CONDITIONAL = 0,
-	RE_CONTINUE_LINE,
-	RE_EMPTY_LINE,
-	RE_LICENSE_NAME,
-	RE_LICENSE_PERMS,
-	RE_OPTIONS_HELPER,
-	RE_PLIST_FILES,
-	RE_PLIST_KEYWORDS,
-	RE_MODIFIER,
-	RE_TARGET,
-	RE_VAR,
+enum ConditionalType {
+	COND_ELIF,
+	COND_ELIFDEF,
+	COND_ELIFMAKE,
+	COND_ELIFNDEF,
+	COND_ELSE,
+	COND_ENDFOR,
+	COND_ENDIF,
+	COND_ERROR,
+	COND_EXPORT_ENV,
+	COND_EXPORT_LITERAL,
+	COND_EXPORT,
+	COND_FOR,
+	COND_IF,
+	COND_IFDEF,
+	COND_IFMAKE,
+	COND_IFNDEF,
+	COND_IFNMAKE,
+	COND_INCLUDE_POSIX,
+	COND_INCLUDE,
+	COND_INFO,
+	COND_UNDEF,
+	COND_UNEXPORT_ENV,
+	COND_UNEXPORT,
+	COND_WARNING,
 };
 
-int compare_tokens(struct Variable *, struct sbuf *, struct sbuf *);
-void compile_regular_expressions(void);
-int ignore_wrap_col(struct Variable *);
-int indent_goalcol(struct Variable *);
-int leave_unsorted(struct Variable *);
-int matches(enum RegularExpression, struct sbuf *, regmatch_t *);
-int print_as_newlines(struct Variable *);
-int skip_goalcol(struct Variable *);
-struct sbuf *sub(enum RegularExpression, const char *, struct sbuf *);
-int target_command_should_wrap(struct sbuf *);
+struct Conditional *conditional_new(struct sbuf *);
+void conditional_free(struct Conditional *);
+struct sbuf *conditional_tostring(struct Conditional *);

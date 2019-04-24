@@ -30,34 +30,11 @@
 #include "config.h"
 
 #if HAVE_SBUF
-# include <sys/types.h>
 # include <sys/sbuf.h>
 #endif
-#include <regex.h>
 
-#include "variable.h"
+struct Target;
 
-enum RegularExpression {
-	RE_CONDITIONAL = 0,
-	RE_CONTINUE_LINE,
-	RE_EMPTY_LINE,
-	RE_LICENSE_NAME,
-	RE_LICENSE_PERMS,
-	RE_OPTIONS_HELPER,
-	RE_PLIST_FILES,
-	RE_PLIST_KEYWORDS,
-	RE_MODIFIER,
-	RE_TARGET,
-	RE_VAR,
-};
-
-int compare_tokens(struct Variable *, struct sbuf *, struct sbuf *);
-void compile_regular_expressions(void);
-int ignore_wrap_col(struct Variable *);
-int indent_goalcol(struct Variable *);
-int leave_unsorted(struct Variable *);
-int matches(enum RegularExpression, struct sbuf *, regmatch_t *);
-int print_as_newlines(struct Variable *);
-int skip_goalcol(struct Variable *);
-struct sbuf *sub(enum RegularExpression, const char *, struct sbuf *);
-int target_command_should_wrap(struct sbuf *);
+struct Target *target_new(struct sbuf *);
+void target_free(struct Target *);
+struct sbuf *target_name(struct Target *);
