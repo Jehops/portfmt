@@ -29,10 +29,6 @@
 
 #include "config.h"
 
-#if HAVE_SBUF
-# include <sys/sbuf.h>
-#endif
-
 struct Variable;
 
 enum VariableModifier {
@@ -43,10 +39,10 @@ enum VariableModifier {
 	MODIFIER_SHELL,
 };
 
-struct Variable *variable_new(struct sbuf *);
+struct Variable *variable_new(char *);
 int variable_cmp(struct Variable *, struct Variable *);
 void variable_free(struct Variable *);
 enum VariableModifier variable_modifier(struct Variable *);
 void variable_set_modifier(struct Variable *, enum VariableModifier);
-struct sbuf *variable_name(struct Variable *);
-struct sbuf *variable_tostring(struct Variable *);
+char *variable_name(struct Variable *);
+char *variable_tostring(struct Variable *);

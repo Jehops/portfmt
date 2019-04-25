@@ -37,26 +37,24 @@
 #include "target.h"
 
 struct Target {
-	struct sbuf *name;
-	struct sbuf *deps;
+	char *name;
+	char *deps;
 };
 
 struct Target *
-target_new(struct sbuf *buf) {
+target_new(char *buf) {
 	struct Target *target = xmalloc(sizeof(struct Target));
 
-	char *after_target = memchr(sbuf_data(buf), ':', sbuf_len(buf));
-	if (after_target == NULL || after_target < sbuf_data(buf)) {
-		errx(1, "invalid target: %s", sbuf_data(buf));
+	char *after_target = memchr(buf, ':', strlen(buf));
+	if (after_target == NULL || after_target < buf) {
+		errx(1, "invalid target: %s", buf);
 	}
 
-	target->name = sbuf_dupstr(NULL);
-	sbuf_bcpy(target->name, sbuf_data(buf), after_target - sbuf_data(buf));
-	sbuf_trim(target->name);
-	sbuf_finishx(target->name);
+	target->name = xmalloc(strlen(buf));
+	strncpy(target->name, buf, after_target - buf);
+	target->name = str_trim(target->name);
 
-	target->deps = sbuf_dupstr(after_target + 1);
-	sbuf_finishx(target->deps);
+	target->deps = xstrdup(after_target + 1);
 
 	return target;
 }
@@ -64,12 +62,12 @@ target_new(struct sbuf *buf) {
 void
 target_free(struct Target *target)
 {
-	sbuf_delete(target->name);
-	sbuf_delete(target->deps);
+	free(target->name);
+	free(target->deps);
 	free(target);
 }
 
-struct sbuf *
+char *
 target_name(struct Target *target)
 {
 	assert(target != NULL);

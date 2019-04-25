@@ -30,7 +30,9 @@
 
 #include <assert.h>
 #include <err.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "conditional.h"
 #include "rules.h"
@@ -41,94 +43,89 @@ struct Conditional {
 };
 
 struct Conditional *
-conditional_new(struct sbuf *s)
+conditional_new(char *s)
 {
 	struct Conditional *cond = xmalloc(sizeof(struct Conditional));
 
 	regmatch_t match;
 	if (!matches(RE_CONDITIONAL, s, &match)) {
-		errx(1, "not a conditional: %s", sbuf_data(s));
+		errx(1, "not a conditional: %s", s);
 	}
 
-	struct sbuf *tmp = sbuf_substr_dup(s, match.rm_so, match.rm_eo);
-	sbuf_finishx(tmp);
-	if (sbuf_len(tmp) < 2) {
-		sbuf_delete(tmp);
-		errx(1, "not a conditional: %s", sbuf_data(s));
+	char *tmp = str_substr_dup(s, match.rm_so, match.rm_eo);
+	if (strlen(tmp) < 2) {
+		free(tmp);
+		errx(1, "not a conditional: %s", s);
 	}
 
-	struct sbuf *type;
-	if (sbuf_data(tmp)[0] == '.') {
-		struct sbuf *buf = sbuf_dupstr(sbuf_data(tmp) + 1);
-		sbuf_finishx(buf);
-		sbuf_delete(tmp);
-		tmp = sbuf_strip_dup(buf);
-		sbuf_delete(buf);
-		type = sbuf_dupstr(".");
-		sbuf_cat(type, sbuf_data(tmp));
-		sbuf_finishx(type);
-		sbuf_delete(tmp);
+	char *type;
+	if (tmp[0] == '.') {
+		char *tmp2 = str_strip_dup(tmp + 1);
+		if (asprintf(&type, ".%s", tmp2) < 0) {
+			warn("asprintf");
+			abort();
+		}
+		free(tmp2);
 	} else {
-		type = sbuf_strip_dup(tmp);
-		sbuf_finishx(type);
-		sbuf_delete(tmp);
+		type = str_strip_dup(tmp);
 	}
+	free(tmp);
+	tmp = NULL;
 
-	if (sbuf_strcmp(type, "include") == 0) {
+	if (strcmp(type, "include") == 0) {
 		cond->type = COND_INCLUDE_POSIX;
-	} else if (sbuf_strcmp(type, ".include") == 0) {
+	} else if (strcmp(type, ".include") == 0) {
 		cond->type = COND_INCLUDE;
-	} else if (sbuf_strcmp(type, ".error") == 0) {
+	} else if (strcmp(type, ".error") == 0) {
 		cond->type = COND_ERROR;
-	} else if (sbuf_strcmp(type, ".export") == 0) {
+	} else if (strcmp(type, ".export") == 0) {
 		cond->type = COND_EXPORT;
-	} else if (sbuf_strcmp(type, ".export-env") == 0) {
+	} else if (strcmp(type, ".export-env") == 0) {
 		cond->type = COND_EXPORT_ENV;
-	} else if (sbuf_strcmp(type, ".export.env") == 0) {
+	} else if (strcmp(type, ".export.env") == 0) {
 		cond->type = COND_EXPORT_ENV;
-	} else if (sbuf_strcmp(type, ".export-literal") == 0) {
+	} else if (strcmp(type, ".export-literal") == 0) {
 		cond->type = COND_EXPORT_LITERAL;
-	} else if (sbuf_strcmp(type, ".info") == 0) {
+	} else if (strcmp(type, ".info") == 0) {
 		cond->type = COND_INFO;
-	} else if (sbuf_strcmp(type, ".undef") == 0) {
+	} else if (strcmp(type, ".undef") == 0) {
 		cond->type = COND_UNDEF;
-	} else if (sbuf_strcmp(type, ".unexport") == 0) {
+	} else if (strcmp(type, ".unexport") == 0) {
 		cond->type = COND_UNEXPORT;
-	} else if (sbuf_strcmp(type, ".for") == 0) {
+	} else if (strcmp(type, ".for") == 0) {
 		cond->type = COND_FOR;
-	} else if (sbuf_strcmp(type, ".endfor") == 0) {
+	} else if (strcmp(type, ".endfor") == 0) {
 		cond->type = COND_ENDFOR;
-	} else if (sbuf_strcmp(type, ".unexport-env") == 0) {
+	} else if (strcmp(type, ".unexport-env") == 0) {
 		cond->type = COND_UNEXPORT_ENV;
-	} else if (sbuf_strcmp(type, ".warning") == 0) {
+	} else if (strcmp(type, ".warning") == 0) {
 		cond->type = COND_WARNING;
-	} else if (sbuf_strcmp(type, ".if") == 0) {
+	} else if (strcmp(type, ".if") == 0) {
 		cond->type = COND_IF;
-	} else if (sbuf_strcmp(type, ".ifdef") == 0) {
+	} else if (strcmp(type, ".ifdef") == 0) {
 		cond->type = COND_IFDEF;
-	} else if (sbuf_strcmp(type, ".ifndef") == 0) {
+	} else if (strcmp(type, ".ifndef") == 0) {
 		cond->type = COND_IFNDEF;
-	} else if (sbuf_strcmp(type, ".ifmake") == 0) {
+	} else if (strcmp(type, ".ifmake") == 0) {
 		cond->type = COND_IFMAKE;
-	} else if (sbuf_strcmp(type, ".ifnmake") == 0) {
+	} else if (strcmp(type, ".ifnmake") == 0) {
 		cond->type = COND_IFNMAKE;
-	} else if (sbuf_strcmp(type, ".else") == 0) {
+	} else if (strcmp(type, ".else") == 0) {
 		cond->type = COND_ELSE;
-	} else if (sbuf_strcmp(type, ".elif") == 0) {
+	} else if (strcmp(type, ".elif") == 0) {
 		cond->type = COND_ELIF;
-	} else if (sbuf_strcmp(type, ".elifdef") == 0) {
+	} else if (strcmp(type, ".elifdef") == 0) {
 		cond->type = COND_ELIFDEF;
-	} else if (sbuf_strcmp(type, ".elifndef") == 0) {
+	} else if (strcmp(type, ".elifndef") == 0) {
 		cond->type = COND_ELIFNDEF;
-	} else if (sbuf_strcmp(type, ".elifmake") == 0) {
+	} else if (strcmp(type, ".elifmake") == 0) {
 		cond->type = COND_ELIFMAKE;
-	} else if (sbuf_strcmp(type, ".endif") == 0) {
+	} else if (strcmp(type, ".endif") == 0) {
 		cond->type = COND_ENDIF;
 	} else {
-		sbuf_delete(type);
-		errx(1, "unknown conditional: %s", sbuf_data(type));
+		errx(1, "unknown conditional: %s", type);
 	}
-	sbuf_delete(type);
+	free(type);
 
 	return cond;
 }
@@ -139,7 +136,7 @@ conditional_free(struct Conditional *cond)
 	free(cond);
 }
 
-struct sbuf *
+char *
 conditional_tostring(struct Conditional *cond)
 {
 	const char *type = NULL;
@@ -220,7 +217,9 @@ conditional_tostring(struct Conditional *cond)
 	}
 	assert(type != NULL);
 
-	struct sbuf *buf = sbuf_dupstr(type);
-	sbuf_finishx(buf);
-	return buf;
+	char *retval = strdup(type);
+	if (retval == NULL) {
+		err(1, "strdup");
+	}
+	return retval;
 }

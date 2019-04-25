@@ -145,7 +145,6 @@ HAVE_PLEDGE=
 HAVE_PROGRAM_INVOCATION_SHORT_NAME=
 HAVE_REALLOCARRAY=
 HAVE_RECALLOCARRAY=
-HAVE_SBUF=
 HAVE_STRLCAT=
 HAVE_STRLCPY=
 HAVE_STRTONUM=
@@ -292,7 +291,6 @@ runtest pledge		PLEDGE				  || true
 runtest program_invocation_short_name	PROGRAM_INVOCATION_SHORT_NAME || true
 runtest reallocarray	REALLOCARRAY			  || true
 runtest recallocarray	RECALLOCARRAY			  || true
-runtest sbuf		SBUF "" "" "-lsbuf"		  || true
 runtest strlcat		STRLCAT				  || true
 runtest strlcpy		STRLCPY				  || true
 runtest strndup		STRNDUP				  || true
@@ -334,7 +332,6 @@ __HEREDOC__
 
 [ ${HAVE_REALLOCARRAY} -eq 0 -o \
   ${HAVE_RECALLOCARRAY} -eq 0 -o \
-  ${HAVE_SBUF} -eq 0 -o \
   ${HAVE_STRLCAT} -eq 0 -o \
   ${HAVE_STRLCPY} -eq 0 -o \
   ${HAVE_STRNDUP} -eq 0 -o \
@@ -368,7 +365,6 @@ cat << __HEREDOC__
 #define HAVE_PROGRAM_INVOCATION_SHORT_NAME ${HAVE_PROGRAM_INVOCATION_SHORT_NAME}
 #define HAVE_REALLOCARRAY ${HAVE_REALLOCARRAY}
 #define HAVE_RECALLOCARRAY ${HAVE_RECALLOCARRAY}
-#define HAVE_SBUF ${HAVE_SBUF}
 #define HAVE_STRLCAT ${HAVE_STRLCAT}
 #define HAVE_STRLCPY ${HAVE_STRLCPY}
 #define HAVE_STRNDUP ${HAVE_STRNDUP}
@@ -410,10 +406,6 @@ fi
 
 if [ ${HAVE_RECALLOCARRAY} -eq 0 ]; then
 	echo "extern void *recallocarray(void *, size_t, size_t, size_t);"
-fi
-
-if [ ${HAVE_SBUF} -eq 0 ]; then
-	echo '#include "compat/sbuf.h"'
 fi
 
 if [ ${HAVE_STRLCAT} -eq 0 ]; then
@@ -460,16 +452,11 @@ exec > Makefile.configure
 [ -z "${INSTALL_MAN}"     ] && INSTALL_MAN="${INSTALL} -m 0444"
 [ -z "${INSTALL_DATA}"    ] && INSTALL_DATA="${INSTALL} -m 0444"
 
-LDADD_SBUF=
-if [ ${HAVE_SBUF} -eq 1 ]; then
-	LDADD_SBUF="-lsbuf"
-fi
-
 cat << __HEREDOC__
 CC		= ${CC}
 CFLAGS		= ${CFLAGS}
 CPPFLAGS	= ${CPPFLAGS}
-LDADD		= ${LDADD} ${LDADD_SBUF}
+LDADD		= ${LDADD}
 LDFLAGS		= ${LDFLAGS}
 STATIC		= ${STATIC}
 PREFIX		= ${PREFIX}

@@ -31,9 +31,6 @@
 
 #include <sys/param.h>
 #include <sys/types.h>
-#if HAVE_SBUF
-# include <sys/sbuf.h>
-#endif
 
 #ifndef nitems
 #define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
@@ -41,16 +38,13 @@
 
 char *repeat(char, size_t);
 
-int sbuf_cmp(struct sbuf *, struct sbuf *);
-int sbuf_strcmp(struct sbuf *, const char *);
-int sbuf_endswith(struct sbuf *, const char *);
-int sbuf_startswith(struct sbuf *, const char *);
-
-struct sbuf *sbuf_dup(struct sbuf *);
-struct sbuf *sbuf_dupstr(const char *);
-struct sbuf *sbuf_strip_all_dup(struct sbuf *);
-struct sbuf *sbuf_strip_dup(struct sbuf *);
-struct sbuf *sbuf_substr_dup(struct sbuf *, size_t, size_t);
-void sbuf_finishx(struct sbuf *);
+int str_endswith(const char *, const char *);
+int str_startswith(const char *, const char *);
+char *str_strip_dup(const char *);
+char *str_substr_dup(const char *, size_t, size_t);
+char *str_trim(char *);
 
 void *xmalloc(size_t);
+char *xstrdup(const char *);
+size_t xstrlcat(char *, const char *, size_t);
+size_t xstrlcpy(char *, const char *, size_t);

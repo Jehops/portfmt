@@ -32,50 +32,47 @@
 #include <assert.h>
 #include <err.h>
 #include <regex.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "rules.h"
 #include "util.h"
 #include "variable.h"
 
+#define free(x)
+
 struct Variable {
-	struct sbuf *name;
+	char *name;
 	enum VariableModifier modifier;
 };
 
 struct Variable *
-variable_new(struct sbuf *var_with_mod) {
+variable_new(char *buf) {
 	struct Variable *var = xmalloc(sizeof(struct Variable));
 
-	struct sbuf *tmp = sbuf_strip_all_dup(var_with_mod);
-	sbuf_finishx(tmp);
-
 	regmatch_t match;
-	if (!matches(RE_MODIFIER, tmp, &match)) {
+	if (!matches(RE_MODIFIER, buf, &match)) {
 		errx(1, "Variable with no modifier");
 	}
 
-	struct sbuf *modifier = sbuf_substr_dup(tmp, match.rm_so, match.rm_eo);
-	sbuf_finishx(modifier);
+	var->name = str_trim(str_substr_dup(buf, 0, match.rm_so));
 
-	if (sbuf_strcmp(modifier, "+=") == 0) {
+	char *modifier = str_substr_dup(buf, match.rm_so, match.rm_eo);
+	if (strcmp(modifier, "+=") == 0) {
 		var->modifier = MODIFIER_APPEND;
-	} else if (sbuf_strcmp(modifier, "=") == 0) {
+	} else if (strcmp(modifier, "=") == 0) {
 		var->modifier = MODIFIER_ASSIGN;
-	} else if (sbuf_strcmp(modifier, ":=") == 0) {
+	} else if (strcmp(modifier, ":=") == 0) {
 		var->modifier = MODIFIER_EXPAND;
-	} else if (sbuf_strcmp(modifier, "?=") == 0) {
+	} else if (strcmp(modifier, "?=") == 0) {
 		var->modifier = MODIFIER_OPTIONAL;
-	} else if (sbuf_strcmp(modifier, "!=") == 0) {
+	} else if (strcmp(modifier, "!=") == 0) {
 		var->modifier = MODIFIER_SHELL;
 	} else {
-		errx(1, "Unknown variable modifier: %s", sbuf_data(modifier));
+		errx(1, "Unknown variable modifier: %s", modifier);
 	}
-
-	var->name = sbuf_substr_dup(tmp, 0, match.rm_so);
-	sbuf_finishx(var->name);
-
-	sbuf_delete(tmp);
+	free(modifier);
 
 	return var;
 }
@@ -83,7 +80,7 @@ variable_new(struct sbuf *var_with_mod) {
 void
 variable_free(struct Variable *var)
 {
-	sbuf_delete(var->name);
+	free(var->name);
 	free(var);
 }
 
@@ -92,7 +89,7 @@ variable_cmp(struct Variable *a, struct Variable *b)
 {
 	assert(a != NULL);
 	assert(b != NULL);
-	return sbuf_cmp(a->name, b->name);
+	return strcmp(a->name, b->name);
 }
 
 enum VariableModifier
@@ -109,18 +106,17 @@ variable_set_modifier(struct Variable *var, enum VariableModifier modifier)
 	var->modifier = modifier;
 }
 
-struct sbuf *
+char *
 variable_name(struct Variable *var)
 {
 	assert(var != NULL);
 	return var->name;
 }
 
-struct sbuf *
+char *
 variable_tostring(struct Variable *var)
 {
 	assert(var != NULL);
-	struct sbuf *s = sbuf_dup(var->name);
 
 	const char *mod = NULL;
 	switch (var->modifier) {
@@ -143,7 +139,10 @@ variable_tostring(struct Variable *var)
 		errx(1, "Unknown variable modifier: %d", var->modifier);
 	}
 
-	sbuf_cat(s, mod);
-	sbuf_finishx(s);
+	char *s;
+	if (asprintf(&s, "%s%s", var->name, mod) < 0) {
+		warn("asprintf");
+		abort();
+	}
 	return s;
 }

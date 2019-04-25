@@ -7,6 +7,7 @@ cd tests
 : ${TESTS:=*.in}
 for test in ${TESTS}; do
 	t=${test%*.in}
+	echo $t
 	${PORTFMT} < ${t}.in > ${t}.actual
 	diff -L ${t}.expected -L ${t}.actual -u ${t}.expected ${t}.actual
 	if [ $? -ne 0 ]; then

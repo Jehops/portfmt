@@ -27,14 +27,8 @@
  */
 #pragma once
 
-#include "config.h"
-
-#if HAVE_SBUF
-# include <sys/sbuf.h>
-#endif
-
 struct Target;
 
-struct Target *target_new(struct sbuf *);
+struct Target *target_new(char *);
 void target_free(struct Target *);
-struct sbuf *target_name(struct Target *);
+char *target_name(struct Target *);

@@ -40,8 +40,8 @@ enum ParserBehavior {
 struct ParserSettings {
 	enum ParserBehavior behavior;
 	int target_command_format_threshold;
-	int target_command_format_wrapcol;
-	int wrapcol;
+	size_t target_command_format_wrapcol;
+	size_t wrapcol;
 };
 
 struct Parser;
@@ -53,4 +53,3 @@ void parser_free(struct Parser *);
 void parser_read_finish(struct Parser *);
 void parser_output_prepare(struct Parser *);
 void parser_output_write(struct Parser *, int);
-

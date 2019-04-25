@@ -36,10 +36,12 @@
 # include <err.h>
 #endif
 #include <fcntl.h>
+#include <limits.h>
 #define _WITH_GETLINE
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #include "parser.h"
 
@@ -112,7 +114,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-#if HAVE_CAPSICUM
+#if HAVE_CAPSICUM2
 	if (iflag) {
 		if (caph_limit_stream(fd_in, CAPH_READ | CAPH_WRITE | CAPH_FTRUNCATE) < 0) {
 			err(1, "caph_limit_stream");
@@ -137,9 +139,6 @@ main(int argc, char *argv[])
 #endif
 
 	struct Parser *parser = parser_new(&settings);
-	if (parser == NULL) {
-		err(1, "calloc");
-	}
 
 	ssize_t linelen;
 	size_t linecap = 0;

@@ -413,9 +413,6 @@ recallocarray(void *ptr, size_t oldnmemb, size_t newnmemb, size_t size)
 	return newptr;
 }
 #endif /* !HAVE_RECALLOCARRAY */
-#if !HAVE_SBUF
-#include "compat/subr_sbuf.c"
-#endif
 #if !HAVE_STRLCAT
 /*
  * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>

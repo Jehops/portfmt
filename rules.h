@@ -29,10 +29,6 @@
 
 #include "config.h"
 
-#if HAVE_SBUF
-# include <sys/types.h>
-# include <sys/sbuf.h>
-#endif
 #include <regex.h>
 
 #include "variable.h"
@@ -51,13 +47,13 @@ enum RegularExpression {
 	RE_VAR,
 };
 
-int compare_tokens(struct Variable *, struct sbuf *, struct sbuf *);
+int compare_tokens(struct Variable *, const char *, const char *);
 void compile_regular_expressions(void);
 int ignore_wrap_col(struct Variable *);
 int indent_goalcol(struct Variable *);
 int leave_unsorted(struct Variable *);
-int matches(enum RegularExpression, struct sbuf *, regmatch_t *);
+int matches(enum RegularExpression, const char *, regmatch_t *);
 int print_as_newlines(struct Variable *);
 int skip_goalcol(struct Variable *);
-struct sbuf *sub(enum RegularExpression, const char *, struct sbuf *);
-int target_command_should_wrap(struct sbuf *);
+char *sub(enum RegularExpression, const char *, const char *);
+int target_command_should_wrap(char *);

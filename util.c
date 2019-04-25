@@ -56,106 +56,54 @@ repeat(char c, size_t n)
 }
 
 int
-sbuf_cmp(struct sbuf *a, struct sbuf *b)
+str_endswith(const char *s, const char *end)
 {
-	assert(a && sbuf_done(a));
-	assert(b && sbuf_done(b));
-	return strcmp(sbuf_data(a), sbuf_data(b));
-}
-
-int
-sbuf_strcmp(struct sbuf *a, const char *b)
-{
-	assert(a && sbuf_done(a));
-	assert(b);
-	return strcmp(sbuf_data(a), b);
-}
-
-int
-sbuf_endswith(struct sbuf *s, const char *end)
-{
-	assert(sbuf_done(s));
-	ssize_t len = strlen(end);
-	if (sbuf_len(s) < len) {
+	size_t len = strlen(end);
+	if (strlen(s) < len) {
 		return 0;
 	}
-	return strncmp(sbuf_data(s) + sbuf_len(s) - len, end, len) == 0;
+	return strncmp(s + strlen(s) - len, end, len) == 0;
 }
 
 int
-sbuf_startswith(struct sbuf *s, const char *start)
+str_startswith(const char *s, const char *start)
 {
-	assert(sbuf_done(s));
-	ssize_t len = strlen(start);
-	if (sbuf_len(s) < len) {
+	size_t len = strlen(start);
+	if (strlen(s) < len) {
 		return 0;
 	}
-	return strncmp(sbuf_data(s), start, len) == 0;
+	return strncmp(s, start, len) == 0;
 }
 
-struct sbuf *
-sbuf_dup(struct sbuf *s) {
-	if (s == NULL) {
-		return sbuf_dupstr(NULL);
-	} else {
-		assert(sbuf_done(s));
-		return sbuf_dupstr(sbuf_data(s));
-	}
-}
-
-struct sbuf *
-sbuf_dupstr(const char *s) {
-	struct sbuf *r = sbuf_new_auto();
-	if (r == NULL) {
-		errx(1, "sbuf_new_auto");
-	}
-	if (s != NULL) {
-		sbuf_cpy(r, s);
-	}
-	return r;
-}
-
-struct sbuf *
-sbuf_strip_all_dup(struct sbuf *s) {
-	assert(sbuf_done(s));
-	struct sbuf *r = sbuf_dupstr(NULL);
-	char *sp = sbuf_data(s);
-	for (; *sp; ++sp) {
-		if (!isspace(*sp)) {
-			sbuf_putc(r, *sp);
-		}
-	}
-	return r;
-}
-
-struct sbuf *
-sbuf_strip_dup(struct sbuf *s) {
-	assert(sbuf_done(s));
-	struct sbuf *r = sbuf_dupstr(NULL);
-	char *sp = sbuf_data(s);
+char *
+str_strip_dup(const char *s)
+{
+	const char *sp = s;
 	for (; *sp && isspace(*sp); ++sp);
-	sbuf_cpy(r, sp);
-	sbuf_trim(r);
-	return r;
+	return str_trim(xstrdup(sp));
 }
 
-struct sbuf *
-sbuf_substr_dup(struct sbuf *s, size_t start, size_t end) {
-	assert(sbuf_done(s));
+char *
+str_substr_dup(const char *s, size_t start, size_t end)
+{
 	assert (start <= end);
-	assert (sbuf_len(s) >= 0);
-	end = MIN((size_t)sbuf_len(s), end);
-	struct sbuf *buf = sbuf_dupstr(NULL);
-	sbuf_bcat(buf, sbuf_data(s) + start, end - start);
+	end = MIN(strlen(s), end);
+	char *buf = strndup(s + start, end - start);
+	if (buf == NULL) {
+		err(1, "strndup");
+	}
 	return buf;
 }
 
-void
-sbuf_finishx(struct sbuf *s)
+char *
+str_trim(char *s)
 {
-	if (sbuf_finish(s) != 0) {
-		errx(1, "sbuf_finish");
+	size_t len = strlen(s);
+	while (len > 0 && isspace(s[len - 1])) {
+		len--;
 	}
+	s[len] = 0;
+	return s;
 }
 
 void *
@@ -163,7 +111,43 @@ xmalloc(size_t size)
 {
 	void *x = malloc(size);
 	if (x == NULL) {
-		err(1, "malloc");
+		warn("malloc");
+		abort();
 	}
+	memset(x, 0, size);
 	return x;
 }
+
+char *
+xstrdup(const char *s)
+{
+	char *retval = strdup(s);
+	if (retval == NULL) {
+		warn("strdup");
+		abort();
+	}
+	return retval;
+}
+
+size_t
+xstrlcat(char *dst, const char *src, size_t dstsize)
+{
+	size_t len = strlcat(dst, src, dstsize);
+	if (len >= dstsize) {
+		warnx("strlcat: truncated string: %zu/%zu", len, dstsize);
+		abort();
+	}
+	return len;
+}
+
+size_t
+xstrlcpy(char *dst, const char *src, size_t dstsize)
+{
+	size_t len = strlcpy(dst, src, dstsize);
+	if (len >= dstsize) {
+		warnx("strlcpy: truncated string: %zu/%zu", len, dstsize);
+		abort();
+	}
+	return len;
+}
+

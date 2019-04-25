@@ -32,9 +32,6 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/uio.h>
-#if HAVE_SBUF
-# include <sys/sbuf.h>
-#endif
 #include <ctype.h>
 #if HAVE_ERR
 # include <err.h>
@@ -82,7 +79,7 @@ struct Range {
 
 struct Token {
 	enum TokenType type;
-	struct sbuf *data;
+	char *data;
 	struct Conditional *cond;
 	struct Variable *var;
 	struct Target *target;
@@ -97,24 +94,26 @@ struct Parser {
 	int in_target;
 	struct Range lines;
 	int skip;
-	struct sbuf *inbuf;
-	struct sbuf *condname;
-	struct sbuf *targetname;
-	struct sbuf *varname;
+	char *inbuf;
+	char *condname;
+	char *targetname;
+	char *varname;
 
 	struct Array *tokens;
 	struct Array *result;
 	struct Array *rawlines;
 };
 
-static size_t consume_comment(struct sbuf *);
-static size_t consume_conditional(struct sbuf *);
-static size_t consume_target(struct sbuf *);
-static size_t consume_token(struct Parser *, struct sbuf *, size_t, char, char, int);
-static size_t consume_var(struct sbuf *);
-static void parser_append_token(struct Parser *, enum TokenType, struct sbuf *);
+#define INBUF_SIZE 65536
+
+static size_t consume_comment(const char *);
+static size_t consume_conditional(const char *);
+static size_t consume_target(const char *);
+static size_t consume_token(struct Parser *, const char *, size_t, char, char, int);
+static size_t consume_var(const char *);
+static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_collapse_adjacent_variables(struct Parser *);
-static void parser_enqueue_output(struct Parser *, struct sbuf *);
+static void parser_enqueue_output(struct Parser *, const char *);
 static void parser_find_goalcols(struct Parser *);
 static void parser_output_dump_tokens(struct Parser *);
 static void parser_output_print_rawlines(struct Parser *, struct Range *);
@@ -122,27 +121,27 @@ static void parser_output_print_target_command(struct Parser *, struct Array *);
 static void parser_output_reformatted_helper(struct Parser *, struct Array *);
 static void parser_output_reformatted(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
-static void parser_read_internal(struct Parser *, struct sbuf *);
+static void parser_read_internal(struct Parser *, const char *);
 static void parser_sanitize_append_modifier(struct Parser *);
-static void parser_tokenize(struct Parser *, struct sbuf *, enum TokenType, ssize_t);
+static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_t);
 static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
-static struct sbuf *range_tostring(struct Range *);
+static char *range_tostring(struct Range *);
 static int tokcompare(const void *, const void *);
 static struct Token *parser_get_token(struct Parser *, size_t);
 
 size_t
-consume_comment(struct sbuf *buf)
+consume_comment(const char *buf)
 {
 	size_t pos = 0;
-	if (sbuf_startswith(buf, "#")) {
-		pos = sbuf_len(buf);
+	if (str_startswith(buf, "#")) {
+		pos = strlen(buf);
 	}
 	return pos;
 }
 
 size_t
-consume_conditional(struct sbuf *buf)
+consume_conditional(const char *buf)
 {
 	size_t pos = 0;
 	regmatch_t match[1];
@@ -153,7 +152,7 @@ consume_conditional(struct sbuf *buf)
 }
 
 size_t
-consume_target(struct sbuf *buf)
+consume_target(const char *buf)
 {
 	size_t pos = 0;
 	regmatch_t match[1];
@@ -164,15 +163,14 @@ consume_target(struct sbuf *buf)
 }
 
 size_t
-consume_token(struct Parser *parser, struct sbuf *line, size_t pos,
+consume_token(struct Parser *parser, const char *line, size_t pos,
 	      char startchar, char endchar, int eol_ok)
 {
-	char *linep = sbuf_data(line);
 	int counter = 0;
 	int escape = 0;
-	ssize_t i = pos;
-	for (; i < sbuf_len(line); i++) {
-		char c = linep[i];
+	size_t i = pos;
+	for (; i < strlen(line); i++) {
+		char c = line[i];
 		if (escape) {
 			escape = 0;
 			continue;
@@ -200,14 +198,14 @@ consume_token(struct Parser *parser, struct sbuf *line, size_t pos,
 		}
 	}
 	if (!eol_ok) {
-		errx(1, "tokenizer: %s: expected %c", sbuf_data(range_tostring(&parser->lines)), endchar);
+		errx(1, "tokenizer: %s: expected %c", range_tostring(&parser->lines), endchar);
 	} else {
 		return i;
 	}
 }
 
 size_t
-consume_var(struct sbuf *buf)
+consume_var(const char *buf)
 {
 	size_t pos = 0;
 	regmatch_t match[1];
@@ -217,19 +215,24 @@ consume_var(struct sbuf *buf)
 	return pos;
 }
 
-struct sbuf *
+char *
 range_tostring(struct Range *range)
 {
 	assert(range);
 	assert(range->start < range->end);
 
-	struct sbuf *s = sbuf_dup(NULL);
+	char *s;
 	if (range->start == range->end - 1) {
-		sbuf_printf(s, "%zu", range->start);
+		if (asprintf(&s, "%zu", range->start) < 0) {
+			warn("asprintf");
+			abort();
+		}
 	} else {
-		sbuf_printf(s, "%zu-%zu", range->start, range->end - 1);
+		if (asprintf(&s, "%zu-%zu", range->start, range->end - 1) < 0) {
+			warn("asprintf");
+			abort();
+		}
 	}
-	sbuf_finishx(s);
 
 	return s;
 }
@@ -246,17 +249,14 @@ parser_init_settings(struct ParserSettings *settings)
 struct Parser *
 parser_new(struct ParserSettings *settings)
 {
-	struct Parser *parser = calloc(1, sizeof(struct Parser));
-	if (parser == NULL) {
-		err(1, "calloc");
-	}
+	struct Parser *parser = xmalloc(sizeof(struct Parser));
 
-	parser->rawlines = array_new(sizeof(struct sbuf *));
-	parser->result = array_new(sizeof(struct sbuf *));
+	parser->rawlines = array_new(sizeof(char *));
+	parser->result = array_new(sizeof(char *));
 	parser->tokens = array_new(sizeof(struct Token *));
 	parser->lines.start = 1;
 	parser->lines.end = 1;
-	parser->inbuf = sbuf_dupstr(NULL);
+	parser->inbuf = xmalloc(INBUF_SIZE);
 	parser->settings = *settings;
 
 	compile_regular_expressions();
@@ -270,7 +270,7 @@ parser_free(struct Parser *parser)
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
 		if (t->data) {
-			sbuf_delete(t->data);
+			free(t->data);
 		}
 		if (t->var) {
 			variable_free(t->var);
@@ -283,24 +283,21 @@ parser_free(struct Parser *parser)
 	array_free(parser->tokens);
 
 	for (size_t i = 0; i < array_len(parser->result); i++) {
-		struct sbuf *s = array_get(parser->result, i);
-		sbuf_delete(s);
+		free(array_get(parser->result, i));
 	}
 	array_free(parser->result);
 
-
 	for (size_t i = 0; i < array_len(parser->rawlines); i++) {
-		struct sbuf *s = array_get(parser->rawlines, i);
-		sbuf_delete(s);
+		free(array_get(parser->rawlines, i));
 	}
 	array_free(parser->rawlines);
 
-	sbuf_delete(parser->inbuf);
+	free(parser->inbuf);
 	free(parser);
 }
 
 void
-parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
+parser_append_token(struct Parser *parser, enum TokenType type, const char *v)
 {
 	struct Target *target = NULL;
 	if (parser->targetname) {
@@ -317,10 +314,9 @@ parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 		var = variable_new(parser->varname);
 	}
 
-	struct sbuf *data = NULL;
+	char *data = NULL;
 	if (v) {
-		data = sbuf_dup(v);
-		sbuf_finishx(data);
+		data = xstrdup(v);
 	}
 
 	struct Token *o = xmalloc(sizeof(struct Token));
@@ -336,14 +332,9 @@ parser_append_token(struct Parser *parser, enum TokenType type, struct sbuf *v)
 }
 
 void
-parser_enqueue_output(struct Parser *parser, struct sbuf *s)
+parser_enqueue_output(struct Parser *parser, const char *s)
 {
-	if (!sbuf_done(s)) {
-		sbuf_finishx(s);
-	}
-	struct sbuf *tmp = sbuf_dup(s);
-	sbuf_finishx(tmp);
-	array_append(parser->result, tmp);
+	array_append(parser->result, xstrdup(s));
 }
 
 struct Token *
@@ -353,17 +344,16 @@ parser_get_token(struct Parser *parser, size_t i)
 }
 
 void
-parser_tokenize(struct Parser *parser, struct sbuf *line, enum TokenType type, ssize_t start)
+parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, size_t start)
 {
 	int dollar = 0;
 	int escape = 0;
-	char *linep = sbuf_data(line);
-	struct sbuf *token = NULL;
-	ssize_t i = start;
+	char *token = NULL;
+	size_t i = start;
 	size_t queued_tokens = 0;
-	for (; i < sbuf_len(line); i++) {
+	for (; i < strlen(line); i++) {
 		assert(i >= start);
-		char c = linep[i];
+		char c = line[i];
 		if (escape) {
 			escape = 0;
 			if (c == '#' || c == '\\' || c == '$') {
@@ -384,21 +374,19 @@ parser_tokenize(struct Parser *parser, struct sbuf *line, enum TokenType type, s
 			} else if (c == '$') {
 				dollar++;
 			} else {
-				fprintf(stderr, "%s\n", linep);
-				errx(1, "tokenizer: %s: expected {", sbuf_data(range_tostring(&parser->lines)));
+				fprintf(stderr, "%s\n", line);
+				errx(1, "tokenizer: %s: expected {", range_tostring(&parser->lines));
 			}
 		} else {
 			if (c == ' ' || c == '\t') {
-				struct sbuf *tmp = sbuf_substr_dup(line, start, i);
-				sbuf_finishx(tmp);
-				token = sbuf_strip_dup(tmp);
-				sbuf_finishx(token);
-				sbuf_delete(tmp);
-				if (sbuf_strcmp(token, "") != 0 && sbuf_strcmp(token, "\\") != 0) {
+				char *tmp = str_substr_dup(line, start, i);
+				token = str_strip_dup(tmp);
+				free(tmp);
+				if (strcmp(token, "") != 0 && strcmp(token, "\\") != 0) {
 					parser_append_token(parser, type, token);
 					queued_tokens++;
 				}
-				sbuf_delete(token);
+				free(token);
 				token = NULL;
 				start = i;
 			} else if (c == '"') {
@@ -418,38 +406,34 @@ parser_tokenize(struct Parser *parser, struct sbuf *line, enum TokenType type, s
 				 * special cases for this, but often having them at the top
 				 * is just as good.
 				 */
-				struct sbuf *tmp = sbuf_substr_dup(line, i, sbuf_len(line));
-				sbuf_finishx(tmp);
-				token = sbuf_strip_dup(tmp);
-				sbuf_finishx(token);
-				sbuf_delete(tmp);
-				if (sbuf_strcmp(token, "#") == 0 ||
-				    sbuf_strcmp(token, "# empty") == 0 ||
-				    sbuf_strcmp(token, "#none") == 0 ||
-				    sbuf_strcmp(token, "# none") == 0) {
+				char *tmp = str_substr_dup(line, i, strlen(line));
+				token = str_strip_dup(tmp);
+				free(tmp);
+				if (strcmp(token, "#") == 0 ||
+				    strcmp(token, "# empty") == 0 ||
+				    strcmp(token, "#none") == 0 ||
+				    strcmp(token, "# none") == 0) {
 					parser_append_token(parser, type, token);
 					queued_tokens++;
 				} else {
 					parser_append_token(parser, INLINE_COMMENT, token);
 				}
 
-				sbuf_delete(token);
+				free(token);
 				token = NULL;
 				goto cleanup;
 			}
 		}
 	}
-	struct sbuf *tmp = sbuf_substr_dup(line, start, i);
-	sbuf_finishx(tmp);
-	token = sbuf_strip_dup(tmp);
-	sbuf_finishx(token);
-	sbuf_delete(tmp);
-	if (sbuf_strcmp(token, "") != 0) {
+	char *tmp = str_substr_dup(line, start, i);
+	token = str_strip_dup(tmp);
+	free(tmp);
+	if (strcmp(token, "") != 0) {
 		parser_append_token(parser, type, token);
 		queued_tokens++;
 	}
 
-	sbuf_delete(token);
+	free(token);
 	token = NULL;
 cleanup:
 	if (queued_tokens == 0 && type == VARIABLE_TOKEN) {
@@ -474,7 +458,7 @@ void
 parser_find_goalcols(struct Parser *parser)
 {
 	int moving_goalcol = 0;
-	int last = 0;
+	size_t last = 0;
 	ssize_t tokens_start = -1;
 	ssize_t tokens_end = -1;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
@@ -515,7 +499,7 @@ parser_find_goalcols(struct Parser *parser)
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
 			 */
-			if (sbuf_startswith(o->data, "#")) {
+			if (str_startswith(o->data, "#")) {
 				continue;
 			}
 			if (tokens_start != -1) {
@@ -540,36 +524,37 @@ parser_find_goalcols(struct Parser *parser)
 void
 print_newline_array(struct Parser *parser, struct Array *arr)
 {
+	char sep[512] = {};
 	struct Token *o = array_get(arr, 0);
 	assert(o && o->data != NULL);
-	assert(sbuf_len(o->data) != 0);
-	struct sbuf *sep;
+	assert(strlen(o->data) != 0);
 	switch (o->type) {
 	case VARIABLE_TOKEN: {
-		struct sbuf *start = variable_tostring(o->var);
-		size_t ntabs = ceil((MAX(16, o->goalcol) - sbuf_len(start)) / 8.0);
-		sep = sbuf_dup(start);
-		sbuf_cat(sep, repeat('\t', ntabs));
+		char *start = variable_tostring(o->var);
+		size_t ntabs = ceil((MAX(16, o->goalcol) - strlen(start)) / 8.0);
+		xstrlcpy(sep, start, sizeof(sep));
+		xstrlcat(sep, repeat('\t', ntabs), sizeof(sep));
 		break;
 	} case CONDITIONAL_TOKEN:
-		sep = sbuf_dupstr(NULL);
+		sep[0] = 0;
 		break;
 	case TARGET_COMMAND_TOKEN:
-		sep = sbuf_dupstr("\t");
+		sep[0] = '\t';
+		sep[1] = 0;
 		break;
 	default:
 		errx(1, "unhandled token type: %i", o->type);
 	}
 
-	struct sbuf *end = sbuf_dupstr(" \\\n");
+	const char *end = " \\\n";
 	for (size_t i = 0; i < array_len(arr); i++) {
 		struct Token *o = array_get(arr, i);
-		struct sbuf *line = o->data;
-		if (!line || sbuf_len(line) == 0) {
+		char *line = o->data;
+		if (!line || strlen(line) == 0) {
 			continue;
 		}
 		if (i == array_len(arr) - 1) {
-			end = sbuf_dupstr("\n");
+			end = "\n";
 		}
 		parser_enqueue_output(parser, sep);
 		parser_enqueue_output(parser, line);
@@ -578,14 +563,15 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		case VARIABLE_TOKEN:
 			if (i == 0) {
 				size_t ntabs = ceil(MAX(16, o->goalcol) / 8.0);
-				sep = sbuf_dupstr(repeat('\t', ntabs));
+				xstrlcpy(sep, repeat('\t', ntabs), sizeof(sep));
 			}
 			break;
 		case CONDITIONAL_TOKEN:
-			sep = sbuf_dupstr("\t");
+			sep[0] = '\t';
+			sep[1] = 0;
 			break;
 		case TARGET_COMMAND_TOKEN:
-			sep = sbuf_dupstr(repeat('\t', 2));
+			xstrlcpy(sep, repeat('\t', 2), sizeof(sep));
 			break;
 		default:
 			errx(1, "unhandled token type: %i", o->type);
@@ -601,7 +587,7 @@ tokcompare(const void *a, const void *b)
 	if (variable_cmp(ao->var, bo->var) == 0) {
 		return compare_tokens(ao->var, ao->data, bo->data);
 	}
-	return strcasecmp(sbuf_data(ao->data), sbuf_data(bo->data));
+	return strcasecmp(ao->data, bo->data);
 #if 0
 	# Hack to treat something like ${PYTHON_PKGNAMEPREFIX} or
 	# ${RUST_DEFAULT} as if they were PYTHON_PKGNAMEPREFIX or
@@ -622,7 +608,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 
 	struct Array *arr = array_new(sizeof(struct Token *));
 	struct Token *o = array_get(tokens, 0);
-	int wrapcol;
+	size_t wrapcol;
 	if (o->var && ignore_wrap_col(o->var)) {
 		wrapcol = 99999999;
 	} else {
@@ -630,57 +616,50 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		wrapcol = parser->settings.wrapcol - o->goalcol - 2;
 	}
 
-	struct sbuf *row = sbuf_dupstr(NULL);
-	sbuf_finishx(row);
-
+	char row[1024] = {};
 	struct Token *token = NULL;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		token = array_get(tokens, i);
-		if (sbuf_len(token->data) == 0) {
+		if (strlen(token->data) == 0) {
 			continue;
 		}
-		if ((sbuf_len(row) + sbuf_len(token->data)) > wrapcol) {
-			if (sbuf_len(row) == 0) {
+		if ((strlen(row) + strlen(token->data)) > wrapcol) {
+			if (strlen(row) == 0) {
 				array_append(arr, token);
 				continue;
 			} else {
 				struct Token *o = xmalloc(sizeof(struct Token));
 				memcpy(o, token, sizeof(struct Token));
-				o->data = row;
+				o->data = xstrdup(row);
 				array_append(arr, o);
-				row = sbuf_dupstr(NULL);
-				//sbuf_finishx(row);
+				row[0] = 0;
 			}
 		}
-		if (sbuf_len(row) == 0) {
-			row = token->data;
+		if (strlen(row) == 0) {
+			xstrlcpy(row, token->data, sizeof(row));
 		} else {
-			struct sbuf *s = sbuf_dup(row);
-			sbuf_putc(s, ' ');
-			sbuf_cat(s, sbuf_data(token->data));
-			sbuf_finishx(s);
-			row = s;
+			xstrlcat(row, " ", sizeof(row));
+			xstrlcat(row, token->data, sizeof(row));
 		}
 	}
-	if (token && sbuf_len(row) > 0 && array_len(arr) < array_len(tokens)) {
+	if (token && strlen(row) > 0 && array_len(arr) < array_len(tokens)) {
 		struct Token *o = xmalloc(sizeof(struct Token));
 		memcpy(o, token, sizeof(struct Token));
-		o->data = row;
+		o->data = xstrdup(row);
 		array_append(arr, o);
 	}
 	print_newline_array(parser, arr);
 	array_free(arr);
+	// TODO: Memory leaks here, need to track xstrdup()ed rows
 }
 
 void
 parser_output_print_rawlines(struct Parser *parser, struct Range *lines)
 {
-	struct sbuf *endline = sbuf_dupstr("\n");
 	for (size_t i = lines->start; i < lines->end; i++) {
 		parser_enqueue_output(parser, array_get(parser->rawlines, i - 1));
-		parser_enqueue_output(parser, endline);
+		parser_enqueue_output(parser, "\n");
 	}
-	sbuf_delete(endline);
 }
 
 void
@@ -690,28 +669,28 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		return;
 	}
 
-	struct sbuf *endline = sbuf_dupstr("\n");
-	struct sbuf *endnext = sbuf_dupstr(" \\\n");
-	struct sbuf *endword = sbuf_dupstr(" ");
-	struct sbuf *startlv0 = sbuf_dupstr("");
-	struct sbuf *startlv1 = sbuf_dupstr("\t");
-	struct sbuf *startlv2 = sbuf_dupstr("\t\t");
-	struct sbuf *start = startlv0;
+	const char *endline = "\n";
+	const char *endnext = " \\\n";
+	const char *endword = " ";
+	const char *startlv0 = "";
+	const char *startlv1 = "\t";
+	const char *startlv2 = "\t\t";
+	const char *start = startlv0;
 
 	/* Find the places we need to wrap to the next line.
 	 * TODO: This is broken as wrapping changes the next place we need to wrap
 	 */
 	struct Array *wraps = array_new(sizeof(int));
-	int column = 8;
+	size_t column = 8;
 	int complexity = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		struct sbuf *word = t->data;
+		char *word = t->data;
 
 		assert(t->type == TARGET_COMMAND_TOKEN);
-		assert(sbuf_len(word) != 0);
+		assert(strlen(word) != 0);
 
-		for (char *c = sbuf_data(word); *c != 0; c++) {
+		for (char *c = word; *c != 0; c++) {
 			switch (*c) {
 			case '`':
 			case '(':
@@ -726,7 +705,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 			start = startlv0;
 		}
 
-		column += sbuf_len(start) * 8 + sbuf_len(word);
+		column += strlen(start) * 8 + strlen(word);
 		if (column > parser->settings.target_command_format_wrapcol ||
 		    target_command_should_wrap(word)) {
 			if (i + 1 < array_len(tokens)) {
@@ -752,7 +731,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	int wrapped = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		struct sbuf *word = t->data;
+		char *word = t->data;
 
 		if (wrapped) {
 			if (i == 0) {
@@ -781,11 +760,6 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 
 cleanup:
 	array_free(wraps);
-	sbuf_delete(endline);
-	sbuf_delete(endnext);
-	sbuf_delete(endword);
-	sbuf_delete(startlv1);
-	sbuf_delete(startlv2);
 }
 
 void
@@ -819,7 +793,6 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr)
 void
 parser_output_reformatted(struct Parser *parser)
 {
-	struct sbuf *endline = sbuf_dupstr("\n");
 	parser_find_goalcols(parser);
 
 	struct Array *target_arr = array_new(sizeof(struct Token *));
@@ -866,14 +839,14 @@ parser_output_reformatted(struct Parser *parser)
 			parser_output_print_rawlines(parser, &o->lines);
 			break;
 		case EMPTY: {
-			struct sbuf *v = variable_tostring(o->var);
-			sbuf_putc(v, '\n');
-			sbuf_finishx(v);
+			char *v = variable_tostring(o->var);
 			parser_enqueue_output(parser, v);
+			free(v);
+			parser_enqueue_output(parser, "\n");
 			break;
 		} case INLINE_COMMENT:
 			parser_enqueue_output(parser, o->data);
-			parser_enqueue_output(parser, endline);
+			parser_enqueue_output(parser, "\n");
 			break;
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
@@ -886,22 +859,21 @@ parser_output_reformatted(struct Parser *parser)
 	parser_output_reformatted_helper(parser, variable_arr);
 	array_free(target_arr);
 	array_free(variable_arr);
-	sbuf_delete(endline);
 }
 
 void
 parser_output_dump_tokens(struct Parser *parser)
 {
-	ssize_t maxvarlen = 0;
+	size_t maxvarlen = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
 		if (o->ignore) {
 			continue;
 		}
 		if (o->type == VARIABLE_START && o->var) {
-			struct sbuf *var = variable_tostring(o->var);
-			maxvarlen = MAX(maxvarlen, sbuf_len(var));
-			sbuf_delete(var);
+			char *var = variable_tostring(o->var);
+			maxvarlen = MAX(maxvarlen, strlen(var));
+			free(var);
 		}
 	}
 
@@ -966,56 +938,62 @@ parser_output_dump_tokens(struct Parser *parser)
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
-		struct sbuf *var = NULL;
+		char *var = NULL;
 		ssize_t len = maxvarlen;
 		if (o->var &&
 		    (o->type == VARIABLE_TOKEN ||
 		     o->type == VARIABLE_START ||
 		     o->type == VARIABLE_END)) {
 			var = variable_tostring(o->var);
-			len = maxvarlen - sbuf_len(var);
+			len = maxvarlen - strlen(var);
 		} else if (o->cond &&
 			   (o->type == CONDITIONAL_END ||
 			    o->type == CONDITIONAL_START ||
 			    o->type == CONDITIONAL_TOKEN)) {
 			var = conditional_tostring(o->cond);
-			len = maxvarlen - sbuf_len(var);
+			len = maxvarlen - strlen(var);
 		} else if (o->target &&
 			   (o->type == TARGET_COMMAND_END ||
 			    o->type == TARGET_COMMAND_START ||
 			    o->type == TARGET_COMMAND_TOKEN ||
 			    o->type == TARGET_START ||
 			    o->type == TARGET_END)) {
-			var = sbuf_dup(target_name(o->target));
-			len = maxvarlen - sbuf_len(var);
+			var = xstrdup(target_name(o->target));
+			len = maxvarlen - strlen(var);
 		} else {
 			len = maxvarlen - 1;
 		}
-		struct sbuf *range = range_tostring(&o->lines);
-		struct sbuf *out = sbuf_dup(NULL);
-		sbuf_printf(out, "%-20s %8s ", type, sbuf_data(range));
-		sbuf_delete(range);
+		char *range = range_tostring(&o->lines);
+		char *buf;
+		if (asprintf(&buf, "%-20s %8s ", type, range) < 0) {
+			warn("asprintf");
+			abort();
+		}
+		free(range);
+		parser_enqueue_output(parser, buf);
+		free(buf);
+
 		if (var) {
-			sbuf_cat(out, sbuf_data(var));
+			parser_enqueue_output(parser, var);
+			free(var);
 		} else {
-			sbuf_putc(out, '-');
+			parser_enqueue_output(parser, "-");
 		}
-		for (ssize_t j = 0; j < len; j++) {
-			sbuf_putc(out, ' ');
+
+		if (len > 0) {
+			buf = xmalloc(len + 1);
+			memset(buf, ' ', len);
+			parser_enqueue_output(parser, buf);
+			free(buf);
 		}
-		sbuf_putc(out, ' ');
+		parser_enqueue_output(parser, " ");
+
 		if (o->data) {
-			sbuf_cat(out, sbuf_data(o->data));
+			parser_enqueue_output(parser, o->data);
 		} else {
-			sbuf_putc(out, '-');
+			parser_enqueue_output(parser, "-");
 		}
-		sbuf_putc(out, '\n');
-		sbuf_finishx(out);
-		parser_enqueue_output(parser, out);
-		sbuf_delete(out);
-		if (var) {
-			sbuf_delete(var);
-		}
+		parser_enqueue_output(parser, "\n");
 	}
 }
 
@@ -1023,12 +1001,12 @@ void
 parser_read(struct Parser *parser, char *line)
 {
 	size_t linelen = strlen(line);
-	struct sbuf *buf = sbuf_dupstr(line);
-	sbuf_finishx(buf);
+
+	array_append(parser->rawlines, xstrdup(line));
 
 	parser->lines.end++;
 
-	int will_continue = matches(RE_CONTINUE_LINE, buf, NULL);
+	int will_continue = matches(RE_CONTINUE_LINE, line, NULL);
 	if (will_continue) {
 		line[linelen - 1] = 0;
 	}
@@ -1039,30 +1017,25 @@ parser_read(struct Parser *parser, char *line)
 		*/
 		for (;isblank(*line); line++);
 		if (strlen(line) < 1) {
-			sbuf_putc(parser->inbuf, ' ');
+			xstrlcat(parser->inbuf, " ", INBUF_SIZE);
 		}
 	}
 
-	sbuf_cat(parser->inbuf, line);
+	xstrlcat(parser->inbuf, line, INBUF_SIZE);
 
 	if (!will_continue) {
-		sbuf_trim(parser->inbuf);
-		sbuf_finishx(parser->inbuf);
-		parser_read_internal(parser, parser->inbuf);
+		parser_read_internal(parser, str_trim(parser->inbuf));
 		parser->lines.start = parser->lines.end;
-		sbuf_delete(parser->inbuf);
-		parser->inbuf = sbuf_dupstr(NULL);
+		memset(parser->inbuf, 0, INBUF_SIZE);
 	}
 
 	parser->continued = will_continue;
-
-	array_append(parser->rawlines, buf);
 }
 
 void
-parser_read_internal(struct Parser *parser, struct sbuf *buf)
+parser_read_internal(struct Parser *parser, const char *buf)
 {
-	ssize_t pos;
+	size_t pos;
 
 	pos = consume_comment(buf);
 	if (pos > 0) {
@@ -1084,12 +1057,10 @@ parser_read_internal(struct Parser *parser, struct sbuf *buf)
 		pos = consume_conditional(buf);
 		if (pos > 0) {
 			if (parser->condname) {
-				sbuf_delete(parser->condname);
+				free(parser->condname);
 				parser->condname = NULL;
 			}
-			parser->condname = sbuf_substr_dup(buf, 0, pos);
-			sbuf_trim(parser->condname);
-			sbuf_finishx(parser->condname);
+			parser->condname = str_trim(str_substr_dup(buf, 0, pos));
 
 			parser_append_token(parser, CONDITIONAL_START, NULL);
 			parser_append_token(parser, CONDITIONAL_TOKEN, parser->condname);
@@ -1112,35 +1083,32 @@ parser_read_internal(struct Parser *parser, struct sbuf *buf)
 	if (pos > 0) {
 		parser->in_target = 1;
 		if (parser->targetname) {
-			sbuf_delete(parser->targetname);
+			free(parser->targetname);
 			parser->targetname = NULL;
 		}
-		parser->targetname = sbuf_dup(buf);
-		sbuf_finishx(parser->targetname);
+		parser->targetname = xstrdup(buf);
 		parser_append_token(parser, TARGET_START, buf);
 		goto next;
 	}
 
 	pos = consume_conditional(buf);
 	if (pos > 0) {
-		if (sbuf_endswith(buf, "<bsd.port.options.mk>")) {
+		if (str_endswith(buf, "<bsd.port.options.mk>")) {
 			parser_append_token(parser, PORT_OPTIONS_MK, buf);
 			goto next;
-		} else if (sbuf_endswith(buf, "<bsd.port.pre.mk>")) {
+		} else if (str_endswith(buf, "<bsd.port.pre.mk>")) {
 			parser_append_token(parser, PORT_PRE_MK, buf);
 			goto next;
-		} else if (sbuf_endswith(buf, "<bsd.port.post.mk>") ||
-			   sbuf_endswith(buf, "<bsd.port.mk>")) {
+		} else if (str_endswith(buf, "<bsd.port.post.mk>") ||
+			   str_endswith(buf, "<bsd.port.mk>")) {
 			parser_append_token(parser, PORT_MK, buf);
 			goto next;
 		} else {
 			if (parser->condname) {
-				sbuf_delete(parser->condname);
+				free(parser->condname);
 				parser->condname = NULL;
 			}
-			parser->condname = sbuf_substr_dup(buf, 0, pos);
-			sbuf_trim(parser->condname);
-			sbuf_finishx(parser->condname);
+			parser->condname = str_trim(str_substr_dup(buf, 0, pos));
 
 			parser_append_token(parser, CONDITIONAL_START, NULL);
 			parser_append_token(parser, CONDITIONAL_TOKEN, parser->condname);
@@ -1152,21 +1120,20 @@ parser_read_internal(struct Parser *parser, struct sbuf *buf)
 
 	pos = consume_var(buf);
 	if (pos != 0) {
-		if (pos > sbuf_len(buf)) {
+		if (pos > strlen(buf)) {
 			errx(1, "parser->varname too small");
 		}
-		parser->varname = sbuf_substr_dup(buf, 0, pos);
-		sbuf_finishx(parser->varname);
+		parser->varname = str_substr_dup(buf, 0, pos);
 		parser_append_token(parser, VARIABLE_START, NULL);
 	}
 	parser_tokenize(parser, buf, VARIABLE_TOKEN, pos);
 	if (parser->varname == NULL) {
-		errx(1, "parser error on line %s", sbuf_data(range_tostring(&parser->lines)));
+		errx(1, "parser error on line %s", range_tostring(&parser->lines));
 	}
 next:
 	if (parser->varname) {
 		parser_append_token(parser, VARIABLE_END, NULL);
-		sbuf_delete(parser->varname);
+		free(parser->varname);
 		parser->varname = NULL;
 	}
 }
@@ -1176,10 +1143,8 @@ parser_read_finish(struct Parser *parser)
 {
 	parser->lines.end++;
 
-	if (sbuf_len(parser->inbuf) > 0) {
-		sbuf_trim(parser->inbuf);
-		sbuf_finishx(parser->inbuf);
-		parser_read_internal(parser, parser->inbuf);
+	if (strlen(parser->inbuf) > 0) {
+		parser_read_internal(parser, str_trim(parser->inbuf));
 	}
 
 	if (parser->in_target) {
@@ -1259,9 +1224,9 @@ parser_sanitize_append_modifier(struct Parser *parser)
 			}
 			for (size_t j = start; j <= i; j++) {
 				struct Token *o = array_get(parser->tokens, j);
-				if (sbuf_strcmp(variable_name(o->var), "CXXFLAGS") != 0 &&
-				    sbuf_strcmp(variable_name(o->var), "CFLAGS") != 0 &&
-				    sbuf_strcmp(variable_name(o->var), "LDFLAGS") != 0 &&
+				if (strcmp(variable_name(o->var), "CXXFLAGS") != 0 &&
+				    strcmp(variable_name(o->var), "CFLAGS") != 0 &&
+				    strcmp(variable_name(o->var), "LDFLAGS") != 0 &&
 				    variable_modifier(o->var) == MODIFIER_APPEND) {
 					variable_set_modifier(o->var, MODIFIER_ASSIGN);
 				}
@@ -1297,9 +1262,9 @@ parser_output_write(struct Parser *parser, int fd)
 	for (size_t i = 0; i < len;) {
 		size_t j = 0;
 		for (; i < len && j < iov_len; j++) {
-			struct sbuf *s = array_get(parser->result, i++);
-			iov[j].iov_base = sbuf_data(s);
-			iov[j].iov_len = sbuf_len(s);
+			char *s = array_get(parser->result, i++);
+			iov[j].iov_base = s;
+			iov[j].iov_len = strlen(s);
 		}
 		if (writev(fd, iov, j) < 0) {
 			err(1, "writev");
@@ -1308,7 +1273,7 @@ parser_output_write(struct Parser *parser, int fd)
 
 	/* Collect garbage */
 	for (size_t i = 0; i < array_len(parser->result); i++) {
-		sbuf_delete((struct sbuf *)array_get(parser->result, i));
+		free(array_get(parser->result, i));
 	}
 	array_truncate(parser->result);
 	free(iov);

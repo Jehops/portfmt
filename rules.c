@@ -42,12 +42,12 @@
 #include "util.h"
 #include "variable.h"
 
-static int compare_rel(const char *[], size_t, struct sbuf *, struct sbuf *);
-static int compare_license_perms(struct Variable *, struct sbuf *, struct sbuf *, int *);
-static int compare_plist_files(struct Variable *, struct sbuf *, struct sbuf *, int *);
-static int compare_use_pyqt(struct Variable *, struct sbuf *, struct sbuf *, int *);
-static int compare_use_qt(struct Variable *, struct sbuf *, struct sbuf *, int *);
-static struct sbuf *options_helpers_pattern(void);
+static int compare_rel(const char *[], size_t, const char *, const char *);
+static int compare_license_perms(struct Variable *, const char *, const char *, int *);
+static int compare_plist_files(struct Variable *, const char *, const char *, int *);
+static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
+static int compare_use_qt(struct Variable *, const char *, const char *, int *);
+static char *options_helpers_pattern(void);
 
 static struct {
 	const char *pattern;
@@ -968,14 +968,14 @@ ignore_wrap_col(struct Variable *var)
 	}
 
 	for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
-		if (sbuf_strcmp(variable_name(var), ignore_wrap_col_[i]) == 0) {
+		if (strcmp(variable_name(var), ignore_wrap_col_[i]) == 0) {
 			return 1;
 		}
 	}
 
 	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
 		for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
-			if (sbuf_endswith(variable_name(var), ignore_wrap_col_[i])) {
+			if (str_endswith(variable_name(var), ignore_wrap_col_[i])) {
 				return 1;
 			}
 		}
@@ -987,7 +987,7 @@ ignore_wrap_col(struct Variable *var)
 int
 indent_goalcol(struct Variable *var)
 {
-	size_t varlength = sbuf_len(variable_name(var)) + 1;
+	size_t varlength = strlen(variable_name(var)) + 1;
 	switch (variable_modifier(var)) {
 	case MODIFIER_ASSIGN:
 		varlength += 1;
@@ -1011,24 +1011,24 @@ int
 leave_unsorted(struct Variable *var)
 {
 	for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
-		if (sbuf_strcmp(variable_name(var), leave_unsorted_[i]) == 0) {
+		if (strcmp(variable_name(var), leave_unsorted_[i]) == 0) {
 			return 1;
 		}
 	}
 
 	if (variable_modifier(var) == MODIFIER_SHELL ||
-	    sbuf_endswith(variable_name(var), "_CMD") ||
-	    sbuf_endswith(variable_name(var), "_ALT") ||
-	    sbuf_endswith(variable_name(var), "_REASON") ||
-	    sbuf_endswith(variable_name(var), "_USE_GNOME_IMPL") ||
-	    sbuf_endswith(variable_name(var), "FLAGS") ||
+	    str_endswith(variable_name(var), "_CMD") ||
+	    str_endswith(variable_name(var), "_ALT") ||
+	    str_endswith(variable_name(var), "_REASON") ||
+	    str_endswith(variable_name(var), "_USE_GNOME_IMPL") ||
+	    str_endswith(variable_name(var), "FLAGS") ||
 	    matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
 		return 1;
 	}
 
 	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
 		for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
-			if (sbuf_endswith(variable_name(var), leave_unsorted_[i])) {
+			if (str_endswith(variable_name(var), leave_unsorted_[i])) {
 				return 1;
 			}
 		}
@@ -1041,14 +1041,14 @@ int
 print_as_newlines(struct Variable *var)
 {
 	for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
-		if (sbuf_strcmp(variable_name(var), print_as_newlines_[i]) == 0) {
+		if (strcmp(variable_name(var), print_as_newlines_[i]) == 0) {
 			return 1;
 		}
 	}
 
 	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
 		for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
-			if (sbuf_endswith(variable_name(var), print_as_newlines_[i])) {
+			if (str_endswith(variable_name(var), print_as_newlines_[i])) {
 				return 1;
 			}
 		}
@@ -1065,7 +1065,7 @@ skip_goalcol(struct Variable *var)
 	}
 
 	for (size_t i = 0; i < nitems(skip_goalcol_); i++) {
-		if (sbuf_strcmp(variable_name(var), skip_goalcol_[i]) == 0) {
+		if (strcmp(variable_name(var), skip_goalcol_[i]) == 0) {
 			return 1;
 		}
 	}
@@ -1074,15 +1074,15 @@ skip_goalcol(struct Variable *var)
 }
 
 static int
-compare_rel(const char *rel[], size_t rellen, struct sbuf *a, struct sbuf *b)
+compare_rel(const char *rel[], size_t rellen, const char *a, const char *b)
 {
 	ssize_t ai = -1;
 	ssize_t bi = -1;
 	for (size_t i = 0; i < rellen; i++) {
-		if (ai == -1 && sbuf_strcmp(a, rel[i]) == 0) {
+		if (ai == -1 && strcmp(a, rel[i]) == 0) {
 			ai = i;
 		}
-		if (bi == -1 && sbuf_strcmp(b, rel[i]) == 0) {
+		if (bi == -1 && strcmp(b, rel[i]) == 0) {
 			bi = i;
 		}
 		if (ai != -1 && bi != -1) {
@@ -1096,11 +1096,11 @@ compare_rel(const char *rel[], size_t rellen, struct sbuf *a, struct sbuf *b)
 		}
 	}
 
-	return strcasecmp(sbuf_data(a), sbuf_data(b));
+	return strcasecmp(a, b);
 }
 
 int
-compare_tokens(struct Variable *var, struct sbuf *a, struct sbuf *b)
+compare_tokens(struct Variable *var, const char *a, const char *b)
 {
 	int result;
 	if (compare_license_perms(var, a, b, &result) ||
@@ -1110,11 +1110,11 @@ compare_tokens(struct Variable *var, struct sbuf *a, struct sbuf *b)
 		return result;
 	}
 
-	return strcasecmp(sbuf_data(a), sbuf_data(b));
+	return strcasecmp(a, b);
 }
 
 int
-compare_license_perms(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result)
+compare_license_perms(struct Variable *var, const char *a, const char *b, int *result)
 {
 	assert(result != NULL);
 
@@ -1127,7 +1127,7 @@ compare_license_perms(struct Variable *var, struct sbuf *a, struct sbuf *b, int 
 }
 
 int
-compare_plist_files(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result)
+compare_plist_files(struct Variable *var, const char *a, const char *b, int *result)
 {
 	assert(result != NULL);
 
@@ -1136,21 +1136,21 @@ compare_plist_files(struct Variable *var, struct sbuf *a, struct sbuf *b, int *r
 	}
 
 	/* Ignore plist keywords */
-	struct sbuf *as = sub(RE_PLIST_KEYWORDS, "", a);
-	struct sbuf *bs = sub(RE_PLIST_KEYWORDS, "", b);
-	*result = strcasecmp(sbuf_data(as), sbuf_data(bs));
-	sbuf_delete(as);
-	sbuf_delete(bs);
+	char *as = sub(RE_PLIST_KEYWORDS, "", a);
+	char *bs = sub(RE_PLIST_KEYWORDS, "", b);
+	*result = strcasecmp(as, bs);
+	free(as);
+	free(bs);
 
 	return 1;
 }
 
 int
-compare_use_pyqt(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result)
+compare_use_pyqt(struct Variable *var, const char *a, const char *b, int *result)
 {
 	assert(result != NULL);
 
-	if (sbuf_strcmp(variable_name(var), "USE_PYQT") != 0) {
+	if (strcmp(variable_name(var), "USE_PYQT") != 0) {
 		return 0;
 	}
 
@@ -1159,11 +1159,11 @@ compare_use_pyqt(struct Variable *var, struct sbuf *a, struct sbuf *b, int *resu
 }
 
 int
-compare_use_qt(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result)
+compare_use_qt(struct Variable *var, const char *a, const char *b, int *result)
 {
 	assert(result != NULL);
 
-	if (sbuf_strcmp(variable_name(var), "USE_QT") != 0) {
+	if (strcmp(variable_name(var), "USE_QT") != 0) {
 		return 0;
 	}
 
@@ -1171,29 +1171,40 @@ compare_use_qt(struct Variable *var, struct sbuf *a, struct sbuf *b, int *result
 	return 1;
 }
 
-struct sbuf *
+char *
 options_helpers_pattern()
 {
-	struct sbuf *buf = sbuf_dupstr("_(");
+	size_t len = strlen("_(");
 	for (size_t i = 0; i < nitems(options_helpers_); i++) {
 		const char *helper = options_helpers_[i];
-		sbuf_cat(buf, helper);
+		len += strlen(helper);
 		if (i < (nitems(options_helpers_) - 1)) {
-			sbuf_cat(buf, "|");
+			len += strlen("|");
 		}
 	}
-	sbuf_cat(buf, ")$");
-	sbuf_finishx(buf);
+	len += strlen(")$") + 1;
+
+	char *buf = xmalloc(len);
+	xstrlcat(buf, "_(", len);
+	for (size_t i = 0; i < nitems(options_helpers_); i++) {
+		const char *helper = options_helpers_[i];
+		xstrlcat(buf, helper, len);
+		if (i < (nitems(options_helpers_) - 1)) {
+			xstrlcat(buf, "|", len);
+		}
+	}
+	xstrlcat(buf, ")$", len);
+
 	return buf;
 }
 
 int
-target_command_should_wrap(struct sbuf *word)
+target_command_should_wrap(char *word)
 {
-	if (sbuf_strcmp(word, "&&") == 0 ||
-	    sbuf_strcmp(word, "||") == 0 ||
-	    (sbuf_endswith(word, ";") && !sbuf_endswith(word, "\\;")) ||
-	    sbuf_strcmp(word, "|") == 0) {
+	if (strcmp(word, "&&") == 0 ||
+	    strcmp(word, "||") == 0 ||
+	    (str_endswith(word, ";") && !str_endswith(word, "\\;")) ||
+	    strcmp(word, "|") == 0) {
 		return 1;
 	}
 
@@ -1201,34 +1212,32 @@ target_command_should_wrap(struct sbuf *word)
 }
 
 int
-matches(enum RegularExpression re, struct sbuf *s, regmatch_t *match)
+matches(enum RegularExpression re, const char *s, regmatch_t *match)
 {
-	assert(sbuf_done(s));
-
 	int nmatch = 0;
 	if (match) {
 		nmatch = 1;
 	}
-	return regexec(&regular_expressions[re].re, sbuf_data(s), nmatch, match, 0) == 0;
+	return regexec(&regular_expressions[re].re, s, nmatch, match, 0) == 0;
 }
 
-struct sbuf *
-sub(enum RegularExpression re, const char *replacement, struct sbuf *s)
+char *
+sub(enum RegularExpression re, const char *replacement, const char *s)
 {
-	assert(sbuf_done(s));
+	size_t len = strlen(replacement) + strlen(s) + 1;
+	char *buf = xmalloc(len);
+	buf[0] = 0;
 
-	struct sbuf *buf = sbuf_dupstr(NULL);
 	regmatch_t pmatch[1];
-	if (regexec(&regular_expressions[re].re, sbuf_data(s), 1, pmatch, 0) == 0) {
-		sbuf_bcat(buf, sbuf_data(s), pmatch[0].rm_so);
+	if (regexec(&regular_expressions[re].re, s, 1, pmatch, 0) == 0) {
+		strncpy(buf, s, pmatch[0].rm_so);
 		if (replacement) {
-			sbuf_bcat(buf, replacement, strlen(replacement));
+			xstrlcat(buf, replacement, len);
 		}
-		sbuf_bcat(buf, sbuf_data(s) + pmatch[0].rm_eo, sbuf_len(s) - pmatch[0].rm_eo);
+		strncat(buf, s + pmatch[0].rm_eo, strlen(s) - pmatch[0].rm_eo);
 	} else {
-		sbuf_bcat(buf, sbuf_data(s), sbuf_len(s));
+		xstrlcat(buf, s, len);
 	}
-	sbuf_finishx(buf);
 
 	return buf;
 }
@@ -1237,12 +1246,12 @@ void
 compile_regular_expressions()
 {
 	for (size_t i = 0; i < nitems(regular_expressions); i++) {
-		struct sbuf *buf = NULL;
+		char *buf = NULL;
 		const char *pattern;
 		switch (i) {
 		case RE_OPTIONS_HELPER:
 			buf = options_helpers_pattern();
-			pattern = sbuf_data(buf);
+			pattern = buf;
 			break;
 		default:
 			pattern = regular_expressions[i].pattern;
@@ -1259,7 +1268,7 @@ compile_regular_expressions()
 		}
 
 		if (buf) {
-			sbuf_delete(buf);
+			free(buf);
 		}
 	}
 }

@@ -204,22 +204,6 @@ main(void)
 	return !recallocarray(NULL, 0, 2, 2);
 }
 #endif /* TEST_RECALLOCARRAY */
-#if TEST_SBUF
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/sbuf.h>
-
-int main(void)
-{
-	struct sbuf *s;
-
-	s = sbuf_new_auto();
-	sbuf_finish(s);
-	sbuf_delete(s);
-
-	return 0;
-}
-#endif /* TEST_SBUF */
 #if TEST_STRLCAT
 #include <string.h>
 

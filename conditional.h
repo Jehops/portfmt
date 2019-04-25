@@ -29,10 +29,6 @@
 
 #include "config.h"
 
-#if HAVE_SBUF
-# include <sys/sbuf.h>
-#endif
-
 struct Conditional;
 
 enum ConditionalType {
@@ -62,6 +58,6 @@ enum ConditionalType {
 	COND_WARNING,
 };
 
-struct Conditional *conditional_new(struct sbuf *);
+struct Conditional *conditional_new(char *);
 void conditional_free(struct Conditional *);
-struct sbuf *conditional_tostring(struct Conditional *);
+char *conditional_tostring(struct Conditional *);
