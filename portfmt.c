@@ -114,7 +114,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-#if HAVE_CAPSICUM2
+#if HAVE_CAPSICUM
 	if (iflag) {
 		if (caph_limit_stream(fd_in, CAPH_READ | CAPH_WRITE | CAPH_FTRUNCATE) < 0) {
 			err(1, "caph_limit_stream");
