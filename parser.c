@@ -117,6 +117,7 @@ static void parser_collapse_adjacent_variables(struct Parser *);
 static void parser_enqueue_output(struct Parser *, struct sbuf *);
 static void parser_find_goalcols(struct Parser *);
 static void parser_output_dump_tokens(struct Parser *);
+static void parser_output_print_rawlines(struct Parser *, struct Range *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
 static void parser_output_reformatted_helper(struct Parser *, struct Array *);
 static void parser_output_reformatted(struct Parser *);
@@ -672,6 +673,17 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 }
 
 void
+parser_output_print_rawlines(struct Parser *parser, struct Range *lines)
+{
+	struct sbuf *endline = sbuf_dupstr("\n");
+	for (size_t i = lines->start; i < lines->end; i++) {
+		parser_enqueue_output(parser, array_get(parser->rawlines, i - 1));
+		parser_enqueue_output(parser, endline);
+	}
+	sbuf_delete(endline);
+}
+
+void
 parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 {
 	if (array_len(tokens) == 0) {
@@ -732,10 +744,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	if (!(parser->settings.behavior & PARSER_FORMAT_TARGET_COMMANDS) ||
 	    complexity > parser->settings.target_command_format_threshold) {
 		struct Token *t = array_get(tokens, 0);
-		for (size_t i = t->lines.start; i < t->lines.end; i++) {
-			parser_enqueue_output(parser, array_get(parser->rawlines, i - 1));
-			parser_enqueue_output(parser, endline);
-		}
+		parser_output_print_rawlines(parser, &t->lines);
 		goto cleanup;
 	}
 
@@ -810,12 +819,11 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr)
 void
 parser_output_reformatted(struct Parser *parser)
 {
+	struct sbuf *endline = sbuf_dupstr("\n");
 	parser_find_goalcols(parser);
 
-	struct Array *cond_arr = array_new(sizeof(struct Token *));
 	struct Array *target_arr = array_new(sizeof(struct Token *));
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
-	int after_port_options_mk = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
 		if (o->ignore) {
@@ -823,14 +831,10 @@ parser_output_reformatted(struct Parser *parser)
 		}
 		switch (o->type) {
 		case CONDITIONAL_END:
-			print_token_array(parser, cond_arr);
-			array_truncate(cond_arr);
+			parser_output_print_rawlines(parser, &o->lines);
 			break;
 		case CONDITIONAL_START:
-			array_truncate(cond_arr);
-			break;
 		case CONDITIONAL_TOKEN:
-			array_append(cond_arr, o);
 			break;
 		case VARIABLE_END:
 			parser_output_reformatted_helper(parser, variable_arr);
@@ -853,15 +857,13 @@ parser_output_reformatted(struct Parser *parser)
 			break;
 		case TARGET_END:
 			break;
-		case PORT_OPTIONS_MK:
-			after_port_options_mk = 1;
 		case COMMENT:
+		case PORT_OPTIONS_MK:
 		case PORT_MK:
 		case PORT_PRE_MK:
 		case TARGET_START:
 			parser_output_reformatted_helper(parser, variable_arr);
-			parser_enqueue_output(parser, o->data);
-			parser_enqueue_output(parser, sbuf_dupstr("\n"));
+			parser_output_print_rawlines(parser, &o->lines);
 			break;
 		case EMPTY: {
 			struct sbuf *v = variable_tostring(o->var);
@@ -871,24 +873,20 @@ parser_output_reformatted(struct Parser *parser)
 			break;
 		} case INLINE_COMMENT:
 			parser_enqueue_output(parser, o->data);
-			parser_enqueue_output(parser, sbuf_dupstr("\n"));
+			parser_enqueue_output(parser, endline);
 			break;
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
-	}
-	if (array_len(cond_arr) > 0) {
-		print_token_array(parser, cond_arr);
-		array_truncate(cond_arr);
 	}
 	if (array_len(target_arr) > 0) {
 		print_token_array(parser, target_arr);
 		array_truncate(target_arr);
 	}
 	parser_output_reformatted_helper(parser, variable_arr);
-	array_free(cond_arr);
 	array_free(target_arr);
 	array_free(variable_arr);
+	sbuf_delete(endline);
 }
 
 void
