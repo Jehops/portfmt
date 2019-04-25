@@ -1203,6 +1203,7 @@ target_command_should_wrap(char *word)
 {
 	if (strcmp(word, "&&") == 0 ||
 	    strcmp(word, "||") == 0 ||
+	    strcmp(word, "then") == 0 ||
 	    (str_endswith(word, ";") && !str_endswith(word, "\\;")) ||
 	    strcmp(word, "|") == 0) {
 		return 1;

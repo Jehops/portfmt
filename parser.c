@@ -695,6 +695,8 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 			case '`':
 			case '(':
 			case ')':
+			case '[':
+			case ']':
 			case ';':
 				complexity++;
 				break;
