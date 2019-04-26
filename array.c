@@ -43,18 +43,21 @@ struct Array {
 	size_t value_size;
 };
 
+static const size_t INITIAL_ARRAY_CAP = 1024;
+
 struct Array *
 array_new(size_t value_size)
 {
 	struct Array *array = xmalloc(sizeof(struct Array));
 
-	array->cap = 1024;
+	array->cap = INITIAL_ARRAY_CAP;
 	array->len = 0;
 	array->value_size = value_size;
 
-	array->buf = reallocarray(NULL, array->cap, value_size);
+	array->buf = recallocarray(NULL, 0, array->cap, value_size);
 	if (array->buf == NULL) {
-		err(1, "reallocarray");
+		warn("recallocarray");
+		abort();
 	}
 
 	return array;
@@ -68,11 +71,12 @@ array_append(struct Array *array, void *v)
 
 	array->buf[array->len++] = v;
 	if (array->len >= array->cap) {
-		size_t new_cap = array->cap * 2;
+		size_t new_cap = array->cap + INITIAL_ARRAY_CAP;
 		assert(new_cap > array->cap);
-		void **new_array = reallocarray(array->buf, new_cap, array->value_size);
+		void **new_array = recallocarray(array->buf, array->cap, new_cap, array->value_size);
 		if (new_array == NULL) {
-			err(1, "reallocarray");
+			warn("recallocarray");
+			abort();
 		}
 		array->buf = new_array;
 		array->cap = new_cap;

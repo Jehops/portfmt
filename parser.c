@@ -1256,9 +1256,10 @@ parser_output_write(struct Parser *parser, int fd)
 	}
 
 	size_t iov_len = MIN(len, IOV_MAX);
-	struct iovec *iov = reallocarray(NULL, iov_len, sizeof(struct iovec));
+	struct iovec *iov = recallocarray(NULL, 0, iov_len, sizeof(struct iovec));
 	if (iov == NULL) {
-		err(1, "reallocarray");
+		warn("recallocarray");
+		abort();
 	}
 
 	for (size_t i = 0; i < len;) {
@@ -1280,4 +1281,3 @@ parser_output_write(struct Parser *parser, int fd)
 	array_truncate(parser->result);
 	free(iov);
 }
-

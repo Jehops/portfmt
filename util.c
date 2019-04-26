@@ -90,7 +90,8 @@ str_substr_dup(const char *s, size_t start, size_t end)
 	end = MIN(strlen(s), end);
 	char *buf = strndup(s + start, end - start);
 	if (buf == NULL) {
-		err(1, "strndup");
+		warn("strndup");
+		abort();
 	}
 	return buf;
 }

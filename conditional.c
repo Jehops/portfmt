@@ -217,9 +217,5 @@ conditional_tostring(struct Conditional *cond)
 	}
 	assert(type != NULL);
 
-	char *retval = strdup(type);
-	if (retval == NULL) {
-		err(1, "strdup");
-	}
-	return retval;
+	return xstrdup(type);
 }
