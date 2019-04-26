@@ -35,7 +35,7 @@ struct Array *array_new(size_t);
 void array_append(struct Array *, void *);
 void array_free(struct Array *);
 void *array_get(struct Array *, size_t);
-ssize_t array_find(struct Array *, void *);
+ssize_t array_find(struct Array *, void *, int (*)(const void *, const void *));
 size_t array_len(struct Array *);
 void array_sort(struct Array *, int (*)(const void *, const void *));
 void array_truncate(struct Array *);

@@ -91,11 +91,19 @@ array_free(struct Array *array)
 }
 
 ssize_t
-array_find(struct Array *array, void *k)
+array_find(struct Array *array, void *k, int (*compar)(const void *, const void *))
 {
-	for (size_t i = 0; i < array_len(array); i++) {
-		if (array_get(array, i) == k) {
-			return i;
+	if (compar) {
+		for (size_t i = 0; i < array_len(array); i++) {
+			if (compar(array_get(array, i), k) == 0) {
+				return i;
+			}
+		}
+	} else {
+		for (size_t i = 0; i < array_len(array); i++) {
+			if (array_get(array, i) == k) {
+				return i;
+			}
 		}
 	}
 	return -1;

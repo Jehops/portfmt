@@ -751,7 +751,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 				parser_enqueue_output(parser, startlv2);
 			}
 		}
-		wrapped = array_find(wraps, (void*)i) > -1;
+		wrapped = array_find(wraps, (void*)i, NULL) > -1;
 
 		parser_enqueue_output(parser, word);
 		if (wrapped) {
