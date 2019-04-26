@@ -618,6 +618,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 
 	char row[1024] = {};
 	struct Token *token = NULL;
+	struct Array *gc = array_new(sizeof(void *));
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		token = array_get(tokens, i);
 		if (strlen(token->data) == 0) {
@@ -629,8 +630,10 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 				continue;
 			} else {
 				struct Token *o = xmalloc(sizeof(struct Token));
+				array_append(gc, o);
 				memcpy(o, token, sizeof(struct Token));
 				o->data = xstrdup(row);
+				array_append(gc, o->data);
 				array_append(arr, o);
 				row[0] = 0;
 			}
@@ -644,13 +647,19 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	}
 	if (token && strlen(row) > 0 && array_len(arr) < array_len(tokens)) {
 		struct Token *o = xmalloc(sizeof(struct Token));
+		array_append(gc, o);
 		memcpy(o, token, sizeof(struct Token));
 		o->data = xstrdup(row);
+		array_append(gc, o->data);
 		array_append(arr, o);
 	}
 	print_newline_array(parser, arr);
+
 	array_free(arr);
-	// TODO: Memory leaks here, need to track xstrdup()ed rows
+	for (size_t i = 0; i < array_len(gc); i++) {
+		free(array_get(gc, i));
+	}
+	array_free(gc);
 }
 
 void
