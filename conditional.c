@@ -122,6 +122,8 @@ conditional_new(char *s)
 		cond->type = COND_ELIFMAKE;
 	} else if (strcmp(type, ".endif") == 0) {
 		cond->type = COND_ENDIF;
+	} else if (strcmp(type, ".sinclude") == 0) {
+		cond->type = COND_SINCLUDE;
 	} else {
 		errx(1, "unknown conditional: %s", type);
 	}
@@ -201,6 +203,9 @@ conditional_tostring(struct Conditional *cond)
 		break;
 	case COND_INFO:
 		type = ".info";
+		break;
+	case COND_SINCLUDE:
+		type = ".sinclude";
 		break;
 	case COND_UNDEF:
 		type = ".undef";

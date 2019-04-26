@@ -58,7 +58,7 @@ static struct {
 				  "export\\.env|export-literal|info|undef|unexport|for|endfor|"
 				  "unexport-env|warning|if|ifdef|ifndef|include|"
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
-				  "elifmake|endif))([[:space:]]+|$)",
+				  "elifmake|endif|sinclude))([[:space:]]+|$)",
 				  REG_EXTENDED, {} },
 	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$", REG_EXTENDED, {} },
 	[RE_EMPTY_LINE]       = { "^[[:space:]]*$", 			      0, {} },
@@ -79,8 +79,8 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
-	[RE_TARGET] 	      = { "^[\\$\\{:\\}A-Za-z0-9\\/\\._-]+::?([[:space:]]+|$)",	  REG_EXTENDED, {} },
-	[RE_VAR] 	      = { "^(-|[\\$\\{\\}a-zA-Z0-9\\._+ ])+[[:space:]]*[+!?:]?=", REG_EXTENDED, {} },
+	[RE_TARGET] 	      = { "^([^:]|[^[:space:]])+::?([[:space:]]+|$)", REG_EXTENDED, {} },
+	[RE_VAR] 	      = { "^ *[^[:space:]]+[[:space:]]*[+!?:]?=",	      REG_EXTENDED, {} },
 };
 
 static const char *print_as_newlines_[] = {
