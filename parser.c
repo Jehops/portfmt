@@ -371,6 +371,8 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			} else if (c == '{') {
 				i = consume_token(parser, line, i, '{', '}', 0);
 				dollar = 0;
+			} else if (isalnum(c) || c == '@') {
+				dollar = 0;
 			} else if (c == '$') {
 				dollar++;
 			} else {
