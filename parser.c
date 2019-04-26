@@ -240,7 +240,7 @@ range_tostring(struct Range *range)
 void
 parser_init_settings(struct ParserSettings *settings)
 {
-	settings->behavior = 0;
+	settings->behavior = PARSER_DEFAULT;
 	settings->target_command_format_threshold = 8;
 	settings->target_command_format_wrapcol = 65;
 	settings->wrapcol = 80;
@@ -776,7 +776,7 @@ cleanup:
 void
 parser_output_prepare(struct Parser *parser)
 {
-	if (parser->settings.behavior & PARSER_DUMP_TOKENS) {
+	if (parser->settings.behavior & PARSER_OUTPUT_DUMP_TOKENS) {
 		parser_output_dump_tokens(parser);
 	} else if (parser->settings.behavior & PARSER_OUTPUT_REFORMAT) {
 		parser_output_reformatted(parser);

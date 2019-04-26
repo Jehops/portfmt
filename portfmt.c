@@ -74,7 +74,7 @@ main(int argc, char *argv[])
 			settings.behavior |= PARSER_SANITIZE_APPEND;
 			break;
 		case 'd':
-			settings.behavior |= PARSER_DUMP_TOKENS;
+			settings.behavior |= PARSER_OUTPUT_DUMP_TOKENS;
 			break;
 		case 'i':
 			iflag = 1;
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (settings.behavior & PARSER_DUMP_TOKENS) {
+	if (settings.behavior & PARSER_OUTPUT_DUMP_TOKENS) {
 		iflag = 0;
 	}
 
