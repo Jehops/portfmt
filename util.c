@@ -88,12 +88,7 @@ str_substr_dup(const char *s, size_t start, size_t end)
 {
 	assert (start <= end);
 	end = MIN(strlen(s), end);
-	char *buf = strndup(s + start, end - start);
-	if (buf == NULL) {
-		warn("strndup");
-		abort();
-	}
-	return buf;
+	return xstrndup(s + start, end - start);
 }
 
 char *
@@ -125,6 +120,17 @@ xstrdup(const char *s)
 	char *retval = strdup(s);
 	if (retval == NULL) {
 		warn("strdup");
+		abort();
+	}
+	return retval;
+}
+
+char *
+xstrndup(const char *s, size_t len)
+{
+	char *retval = strndup(s, len);
+	if (retval == NULL) {
+		warn("strndup");
 		abort();
 	}
 	return retval;

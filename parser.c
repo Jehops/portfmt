@@ -1025,7 +1025,7 @@ parser_read(struct Parser *parser, char *line)
 	if (parser->continued) {
 		/* Replace all whitespace at the beginning with a single
 		 * space which is what make seems to do.
-		*/
+		 */
 		for (;isblank(*line); line++);
 		if (strlen(line) < 1) {
 			xstrlcat(parser->inbuf, " ", INBUF_SIZE);

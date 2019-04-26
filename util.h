@@ -46,5 +46,6 @@ char *str_trim(char *);
 
 void *xmalloc(size_t);
 char *xstrdup(const char *);
+char *xstrndup(const char *, size_t);
 size_t xstrlcat(char *, const char *, size_t);
 size_t xstrlcpy(char *, const char *, size_t);
