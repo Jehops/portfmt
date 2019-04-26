@@ -1341,3 +1341,20 @@ found:
 	array_free(tokens);
 	return buf;
 }
+
+struct Array *
+parser_get_all_variable_names(struct Parser *parser)
+{
+	struct Array *vars = array_new(sizeof(char *));
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		switch (t->type) {
+		case VARIABLE_START:
+			array_append(vars, variable_name(t->var));
+			break;
+		default:
+			break;
+		}
+	}
+	return vars;
+}

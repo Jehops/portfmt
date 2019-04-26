@@ -27,6 +27,8 @@
  */
 #pragma once
 
+#include "array.h"
+
 enum ParserBehavior {
 	PARSER_DEFAULT = 0,
 	PARSER_COLLAPSE_ADJACENT_VARIABLES = 2,
@@ -51,6 +53,7 @@ void parser_init_settings(struct ParserSettings *);
 void parser_read(struct Parser *, char *);
 void parser_free(struct Parser *);
 char *parser_lookup_variable(struct Parser *, const char *);
+struct Array *parser_get_all_variable_names(struct Parser *);
 void parser_read_finish(struct Parser *);
 void parser_output_prepare(struct Parser *);
 void parser_output_write(struct Parser *, int);
