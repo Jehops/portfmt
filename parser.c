@@ -808,6 +808,7 @@ parser_output_reformatted(struct Parser *parser)
 
 	struct Array *target_arr = array_new(sizeof(struct Token *));
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
+	int in_variable = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
 		if (o->ignore) {
@@ -821,9 +822,11 @@ parser_output_reformatted(struct Parser *parser)
 		case CONDITIONAL_TOKEN:
 			break;
 		case VARIABLE_END:
+			in_variable = 0;
 			parser_output_reformatted_helper(parser, variable_arr);
 			break;
 		case VARIABLE_START:
+			in_variable = 1;
 			array_truncate(variable_arr);
 			break;
 		case VARIABLE_TOKEN:
@@ -856,8 +859,10 @@ parser_output_reformatted(struct Parser *parser)
 			parser_enqueue_output(parser, "\n");
 			break;
 		} case INLINE_COMMENT:
-			parser_enqueue_output(parser, o->data);
-			parser_enqueue_output(parser, "\n");
+			if (in_variable) {
+				parser_enqueue_output(parser, o->data);
+				parser_enqueue_output(parser, "\n");
+			}
 			break;
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
