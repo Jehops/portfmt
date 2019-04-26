@@ -728,6 +728,7 @@ static const char *leave_unsorted_[] = {
 	"CXX",
 	"DAEMONARGS",
 	"DC",
+	"DEBUG_MSG",
 	"DEPENDS-LIST",
 	"DEPRECATED",
 	"DESC",
