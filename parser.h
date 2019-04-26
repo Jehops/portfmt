@@ -50,6 +50,7 @@ struct Parser *parser_new(struct ParserSettings *);
 void parser_init_settings(struct ParserSettings *);
 void parser_read(struct Parser *, char *);
 void parser_free(struct Parser *);
+char *parser_lookup_variable(struct Parser *, const char *);
 void parser_read_finish(struct Parser *);
 void parser_output_prepare(struct Parser *);
 void parser_output_write(struct Parser *, int);

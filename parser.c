@@ -1281,3 +1281,54 @@ parser_output_write(struct Parser *parser, int fd)
 	array_truncate(parser->result);
 	free(iov);
 }
+
+char *
+parser_lookup_variable(struct Parser *parser, const char *name)
+{
+	struct Array *tokens = array_new(sizeof(char *));
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		switch (t->type) {
+		case VARIABLE_START:
+			array_truncate(tokens);
+			break;
+		case VARIABLE_TOKEN:
+			if (strcmp(variable_name(t->var), name) == 0) {
+				if (t->data) {
+					array_append(tokens, t->data);
+				}
+			}
+			break;
+		case VARIABLE_END:
+			if (strcmp(variable_name(t->var), name) == 0) {
+				goto found;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	array_free(tokens);
+	return NULL;
+
+	size_t sz;
+found:
+	sz = array_len(tokens) + 1;
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		char *s = array_get(tokens, i);
+		sz += strlen(s);
+	}
+
+	char *buf = xmalloc(sz);
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		char *s = array_get(tokens, i);
+		xstrlcat(buf, s, sz);
+		if (i != array_len(tokens) - 1) {
+			xstrlcat(buf, " ", sz);
+		}
+	}
+
+	array_free(tokens);
+	return buf;
+}
