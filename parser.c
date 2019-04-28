@@ -1086,10 +1086,9 @@ parser_read_internal(struct Parser *parser, const char *buf)
 			parser_append_token(parser, CONDITIONAL_END, NULL);
 			goto next;
 		}
-		pos = consume_var(buf);
-		if (pos == 0) {
+		if (consume_var(buf) == 0 && consume_target(buf) == 0) {
 			parser_append_token(parser, TARGET_COMMAND_START, NULL);
-			parser_tokenize(parser, buf, TARGET_COMMAND_TOKEN, pos);
+			parser_tokenize(parser, buf, TARGET_COMMAND_TOKEN, 0);
 			parser_append_token(parser, TARGET_COMMAND_END, NULL);
 			goto next;
 		}
