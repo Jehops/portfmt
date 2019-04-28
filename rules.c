@@ -58,7 +58,7 @@ static struct {
 				  "export\\.env|export-literal|info|undef|unexport|for|endfor|"
 				  "unexport-env|warning|if|ifdef|ifndef|include|"
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
-				  "elifmake|endif|sinclude))([[:space:]]+|$)",
+				  "elifmake|endif|sinclude))([[:space:]]+|$|\\(|!)",
 				  REG_EXTENDED, {} },
 	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$", REG_EXTENDED, {} },
 	[RE_EMPTY_LINE]       = { "^[[:space:]]*$", 			      0, {} },

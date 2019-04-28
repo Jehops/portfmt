@@ -151,6 +151,11 @@ consume_conditional(const char *buf)
 	if (matches(RE_CONDITIONAL, buf, match)) {
 		pos = match->rm_eo - match->rm_so;
 	}
+
+	if(pos > 0 && (buf[pos - 1] == '(' || buf[pos - 1] == '!')) {
+		pos--;
+	}
+
 	return pos;
 }
 
@@ -1140,7 +1145,7 @@ parser_read_internal(struct Parser *parser, const char *buf)
 	}
 	parser_tokenize(parser, buf, VARIABLE_TOKEN, pos);
 	if (parser->varname == NULL) {
-		errx(1, "parser error on line %s", range_tostring(&parser->lines));
+		errx(1, "parse error on line %s", range_tostring(&parser->lines));
 	}
 next:
 	if (parser->varname) {
