@@ -1143,7 +1143,9 @@ parser_read_internal(struct Parser *parser, const char *buf)
 		if (pos > strlen(buf)) {
 			errx(1, "parser->varname too small");
 		}
-		parser->varname = str_substr_dup(buf, 0, pos);
+		char *tmp = str_substr_dup(buf, 0, pos);
+		parser->varname = str_strip_dup(tmp);
+		free(tmp);
 		parser_append_token(parser, VARIABLE_START, NULL);
 	}
 	parser_tokenize(parser, buf, VARIABLE_TOKEN, pos);
