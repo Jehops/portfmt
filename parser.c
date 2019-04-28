@@ -198,7 +198,7 @@ consume_token(struct Parser *parser, const char *line, size_t pos,
 		}
 	}
 	if (!eol_ok) {
-		errx(1, "tokenizer: %s: expected %c", range_tostring(&parser->lines), endchar);
+		errx(1, "%s: expected %c", range_tostring(&parser->lines), endchar);
 	} else {
 		return i;
 	}
@@ -376,8 +376,7 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			} else if (c == '$') {
 				dollar++;
 			} else {
-				fprintf(stderr, "%s\n", line);
-				errx(1, "tokenizer: %s: expected {", range_tostring(&parser->lines));
+				errx(1, "%s: unterminated $", range_tostring(&parser->lines));
 			}
 		} else {
 			if (c == ' ' || c == '\t') {
