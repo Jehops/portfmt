@@ -133,11 +133,14 @@ static struct Token *parser_get_token(struct Parser *, size_t);
 size_t
 consume_comment(const char *buf)
 {
-	size_t pos = 0;
-	if (str_startswith(buf, "#")) {
-		pos = strlen(buf);
+	for (const char *bufp = buf; *bufp != 0; bufp++) {
+		if (*bufp == '#') {
+			return strlen(buf);
+		} else if (!isspace(*bufp)) {
+			break;
+		}
 	}
-	return pos;
+	return 0;
 }
 
 size_t
