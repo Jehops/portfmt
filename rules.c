@@ -890,6 +890,7 @@ static const char *leave_unsorted_[] = {
 	"SANITY_NOTNEEDED",
 	"SANITY_UNSUPPORTED",
 	"SED",
+	"SET_LATE_CONFIGURE_ARGS",
 	"SETENV",
 	"SH",
 	"SHA256",
