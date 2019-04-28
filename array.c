@@ -91,7 +91,7 @@ array_free(struct Array *array)
 }
 
 ssize_t
-array_find(struct Array *array, void *k, int (*compar)(const void *, const void *))
+array_find(struct Array *array, void *k, ArrayCompareFn compar)
 {
 	if (compar) {
 		for (size_t i = 0; i < array_len(array); i++) {
@@ -125,7 +125,7 @@ array_len(struct Array *array)
 }
 
 void
-array_sort(struct Array *array, int (*compar)(const void *, const void *))
+array_sort(struct Array *array, ArrayCompareFn compar)
 {
 	qsort(array->buf, array->len, array->value_size, compar);
 }

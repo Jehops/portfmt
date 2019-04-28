@@ -1230,15 +1230,7 @@ parser_sanitize_append_modifier(struct Parser *parser)
 			if (start < 0) {
 				continue;
 			}
-			int found = 0;
-			for (size_t j = 0; j < array_len(seen); j++) {
-				struct Variable *var = array_get(seen, j);
-				if (variable_cmp(t->var, var) == 0) {
-					found = 1;
-					break;
-				}
-			}
-			if (found) {
+			if (array_find(seen, t->var, (ArrayCompareFn)&variable_cmp) != -1) {
 				start = -1;
 				continue;
 			} else {
