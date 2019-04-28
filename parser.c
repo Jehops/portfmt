@@ -1060,15 +1060,8 @@ parser_read_internal(struct Parser *parser, const char *buf)
 		parser_append_token(parser, COMMENT, buf);
 		goto next;
 	} else if (matches(RE_EMPTY_LINE, buf, NULL)) {
-		if (parser->in_target) {
-			parser_append_token(parser, TARGET_END, NULL);
-			parser_append_token(parser, COMMENT, buf);
-			parser->in_target = 0;
-			goto next;
-		} else {
-			parser_append_token(parser, COMMENT, buf);
-			goto next;
-		}
+		parser_append_token(parser, COMMENT, buf);
+		goto next;
 	}
 
 	if (parser->in_target) {
