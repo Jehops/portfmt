@@ -34,9 +34,10 @@ enum ParserBehavior {
 	PARSER_COLLAPSE_ADJACENT_VARIABLES = 2,
 	PARSER_FORMAT_TARGET_COMMANDS = 4,
 	PARSER_OUTPUT_DUMP_TOKENS = 8,
-	PARSER_OUTPUT_REFORMAT = 16,
-	PARSER_SANITIZE_APPEND = 32,
-	PARSER_UNSORTED_VARIABLES = 64,
+	PARSER_OUTPUT_EDITED = 16,
+	PARSER_OUTPUT_REFORMAT = 32,
+	PARSER_SANITIZE_APPEND = 64,
+	PARSER_UNSORTED_VARIABLES = 128,
 };
 
 struct ParserSettings {
@@ -54,6 +55,8 @@ void parser_read(struct Parser *, char *);
 void parser_free(struct Parser *);
 char *parser_lookup_variable(struct Parser *, const char *);
 struct Array *parser_get_all_variable_names(struct Parser *);
+void parser_edit_bump_revision(struct Parser *);
+void parser_edit_set_variable(struct Parser *, const char *, const char *, const char *);
 void parser_read_finish(struct Parser *);
 void parser_output_prepare(struct Parser *);
 void parser_output_write(struct Parser *, int);

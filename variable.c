@@ -48,7 +48,7 @@ struct Variable {
 };
 
 struct Variable *
-variable_new(char *buf) {
+variable_new(const char *buf) {
 	struct Variable *var = xmalloc(sizeof(struct Variable));
 
 	regmatch_t match;

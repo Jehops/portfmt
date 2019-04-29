@@ -39,7 +39,7 @@ enum VariableModifier {
 	MODIFIER_SHELL,
 };
 
-struct Variable *variable_new(char *);
+struct Variable *variable_new(const char *);
 int variable_cmp(struct Variable *, struct Variable *);
 void variable_free(struct Variable *);
 enum VariableModifier variable_modifier(struct Variable *);

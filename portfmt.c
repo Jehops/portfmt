@@ -40,6 +40,7 @@
 #define _WITH_GETLINE
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
@@ -66,6 +67,10 @@ main(int argc, char *argv[])
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
 		PARSER_OUTPUT_REFORMAT |
 		PARSER_FORMAT_TARGET_COMMANDS;
+
+	if (strcmp(getprogname(), "portedit") == 0) {
+		settings.behavior |= PARSER_OUTPUT_EDITED;
+	}
 
 	int ch;
 	while ((ch = getopt(argc, argv, "adiuw:")) != -1) {
@@ -152,6 +157,10 @@ main(int argc, char *argv[])
 		parser_read(parser, line);
 	}
 	parser_read_finish(parser);
+
+	if (settings.behavior & PARSER_OUTPUT_EDITED) {
+		parser_edit_bump_revision(parser);
+	}
 
 	parser_output_prepare(parser);
 	if (iflag) {
