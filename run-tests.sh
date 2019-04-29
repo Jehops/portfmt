@@ -7,7 +7,7 @@ cd tests
 : ${TESTS:=*.in}
 for test in ${TESTS}; do
 	t=${test%*.in}
-	${PORTFMT} < ${t}.in > ${t}.actual
+	${PORTFMT} -t < ${t}.in > ${t}.actual
 	out=$(diff -L ${t}.expected -L ${t}.actual -u ${t}.expected ${t}.actual)
 	if [ $? -ne 0 ]; then
 		echo "${t}#1"
@@ -16,7 +16,7 @@ for test in ${TESTS}; do
 		status=1
 		continue
 	fi
-	${PORTFMT} < ${t}.expected > ${t}.actual2
+	${PORTFMT} -t < ${t}.expected > ${t}.actual2
 	out=$(diff -L ${t}.expected -L ${t}.actual -u ${t}.expected ${t}.actual2)
 	if [ $? -ne 0 ]; then
 		echo "${t}#2"

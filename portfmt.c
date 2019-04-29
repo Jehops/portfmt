@@ -51,7 +51,11 @@ static void usage(void);
 void
 usage()
 {
-	fprintf(stderr, "usage: portfmt [-a] [-i] [-u] [-w wrapcol] [Makefile]\n");
+	if (strcmp(getprogname(), "portfmt") == 0) {
+		fprintf(stderr, "usage: portfmt [-aditu] [-w wrapcol] [Makefile]\n");
+	} else {
+		fprintf(stderr, "usage: portedit [-aditu] [-w wrapcol] bump-revision [Makefile]\n");
+	}
 	exit(EX_USAGE);
 }
 
@@ -65,15 +69,14 @@ main(int argc, char *argv[])
 
 	parser_init_settings(&settings);
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
-		PARSER_OUTPUT_REFORMAT |
-		PARSER_FORMAT_TARGET_COMMANDS;
+		PARSER_OUTPUT_REFORMAT;
 
 	if (strcmp(getprogname(), "portedit") == 0) {
 		settings.behavior |= PARSER_OUTPUT_EDITED;
 	}
 
 	int ch;
-	while ((ch = getopt(argc, argv, "adiuw:")) != -1) {
+	while ((ch = getopt(argc, argv, "adituw:")) != -1) {
 		switch (ch) {
 		case 'a':
 			settings.behavior |= PARSER_SANITIZE_APPEND;
@@ -83,6 +86,9 @@ main(int argc, char *argv[])
 			break;
 		case 'i':
 			iflag = 1;
+			break;
+		case 't':
+			settings.behavior |= PARSER_FORMAT_TARGET_COMMANDS;
 			break;
 		case 'u':
 			settings.behavior |= PARSER_UNSORTED_VARIABLES;
@@ -100,6 +106,14 @@ main(int argc, char *argv[])
 	}
 	argc -= optind;
 	argv += optind;
+
+	if (settings.behavior & PARSER_OUTPUT_EDITED) {
+		if (strcmp(argv[0], "bump-revision") != 0) {
+			usage();
+		}
+		argc -= 1;
+		argv += 1;
+	}
 
 	if (settings.behavior & PARSER_OUTPUT_DUMP_TOKENS) {
 		iflag = 0;

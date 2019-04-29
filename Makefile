@@ -1,6 +1,7 @@
 include Makefile.configure
 
 MKDIR?=		mkdir -p
+LN?=		ln
 SED?=		sed
 
 CFLAGS+=	-std=c99
@@ -28,6 +29,7 @@ install:
 		${DESTDIR}${MANDIR}/man1
 	${INSTALL_MAN} portfmt.1 ${DESTDIR}${MANDIR}/man1
 	${INSTALL_PROGRAM} portfmt ${DESTDIR}${PREFIX}/bin
+	cd ${DESTDIR}${PREFIX}/bin && ${LN} -sf portfmt portedit
 	@if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
 		${SED} -i '' 's,/usr/local,${PREFIX},' ${DESTDIR}${PREFIX}/bin/portfmt; \
 	fi
