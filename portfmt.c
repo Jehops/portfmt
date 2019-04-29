@@ -46,6 +46,17 @@
 
 #include "parser.h"
 
+enum PorteditCommand {
+	PORTEDIT_BUMP_REVISION,
+	PORTEDIT_GET_VARIABLE,
+};
+
+struct Portedit {
+	enum PorteditCommand cmd;
+	char **argv;
+	int argc;
+};
+
 static void usage(void);
 
 void
@@ -107,12 +118,21 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
+	struct Portedit edit;
 	if (settings.behavior & PARSER_OUTPUT_EDITED) {
-		if (strcmp(argv[0], "bump-revision") != 0) {
+		if (strcmp(argv[0], "bump-revision") == 0) {
+			edit.cmd = PORTEDIT_BUMP_REVISION;
+			edit.argc = 1;
+			edit.argv = argv;
+		} else if (strcmp(argv[0], "get") == 0 && argc > 0) {
+			edit.cmd = PORTEDIT_GET_VARIABLE;
+			edit.argc = 2;
+			edit.argv = argv;
+		} else {
 			usage();
 		}
-		argc -= 1;
-		argv += 1;
+		argc -= edit.argc;
+		argv += edit.argc;
 	}
 
 	if (settings.behavior & PARSER_OUTPUT_DUMP_TOKENS) {
@@ -173,7 +193,18 @@ main(int argc, char *argv[])
 	parser_read_finish(parser);
 
 	if (settings.behavior & PARSER_OUTPUT_EDITED) {
-		parser_edit_bump_revision(parser);
+		switch (edit.cmd) {
+		case PORTEDIT_BUMP_REVISION:
+			parser_edit_bump_revision(parser);
+			break;
+		case PORTEDIT_GET_VARIABLE:
+			if (parser_output_variable_value(parser, edit.argv[1]) != 0) {
+				errx(1, "%s not found", edit.argv[1]);
+			}
+			break;
+		default:
+			break;
+		}
 	}
 
 	parser_output_prepare(parser);

@@ -797,6 +797,8 @@ parser_output_prepare(struct Parser *parser)
 {
 	if (parser->settings.behavior & PARSER_OUTPUT_DUMP_TOKENS) {
 		parser_output_dump_tokens(parser);
+	} else if (parser->settings.behavior & PARSER_OUTPUT_RAWLINES) {
+		/* no-op */
 	} else if (parser->settings.behavior & PARSER_OUTPUT_EDITED) {
 		parser_output_edited(parser);
 	} else if (parser->settings.behavior & PARSER_OUTPUT_REFORMAT) {
@@ -1400,7 +1402,32 @@ parser_has_variable(struct Parser *parser, const char *var)
 	return 0;
 }
 
-void
+int
+parser_output_variable_value(struct Parser *parser, const char *name)
+{
+	parser->settings.behavior |= PARSER_OUTPUT_RAWLINES;
+	int found = 0;
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		switch (t->type) {
+		case VARIABLE_TOKEN:
+			if (strcmp(variable_name(t->var), name) == 0) {
+				found = 1;
+				if (t->data) {
+					parser_enqueue_output(parser, t->data);
+					parser_enqueue_output(parser, "\n");
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	return !found;
+}
+
+int
 parser_edit_set_variable(struct Parser *parser, const char *name, const char *value, const char *after)
 {
 	struct Array *tokens = array_new(sizeof(char *));
@@ -1462,14 +1489,16 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 	} else {
 		errx(1, "cannot append: %s not currently set", name);
 		array_free(tokens);
-		return;
+		return 1;
 	}
 
 	array_free(parser->tokens);
 	parser->tokens = tokens;
+
+	return 0;
 }
 
-void
+int
 parser_edit_bump_revision(struct Parser *parser)
 {
 	const char *after = "PORTVERSION";
@@ -1496,6 +1525,8 @@ parser_edit_bump_revision(struct Parser *parser)
 	} else {
 		parser_edit_set_variable(parser, "PORTREVISION", "1", after);
 	}
+
+	return 0;
 }
 
 char *
