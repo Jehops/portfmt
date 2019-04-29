@@ -384,6 +384,8 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 				dollar = 0;
 			} else if (isalnum(c) || c == '@' || c == '<' || c == '>') {
 				dollar = 0;
+			} else if (c == 1) {
+				dollar = 0;
 			} else if (c == '$') {
 				dollar++;
 			} else {
@@ -801,11 +803,18 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr)
 	if (array_len(arr) == 0) {
 		return;
 	}
-	struct Token *arr0 = array_get(arr, 0);
-	if (!(parser->settings.behavior & PARSER_UNSORTED_VARIABLES) && !leave_unsorted(arr0->var)) {
+	struct Token *t0 = array_get(arr, 0);
+
+	/* Leave variables unformatted that have $\ in them. */
+	if (array_len(arr) == 1 && strstr(t0->data, "$\001") != NULL) {
+		parser_output_print_rawlines(parser, &t0->lines);
+		array_truncate(arr);
+		return;
+	}
+	if (!(parser->settings.behavior & PARSER_UNSORTED_VARIABLES) && !leave_unsorted(t0->var)) {
 		array_sort(arr, tokcompare);
 	}
-	if (print_as_newlines(arr0->var)) {
+	if (print_as_newlines(t0->var)) {
 		print_newline_array(parser, arr);
 	} else {
 		print_token_array(parser, arr);
@@ -1036,7 +1045,12 @@ parser_read(struct Parser *parser, char *line)
 
 	int will_continue = matches(RE_CONTINUE_LINE, line, NULL);
 	if (will_continue) {
-		line[linelen - 1] = 0;
+ 		if (linelen > 2 && line[linelen - 2] == '$' && line[linelen - 3] != '$') {
+			/* Hack to "handle" things like $\ in variable values */
+			line[linelen - 1] = 1;
+		} else {
+			line[linelen - 1] = 0;
+		}
 	}
 
 	if (parser->continued) {
