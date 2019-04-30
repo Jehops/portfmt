@@ -3,7 +3,9 @@ set -u
 : ${AWK:=awk}
 PORTFMT="${PWD}/portfmt"
 status=0
-cd tests
+ROOT="${PWD}"
+
+cd "${ROOT}/tests/format"
 : ${TESTS:=*.in}
 for test in ${TESTS}; do
 	t=${test%*.in}
@@ -26,4 +28,5 @@ for test in ${TESTS}; do
 	fi
 done
 rm -f *.actual *.actual2
+
 exit ${status}
