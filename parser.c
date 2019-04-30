@@ -1504,7 +1504,8 @@ parser_edit_bump_revision(struct Parser *parser)
 	const char *after = "PORTVERSION";
 	if (parser_has_variable(parser, "DISTVERSION")) {
 		after = "DISTVERSION";
-	} else if (parser_has_variable(parser, "DISTVERSIONSUFFIX")) {
+	}
+	if (parser_has_variable(parser, "DISTVERSIONSUFFIX")) {
 		after = "DISTVERSIONSUFFIX";
 	}
 
