@@ -1203,6 +1203,17 @@ compare_rel(const char *rel[], size_t rellen, const char *a, const char *b)
 int
 compare_tokens(struct Variable *var, const char *a, const char *b)
 {
+	/* End-of-line comments always go last */
+	if (str_startswith(a, "#") && str_startswith(b, "#")) {
+		return 0;
+	}
+	if (str_startswith(a, "#")) {
+		return 1;
+	}
+	if (str_startswith(b, "#")) {
+		return -1;
+	}
+
 	int result;
 	if (compare_license_perms(var, a, b, &result) ||
 	    compare_plist_files(var, a, b, &result) ||

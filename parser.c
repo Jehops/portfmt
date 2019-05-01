@@ -58,7 +58,6 @@ enum TokenType {
 	CONDITIONAL_TOKEN,
 	CONDITIONAL_START,
 	EMPTY,
-	INLINE_COMMENT,
 	TARGET_COMMAND_END,
 	TARGET_COMMAND_START,
 	TARGET_COMMAND_TOKEN,
@@ -421,24 +420,11 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			} else if (c == '\\') {
 				escape = 1;
 			} else if (c == '#') {
-				/* Try to push end of line comments out of the way above
-				 * the variable as a way to preserve them.  They clash badly
-				 * with sorting tokens in variables.  We could add more
-				 * special cases for this, but often having them at the top
-				 * is just as good.
-				 */
 				char *tmp = str_substr_dup(line, i, strlen(line));
 				token = str_strip_dup(tmp);
 				free(tmp);
-				if (strcmp(token, "#") == 0 ||
-				    strcmp(token, "# empty") == 0 ||
-				    strcmp(token, "#none") == 0 ||
-				    strcmp(token, "# none") == 0) {
-					parser_append_token(parser, type, token);
-					queued_tokens++;
-				} else {
-					parser_append_token(parser, INLINE_COMMENT, token);
-				}
+				parser_append_token(parser, type, token);
+				queued_tokens++;
 
 				free(token);
 				token = NULL;
@@ -528,7 +514,6 @@ parser_find_goalcols(struct Parser *parser)
 			}
 			break;
 		case EMPTY:
-		case INLINE_COMMENT:
 			break;
 		default:
 			errx(1, "Unhandled token type: %i", o->type);
@@ -564,14 +549,36 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		errx(1, "unhandled token type: %i", o->type);
 	}
 
+	size_t arrlen = array_len(arr);
+	if (arrlen > 0 && (o = array_get(arr, arrlen - 1)) != NULL &&
+	    (o->type == VARIABLE_TOKEN) && str_startswith(o->data, "#") &&
+	    strcmp(o->data, "#") != 0 && strcmp(o->data, "# empty") != 0 &&
+	    strcmp(o->data, "#none") != 0 && strcmp(o->data, "# none") != 0) {
+		/* Try to push end of line comments out of the way above
+		 * the variable as a way to preserve them.  They clash badly
+		 * with sorting tokens in variables.  We could add more
+		 * special cases for this, but often having them at the top
+		 * is just as good.
+		 */
+		arrlen--;
+		parser_enqueue_output(parser, o->data);
+		parser_enqueue_output(parser, "\n");
+	}
+	if (arrlen == 0) {
+		char *var = variable_tostring(o->var);
+		parser_enqueue_output(parser, var);
+		parser_enqueue_output(parser, "\n");
+		return;
+	}
+
 	const char *end = " \\\n";
-	for (size_t i = 0; i < array_len(arr); i++) {
+	for (size_t i = 0; i < arrlen; i++) {
 		struct Token *o = array_get(arr, i);
 		char *line = o->data;
 		if (!line || strlen(line) == 0) {
 			continue;
 		}
-		if (i == array_len(arr) - 1) {
+		if (i == arrlen - 1) {
 			end = "\n";
 		}
 		parser_enqueue_output(parser, sep);
@@ -624,6 +631,23 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		return;
 	}
 
+	struct Token *eol_comment;
+	size_t tokenslen = array_len(tokens);
+	if (tokenslen > 0 && (eol_comment = array_get(tokens, tokenslen - 1)) != NULL &&
+	    (eol_comment->type == VARIABLE_TOKEN) && str_startswith(eol_comment->data, "#") &&
+	    strcmp(eol_comment->data, "#") != 0 && strcmp(eol_comment->data, "# empty") != 0 &&
+	    strcmp(eol_comment->data, "#none") != 0 && strcmp(eol_comment->data, "# none") != 0) {
+		/* Try to push end of line comments out of the way above
+		 * the variable as a way to preserve them.  They clash badly
+		 * with sorting tokens in variables.  We could add more
+		 * special cases for this, but often having them at the top
+		 * is just as good.
+		 */
+		tokenslen--;
+	} else {
+		eol_comment = NULL;
+	}
+
 	struct Array *arr = array_new(sizeof(struct Token *));
 	struct Token *o = array_get(tokens, 0);
 	size_t wrapcol;
@@ -636,7 +660,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 
 	char row[1024] = {};
 	struct Token *token = NULL;
-	for (size_t i = 0; i < array_len(tokens); i++) {
+	for (size_t i = 0; i < tokenslen; i++) {
 		token = array_get(tokens, i);
 		if (strlen(token->data) == 0) {
 			continue;
@@ -662,13 +686,16 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 			xstrlcat(row, token->data, sizeof(row));
 		}
 	}
-	if (token && strlen(row) > 0 && array_len(arr) < array_len(tokens)) {
+	if (token && strlen(row) > 0 && array_len(arr) < tokenslen) {
 		struct Token *o = xmalloc(sizeof(struct Token));
 		array_append(parser->gc, o);
 		memcpy(o, token, sizeof(struct Token));
 		o->data = xstrdup(row);
 		array_append(parser->gc, o->data);
 		array_append(arr, o);
+	}
+	if (eol_comment) {
+		array_append(arr, eol_comment);
 	}
 	print_newline_array(parser, arr);
 
@@ -848,12 +875,7 @@ parser_output_edited(struct Parser *parser)
 			free(v);
 			parser_enqueue_output(parser, "\n");
 			break;
-		} case INLINE_COMMENT:
-			if (o->edited && in_variable) {
-				parser_enqueue_output(parser, o->data);
-				parser_enqueue_output(parser, "\n");
-			}
-			break;
+		}
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
@@ -948,13 +970,7 @@ parser_output_reformatted(struct Parser *parser)
 			free(v);
 			parser_enqueue_output(parser, "\n");
 			break;
-		} case INLINE_COMMENT:
-			if (in_variable) {
-				parser_enqueue_output(parser, o->data);
-				parser_enqueue_output(parser, "\n");
-			}
-			break;
-		default:
+		} default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
 	}
@@ -1025,9 +1041,6 @@ parser_output_dump_tokens(struct Parser *parser)
 			break;
 		case EMPTY:
 			type = "empty";
-			break;
-		case INLINE_COMMENT:
-			type = "inline-comment";
 			break;
 		case COMMENT:
 			type = "comment";
