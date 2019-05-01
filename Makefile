@@ -50,7 +50,7 @@ debug:
 		LDFLAGS="-g" \
 		portfmt
 
-test: portfmt
+test: portedit portfmt
 	@/bin/sh run-tests.sh
 
 .PHONY: clean debug install install-symlinks test
