@@ -57,7 +57,6 @@ enum TokenType {
 	CONDITIONAL_END,
 	CONDITIONAL_TOKEN,
 	CONDITIONAL_START,
-	EMPTY,
 	TARGET_COMMAND_END,
 	TARGET_COMMAND_START,
 	TARGET_COMMAND_TOKEN,
@@ -364,7 +363,6 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 	int escape = 0;
 	char *token = NULL;
 	size_t i = start;
-	size_t queued_tokens = 0;
 	for (; i < strlen(line); i++) {
 		assert(i >= start);
 		char c = line[i];
@@ -404,7 +402,6 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 				free(tmp);
 				if (strcmp(token, "") != 0 && strcmp(token, "\\") != 0) {
 					parser_append_token(parser, type, token);
-					queued_tokens++;
 				}
 				free(token);
 				token = NULL;
@@ -424,11 +421,10 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 				token = str_strip_dup(tmp);
 				free(tmp);
 				parser_append_token(parser, type, token);
-				queued_tokens++;
 
 				free(token);
 				token = NULL;
-				goto cleanup;
+				return;
 			}
 		}
 	}
@@ -437,15 +433,10 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 	free(tmp);
 	if (strcmp(token, "") != 0) {
 		parser_append_token(parser, type, token);
-		queued_tokens++;
 	}
 
 	free(token);
 	token = NULL;
-cleanup:
-	if (queued_tokens == 0 && type == VARIABLE_TOKEN) {
-		parser_append_token(parser, EMPTY, NULL);
-	}
 }
 
 void
@@ -513,8 +504,6 @@ parser_find_goalcols(struct Parser *parser)
 				tokens_start = -1;
 			}
 			break;
-		case EMPTY:
-			break;
 		default:
 			errx(1, "Unhandled token type: %i", o->type);
 		}
@@ -537,6 +526,7 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		size_t ntabs = ceil((MAX(16, o->goalcol) - strlen(start)) / 8.0);
 		xstrlcpy(sep, start, sizeof(sep));
 		xstrlcat(sep, repeat('\t', ntabs), sizeof(sep));
+		free(start);
 		break;
 	} case CONDITIONAL_TOKEN:
 		sep[0] = 0;
@@ -848,7 +838,15 @@ parser_output_edited(struct Parser *parser)
 			break;
 		case VARIABLE_END:
 			in_variable = 0;
-			parser_output_reformatted_helper(parser, variable_arr);
+			if (array_len(variable_arr) == 0) {
+				char *var = variable_tostring(o->var);
+				parser_enqueue_output(parser, var);
+				free(var);
+				parser_enqueue_output(parser, "\n");
+				array_truncate(variable_arr);
+			} else {
+				parser_output_reformatted_helper(parser, variable_arr);
+			}
 			break;
 		case VARIABLE_START:
 			in_variable = 1;
@@ -869,13 +867,6 @@ parser_output_edited(struct Parser *parser)
 			parser_output_reformatted_helper(parser, variable_arr);
 			parser_output_print_rawlines(parser, &o->lines);
 			break;
-		case EMPTY: {
-			char *v = variable_tostring(o->var);
-			parser_enqueue_output(parser, v);
-			free(v);
-			parser_enqueue_output(parser, "\n");
-			break;
-		}
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
@@ -938,7 +929,15 @@ parser_output_reformatted(struct Parser *parser)
 			break;
 		case VARIABLE_END:
 			in_variable = 0;
-			parser_output_reformatted_helper(parser, variable_arr);
+			if (array_len(variable_arr) == 0) {
+				char *var = variable_tostring(o->var);
+				parser_enqueue_output(parser, var);
+				free(var);
+				parser_enqueue_output(parser, "\n");
+				array_truncate(variable_arr);
+			} else {
+				parser_output_reformatted_helper(parser, variable_arr);
+			}
 			break;
 		case VARIABLE_START:
 			in_variable = 1;
@@ -964,13 +963,7 @@ parser_output_reformatted(struct Parser *parser)
 			parser_output_reformatted_helper(parser, variable_arr);
 			parser_output_print_rawlines(parser, &o->lines);
 			break;
-		case EMPTY: {
-			char *v = variable_tostring(o->var);
-			parser_enqueue_output(parser, v);
-			free(v);
-			parser_enqueue_output(parser, "\n");
-			break;
-		} default:
+		default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
 	}
@@ -1039,8 +1032,6 @@ parser_output_dump_tokens(struct Parser *parser)
 		case CONDITIONAL_TOKEN:
 			type = "conditional-token";
 			break;
-		case EMPTY:
-			type = "empty";
 			break;
 		case COMMENT:
 			type = "comment";
