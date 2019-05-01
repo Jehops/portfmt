@@ -224,3 +224,9 @@ conditional_tostring(struct Conditional *cond)
 
 	return xstrdup(type);
 }
+
+enum ConditionalType
+conditional_type(struct Conditional *cond)
+{
+	return cond->type;
+}

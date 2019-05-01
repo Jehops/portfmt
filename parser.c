@@ -59,9 +59,6 @@ enum TokenType {
 	CONDITIONAL_START,
 	EMPTY,
 	INLINE_COMMENT,
-	PORT_MK,
-	PORT_OPTIONS_MK,
-	PORT_PRE_MK,
 	TARGET_COMMAND_END,
 	TARGET_COMMAND_START,
 	TARGET_COMMAND_TOKEN,
@@ -516,9 +513,6 @@ parser_find_goalcols(struct Parser *parser)
 			break;
 		case COMMENT:
 		case CONDITIONAL_TOKEN:
-		case PORT_MK:
-		case PORT_OPTIONS_MK:
-		case PORT_PRE_MK:
 			/* Ignore comments in between variables and
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
@@ -844,9 +838,6 @@ parser_output_edited(struct Parser *parser)
 		case TARGET_END:
 			break;
 		case COMMENT:
-		case PORT_OPTIONS_MK:
-		case PORT_MK:
-		case PORT_PRE_MK:
 		case TARGET_START:
 			parser_output_reformatted_helper(parser, variable_arr);
 			parser_output_print_rawlines(parser, &o->lines);
@@ -947,9 +938,6 @@ parser_output_reformatted(struct Parser *parser)
 		case TARGET_END:
 			break;
 		case COMMENT:
-		case PORT_OPTIONS_MK:
-		case PORT_MK:
-		case PORT_PRE_MK:
 		case TARGET_START:
 			parser_output_reformatted_helper(parser, variable_arr);
 			parser_output_print_rawlines(parser, &o->lines);
@@ -1044,15 +1032,6 @@ parser_output_dump_tokens(struct Parser *parser)
 		case COMMENT:
 			type = "comment";
 			break;
-		case PORT_MK:
-			type = "port-mk";
-			break;
-		case PORT_PRE_MK:
-			type = "port-pre-mk";
-			break;
-		case PORT_OPTIONS_MK:
-			type = "port-options-mk";
-			break;
 		default:
 			errx(1, "Unhandled output type: %i", o->type);
 		}
@@ -1106,7 +1085,7 @@ parser_output_dump_tokens(struct Parser *parser)
 		}
 		parser_enqueue_output(parser, " ");
 
-		if (o->data) {
+		if (o->data && (o->type != CONDITIONAL_START && o->type != CONDITIONAL_END)) {
 			parser_enqueue_output(parser, o->data);
 		} else {
 			parser_enqueue_output(parser, "-");
@@ -1178,10 +1157,10 @@ parser_read_internal(struct Parser *parser, const char *buf)
 			}
 			parser->condname = str_trim(str_substr_dup(buf, 0, pos));
 
-			parser_append_token(parser, CONDITIONAL_START, NULL);
+			parser_append_token(parser, CONDITIONAL_START, parser->condname);
 			parser_append_token(parser, CONDITIONAL_TOKEN, parser->condname);
 			parser_tokenize(parser, buf, CONDITIONAL_TOKEN, pos);
-			parser_append_token(parser, CONDITIONAL_END, NULL);
+			parser_append_token(parser, CONDITIONAL_END, parser->condname);
 			goto next;
 		}
 		if (consume_var(buf) == 0 && consume_target(buf) == 0) {
@@ -1208,28 +1187,16 @@ parser_read_internal(struct Parser *parser, const char *buf)
 
 	pos = consume_conditional(buf);
 	if (pos > 0) {
-		if (str_endswith(buf, "<bsd.port.options.mk>")) {
-			parser_append_token(parser, PORT_OPTIONS_MK, buf);
-			goto next;
-		} else if (str_endswith(buf, "<bsd.port.pre.mk>")) {
-			parser_append_token(parser, PORT_PRE_MK, buf);
-			goto next;
-		} else if (str_endswith(buf, "<bsd.port.post.mk>") ||
-			   str_endswith(buf, "<bsd.port.mk>")) {
-			parser_append_token(parser, PORT_MK, buf);
-			goto next;
-		} else {
-			if (parser->condname) {
-				free(parser->condname);
-				parser->condname = NULL;
-			}
-			parser->condname = str_trim(str_substr_dup(buf, 0, pos));
-
-			parser_append_token(parser, CONDITIONAL_START, NULL);
-			parser_append_token(parser, CONDITIONAL_TOKEN, parser->condname);
-			parser_tokenize(parser, buf, CONDITIONAL_TOKEN, pos);
-			parser_append_token(parser, CONDITIONAL_END, NULL);
+		if (parser->condname) {
+			free(parser->condname);
+			parser->condname = NULL;
 		}
+		parser->condname = str_trim(str_substr_dup(buf, 0, pos));
+
+		parser_append_token(parser, CONDITIONAL_START, parser->condname);
+		parser_append_token(parser, CONDITIONAL_TOKEN, parser->condname);
+		parser_tokenize(parser, buf, CONDITIONAL_TOKEN, pos);
+		parser_append_token(parser, CONDITIONAL_END, parser->condname);
 		goto next;
 	}
 
@@ -1342,10 +1309,14 @@ parser_sanitize_append_modifier(struct Parser *parser)
 			}
 			start = -1;
 			break;
-		} case PORT_OPTIONS_MK:
-		case PORT_PRE_MK:
-		case PORT_MK:
-			goto end;
+		} case CONDITIONAL_TOKEN:
+			if (conditional_type(t->cond) == COND_INCLUDE &&
+			    (strcmp(t->data, "<bsd.port.options.mk>") == 0 ||
+			     strcmp(t->data, "<bsd.port.pre.mk>") == 0 ||
+			     strcmp(t->data, "<bsd.port.post.mk>") == 0 ||
+			     strcmp(t->data, "<bsd.port.mk>") == 0)) {
+				goto end;
+			}
 		default:
 			break;
 		}
