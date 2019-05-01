@@ -10,10 +10,13 @@ LDADD+=		-lm
 OBJS=		array.o compats.o conditional.o parser.o portfmt.o rules.o \
 		target.o util.o variable.o
 
-all: portfmt
+all: portedit portfmt
 
 portfmt: ${OBJS}
 	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LDADD}
+
+portedit: portfmt
+	${LN} -sf portfmt portedit
 
 array.o: config.h array.c array.h
 conditional.o: config.h conditional.c conditional.h
@@ -40,7 +43,7 @@ install-symlinks:
 		install
 
 clean:
-	@rm -f ${OBJS} portfmt config.*.old
+	@rm -f ${OBJS} portedit portfmt config.*.old
 
 debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \

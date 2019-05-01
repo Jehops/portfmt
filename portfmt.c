@@ -65,7 +65,7 @@ usage()
 	if (strcmp(getprogname(), "portfmt") == 0) {
 		fprintf(stderr, "usage: portfmt [-aditu] [-w wrapcol] [Makefile]\n");
 	} else {
-		fprintf(stderr, "usage: portedit [-aditu] [-w wrapcol] bump-revision [Makefile]\n");
+		fprintf(stderr, "usage: portedit [-aditu] [-w wrapcol] bump-revision|get [Makefile]\n");
 	}
 	exit(EX_USAGE);
 }
