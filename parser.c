@@ -540,10 +540,9 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	}
 
 	size_t arrlen = array_len(arr);
-	if (arrlen > 0 && (o = array_get(arr, arrlen - 1)) != NULL &&
-	    (o->type == VARIABLE_TOKEN) && str_startswith(o->data, "#") &&
-	    strcmp(o->data, "#") != 0 && strcmp(o->data, "# empty") != 0 &&
-	    strcmp(o->data, "#none") != 0 && strcmp(o->data, "# none") != 0) {
+	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS) &&
+	    arrlen > 0 && (o = array_get(arr, arrlen - 1)) != NULL &&
+	    (o->type == VARIABLE_TOKEN) && !preserve_eol_comment(o->data)) {
 		/* Try to push end of line comments out of the way above
 		 * the variable as a way to preserve them.  They clash badly
 		 * with sorting tokens in variables.  We could add more
@@ -623,10 +622,9 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 
 	struct Token *eol_comment;
 	size_t tokenslen = array_len(tokens);
-	if (tokenslen > 0 && (eol_comment = array_get(tokens, tokenslen - 1)) != NULL &&
-	    (eol_comment->type == VARIABLE_TOKEN) && str_startswith(eol_comment->data, "#") &&
-	    strcmp(eol_comment->data, "#") != 0 && strcmp(eol_comment->data, "# empty") != 0 &&
-	    strcmp(eol_comment->data, "#none") != 0 && strcmp(eol_comment->data, "# none") != 0) {
+	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS) &&
+	    tokenslen > 0 && (eol_comment = array_get(tokens, tokenslen - 1)) != NULL &&
+	    (eol_comment->type == VARIABLE_TOKEN) && !preserve_eol_comment(eol_comment->data)) {
 		/* Try to push end of line comments out of the way above
 		 * the variable as a way to preserve them.  They clash badly
 		 * with sorting tokens in variables.  We could add more

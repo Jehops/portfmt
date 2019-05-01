@@ -53,6 +53,7 @@ int ignore_wrap_col(struct Variable *);
 int indent_goalcol(struct Variable *);
 int leave_unsorted(struct Variable *);
 int matches(enum RegularExpression, const char *, regmatch_t *);
+int preserve_eol_comment(const char *);
 int print_as_newlines(struct Variable *);
 int skip_goalcol(struct Variable *);
 char *sub(enum RegularExpression, const char *, const char *);

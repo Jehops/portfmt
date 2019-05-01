@@ -1139,6 +1139,16 @@ leave_unsorted(struct Variable *var)
 }
 
 int
+preserve_eol_comment(const char *token)
+{
+	if (!str_startswith(token, "#")) {
+		return 1;
+	}
+	return strcmp(token, "#") == 0 || strcmp(token, "# empty") == 0 ||
+		strcmp(token, "#none") == 0 || strcmp(token, "# none") == 0;
+}
+
+int
 print_as_newlines(struct Variable *var)
 {
 	for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
