@@ -1414,7 +1414,6 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 					struct Token *et = xmalloc(sizeof(struct Token));
 					memcpy(et, t, sizeof(struct Token));
 					et->data = xstrdup(value);
-					array_append(parser->gc, et->data);
 					et->edited = 1;
 					array_append(tokens, et);
 			} else {
