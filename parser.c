@@ -237,6 +237,10 @@ parser_new(struct ParserSettings *settings)
 
 	compile_regular_expressions();
 
+	if (parser->settings.behavior & PARSER_OUTPUT_EDITED) {
+		parser->settings.behavior &= ~PARSER_COLLAPSE_ADJACENT_VARIABLES;
+	}
+
 	return parser;
 }
 
