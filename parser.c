@@ -459,29 +459,18 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	struct Token *o = array_get(arr, 0);
 	assert(o && token_data(o) != NULL);
 	assert(strlen(token_data(o)) != 0);
-	switch (token_type(o)) {
-	case VARIABLE_TOKEN: {
-		char *start = variable_tostring(token_variable(o));
-		size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
-		xstrlcpy(sep, start, sizeof(sep));
-		xstrlcat(sep, repeat('\t', ntabs), sizeof(sep));
-		free(start);
-		break;
-	} case CONDITIONAL_TOKEN:
-		sep[0] = 0;
-		break;
-	case TARGET_COMMAND_TOKEN:
-		sep[0] = '\t';
-		sep[1] = 0;
-		break;
-	default:
-		errx(1, "unhandled token type: %i", token_type(o));
-	}
+	assert(token_type(o) == VARIABLE_TOKEN);
+
+	char *start = variable_tostring(token_variable(o));
+	size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
+	xstrlcpy(sep, start, sizeof(sep));
+	xstrlcat(sep, repeat('\t', ntabs), sizeof(sep));
+	free(start);
 
 	size_t arrlen = array_len(arr);
 	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS) &&
 	    arrlen > 0 && (o = array_get(arr, arrlen - 1)) != NULL &&
-	    (token_type(o) == VARIABLE_TOKEN) && !preserve_eol_comment(token_data(o))) {
+	    !preserve_eol_comment(token_data(o))) {
 		/* Try to push end of line comments out of the way above
 		 * the variable as a way to preserve them.  They clash badly
 		 * with sorting tokens in variables.  We could add more
