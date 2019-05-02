@@ -95,7 +95,6 @@ static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
 static char *range_tostring(struct Range *);
 static int tokcompare(const void *, const void *);
-static struct Token *parser_get_token(struct Parser *, size_t);
 static int parser_has_variable(struct Parser *, const char *);
 
 size_t
@@ -288,12 +287,6 @@ parser_enqueue_output(struct Parser *parser, const char *s)
 	array_append(parser->result, xstrdup(s));
 }
 
-struct Token *
-parser_get_token(struct Parser *parser, size_t i)
-{
-	return array_get(parser->tokens, i);
-}
-
 void
 parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, size_t start)
 {
@@ -383,7 +376,7 @@ parser_propagate_goalcol(struct Parser *parser, size_t start, size_t end,
 {
 	moving_goalcol = MAX(16, moving_goalcol);
 	for (size_t k = start; k <= end; k++) {
-		struct Token *t = parser_get_token(parser, k);
+		struct Token *t = array_get(parser->tokens, k);
 		if (!token_ignore(t) && token_variable(t) && !skip_goalcol(token_variable(t))) {
 			token_set_goalcol(t, moving_goalcol);
 		}
@@ -398,7 +391,7 @@ parser_find_goalcols(struct Parser *parser)
 	ssize_t tokens_start = -1;
 	ssize_t tokens_end = -1;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = parser_get_token(parser, i);
+		struct Token *t = array_get(parser->tokens, i);
 		if (token_ignore(t)) {
 			continue;
 		}
