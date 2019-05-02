@@ -1391,15 +1391,14 @@ parser_edit_bump_revision(struct Parser *parser)
 	if (parser_has_variable(parser, "DISTVERSIONSUFFIX")) {
 		after = "DISTVERSIONSUFFIX";
 	}
-	if (parser_has_variable(parser, "DISTVERSIONPREFIX") &&
-	    parser_has_variable(parser, "PORTVERSION") &&
+	if (parser_has_variable(parser, "PORTVERSION") &&
 	    !parser_has_variable(parser, "DISTVERSION")) {
-		after = "DISTVERSIONPREFIX";
-	}
-	if (parser_has_variable(parser, "DISTVERSIONSUFFIX") &&
-	    parser_has_variable(parser, "PORTVERSION") &&
-	    !parser_has_variable(parser, "DISTVERSION")) {
-		after = "DISTVERSIONSUFFIX";
+		if (parser_has_variable(parser, "DISTVERSIONPREFIX")) {
+			after = "DISTVERSIONPREFIX";
+		}
+		if (parser_has_variable(parser, "DISTVERSIONSUFFIX")) {
+			after = "DISTVERSIONSUFFIX";
+		}
 	}
 
 	char *current_revision = parser_lookup_variable(parser, "PORTREVISION");
