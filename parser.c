@@ -1234,7 +1234,8 @@ parser_collapse_adjacent_variables(struct Parser *parser)
 {
 	struct Array *tokens = array_new(sizeof(struct Array *));
 	struct Variable *last_var = NULL;
-	struct Token *last = NULL;
+	struct Token *last_end = NULL;
+	struct Token *last_token = NULL;
 	struct Array *ignored_tokens = array_new(sizeof(struct Array *));
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
@@ -1245,17 +1246,24 @@ parser_collapse_adjacent_variables(struct Parser *parser)
 			    variable_modifier(last_var) != MODIFIER_EXPAND &&
 			    variable_modifier(token_variable(t)) != MODIFIER_EXPAND) {
 				array_append(ignored_tokens, t);
-				if (last) {
-					array_append(ignored_tokens, last);
-					last = NULL;
+				if (last_end) {
+					array_append(ignored_tokens, last_end);
+					last_end = NULL;
 				}
 			}
 			break;
+		case VARIABLE_TOKEN:
+			last_token = t;
+			break;
 		case VARIABLE_END:
-			last = t;
+			if (!last_token || !str_startswith(token_data(last_token), "#")) {
+				last_end = t;
+			}
+			last_token = NULL;
+			last_var = token_variable(t);
 			break;
 		default:
-			last_var = token_variable(t);
+			last_var = NULL;
 			break;
 		}
 	}
