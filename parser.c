@@ -632,7 +632,6 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	const char *start = startlv0;
 
 	/* Find the places we need to wrap to the next line.
-	 * TODO: This is broken as wrapping changes the next place we need to wrap
 	 */
 	struct Array *wraps = array_new(sizeof(int));
 	size_t column = 8;
