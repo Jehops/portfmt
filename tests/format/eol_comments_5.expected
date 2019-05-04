@@ -1,0 +1,4 @@
+# plugins
+# ICE, SM, Xext
+LDFLAGS+=	-Wl,-E \
+		-Wl,--as-needed
