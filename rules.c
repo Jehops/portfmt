@@ -930,6 +930,8 @@ static const char *leave_unsorted_[] = {
 // Don't indent with the rest of the variables in a paragraph
 static const char *skip_goalcol_[] = {
 	"CARGO_CRATES",
+	"DISTFILES_amd64",
+	"DISTFILES_i386",
 	"DISTVERSIONPREFIX",
 	"DISTVERSIONSUFFIX",
 	"EXTRACT_AFTER_ARGS",
