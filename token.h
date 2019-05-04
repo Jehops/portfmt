@@ -51,7 +51,7 @@ struct Range {
 
 struct Token;
 
-struct Token *token_new(enum TokenType, struct Range *, char *, char *, char *, char *);
+struct Token *token_new(enum TokenType, struct Range *, const char *, char *, char *, char *);
 void token_free(struct Token *);
 struct Token *token_clone(struct Token *);
 struct Conditional *token_conditional(struct Token *);
@@ -64,7 +64,7 @@ struct Target *token_target(struct Token *);
 enum TokenType token_type(struct Token *);
 struct Variable *token_variable(struct Token *);
 void token_set_conditional(struct Token *, struct Conditional *);
-void token_set_data(struct Token *, char *);
+void token_set_data(struct Token *, const char *);
 void token_set_edited(struct Token *, int);
 void token_set_goalcol(struct Token *, int);
 void token_set_ignore(struct Token *, int);

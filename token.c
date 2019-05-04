@@ -50,15 +50,17 @@ struct Token {
 };
 
 struct Token *
-token_new(enum TokenType type, struct Range *lines, char *data,
+token_new(enum TokenType type, struct Range *lines, const char *data,
 	  char *varname, char *condname, char *targetname)
 {
 	struct Token *t = xmalloc(sizeof(struct Token));
 
 	t->type = type;
-	t->data = data;
 	t->lines = *lines;
 
+	if (data) {
+		t->data = xstrdup(data);
+	}
 	if (targetname) {
 		t->target = target_new(targetname);
 	}
@@ -91,7 +93,25 @@ struct Token *
 token_clone(struct Token *token)
 {
 	struct Token *t = xmalloc(sizeof(struct Token));
-	memcpy(t, token, sizeof(struct Token));
+
+	t->type = token->type;
+	if (token->data) {
+		t->data = xstrdup(token->data);
+	}
+	if (token->cond) {
+		t->cond = conditional_clone(token->cond);
+	}
+	if (token->var) {
+		t->var = variable_clone(token->var);
+	}
+	if (token->target) {
+		t->target = target_clone(token->target);
+	}
+	t->goalcol = token->goalcol;
+	t->lines = token->lines;
+	t->ignore = token->ignore;
+	t->edited = token->edited;
+
 	return t;
 }
 
@@ -152,13 +172,24 @@ token_variable(struct Token *token)
 void
 token_set_conditional(struct Token *token, struct Conditional *cond)
 {
+	if (token->cond) {
+		conditional_free(token->cond);
+	}
 	token->cond = cond;
 }
 
 void
-token_set_data(struct Token *token, char *data)
+token_set_data(struct Token *token, const char *data)
 {
-	token->data = data;
+	if (token->data) {
+		free(token->data);
+	}
+
+	if (data) {
+		token->data = xstrdup(data);
+	} else {
+		token->data = NULL;
+	}
 }
 
 void
@@ -182,6 +213,9 @@ token_set_ignore(struct Token *token, int ignore)
 void
 token_set_target(struct Token *token, struct Target *target)
 {
+	if (token->target) {
+		target_free(token->target);
+	}
 	token->target = target;
 }
 
@@ -194,6 +228,8 @@ token_set_type(struct Token *token, enum TokenType type)
 void
 token_set_variable(struct Token *token, struct Variable *var)
 {
+	if (token->var) {
+		variable_free(token->var);
+	}
 	token->var = var;
 }
-

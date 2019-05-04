@@ -1,0 +1,2 @@
+QT5_USE=	QT=buildtools_build,widgets,core,gui,xml,qmake_build
+X11_USE=	xorg+=x11,bitmaps,ice
