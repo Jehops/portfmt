@@ -77,6 +77,15 @@ variable_new(const char *buf) {
 	return var;
 }
 
+struct Variable *
+variable_clone(struct Variable *var)
+{
+	struct Variable *newvar = xmalloc(sizeof(struct Variable));
+	newvar->name = xstrdup(var->name);
+	newvar->modifier = var->modifier;
+	return newvar;
+}
+
 void
 variable_free(struct Variable *var)
 {
