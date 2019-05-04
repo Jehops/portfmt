@@ -59,6 +59,15 @@ target_new(char *buf) {
 	return target;
 }
 
+struct Target *
+target_clone(struct Target *target)
+{
+	struct Target *newtarget = xmalloc(sizeof(struct Target));
+	newtarget->name = xstrdup(target->name);
+	newtarget->deps = xstrdup(target->deps);
+	return newtarget;
+}
+
 void
 target_free(struct Target *target)
 {
