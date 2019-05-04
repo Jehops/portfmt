@@ -845,6 +845,7 @@ static const char *leave_unsorted_[] = {
 	"LN",
 	"LS",
 	"MAKE_JOBS_UNSAFE",
+	"MANUAL_PACKAGE_BUILD",
 	"MASTER_SITES",
 	"MASTER_SORT_AWK",
 	"MD5",
