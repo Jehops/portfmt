@@ -739,7 +739,6 @@ parser_output_edited(struct Parser *parser)
 	parser_find_goalcols(parser);
 
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
-	int in_variable = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
 		if (token_ignore(o)) {
@@ -753,7 +752,6 @@ parser_output_edited(struct Parser *parser)
 		case CONDITIONAL_TOKEN:
 			break;
 		case VARIABLE_END:
-			in_variable = 0;
 			if (array_len(variable_arr) == 0) {
 				char *var = variable_tostring(token_variable(o));
 				parser_enqueue_output(parser, var);
@@ -765,7 +763,6 @@ parser_output_edited(struct Parser *parser)
 			}
 			break;
 		case VARIABLE_START:
-			in_variable = 1;
 			array_truncate(variable_arr);
 			break;
 		case VARIABLE_TOKEN:
@@ -910,7 +907,6 @@ parser_output_reformatted(struct Parser *parser)
 
 	struct Array *target_arr = array_new(sizeof(struct Token *));
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
-	int in_variable = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
 		if (token_ignore(o)) {
@@ -924,7 +920,6 @@ parser_output_reformatted(struct Parser *parser)
 		case CONDITIONAL_TOKEN:
 			break;
 		case VARIABLE_END:
-			in_variable = 0;
 			if (array_len(variable_arr) == 0) {
 				char *var = variable_tostring(token_variable(o));
 				parser_enqueue_output(parser, var);
@@ -936,7 +931,6 @@ parser_output_reformatted(struct Parser *parser)
 			}
 			break;
 		case VARIABLE_START:
-			in_variable = 1;
 			array_truncate(variable_arr);
 			break;
 		case VARIABLE_TOKEN:
@@ -1036,7 +1030,7 @@ parser_output_dump_tokens(struct Parser *parser)
 			errx(1, "Unhandled output type: %i", token_type(t));
 		}
 		char *var = NULL;
-		ssize_t len = maxvarlen;
+		ssize_t len;
 		if (token_variable(t) &&
 		    (token_type(t) == VARIABLE_TOKEN ||
 		     token_type(t) == VARIABLE_START ||
