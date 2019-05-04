@@ -132,6 +132,14 @@ conditional_new(char *s)
 	return cond;
 }
 
+struct Conditional *
+conditional_clone(struct Conditional *cond)
+{
+	struct Conditional *newcond = xmalloc(sizeof(struct Conditional));
+	newcond->type = cond->type;
+	return newcond;
+}
+
 void
 conditional_free(struct Conditional *cond)
 {
