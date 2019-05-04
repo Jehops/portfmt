@@ -1093,6 +1093,9 @@ parser_read(struct Parser *parser, char *line)
  		if (linelen > 2 && line[linelen - 2] == '$' && line[linelen - 3] != '$') {
 			/* Hack to "handle" things like $\ in variable values */
 			line[linelen - 1] = 1;
+		} else if (linelen > 1 && !isspace(line[linelen - 2])) {
+			/* "Handle" lines that end without a preceding space before '\'. */
+			line[linelen - 1] = ' ';
 		} else {
 			line[linelen - 1] = 0;
 		}
