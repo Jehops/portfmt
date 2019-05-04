@@ -378,7 +378,7 @@ parser_propagate_goalcol(struct Parser *parser, size_t start, size_t end,
 	moving_goalcol = MAX(16, moving_goalcol);
 	for (size_t k = start; k <= end; k++) {
 		struct Token *t = array_get(parser->tokens, k);
-		if (!token_ignore(t) && token_variable(t) && !skip_goalcol(token_variable(t))) {
+		if (token_variable(t) && !skip_goalcol(token_variable(t))) {
 			token_set_goalcol(t, moving_goalcol);
 		}
 	}
@@ -393,9 +393,6 @@ parser_find_goalcols(struct Parser *parser)
 	ssize_t tokens_end = -1;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
-		if (token_ignore(t)) {
-			continue;
-		}
 		switch (token_type(t)) {
 		case VARIABLE_END:
 		case VARIABLE_START:
@@ -741,9 +738,6 @@ parser_output_edited(struct Parser *parser)
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
-		if (token_ignore(o)) {
-			continue;
-		}
 		switch (token_type(o)) {
 		case CONDITIONAL_END:
 			parser_output_print_rawlines(parser, token_lines(o));
@@ -913,9 +907,6 @@ parser_output_reformatted(struct Parser *parser)
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
-		if (token_ignore(o)) {
-			continue;
-		}
 		switch (token_type(o)) {
 		case CONDITIONAL_END:
 			parser_output_print_rawlines(parser, token_lines(o));
@@ -976,9 +967,6 @@ parser_output_dump_tokens(struct Parser *parser)
 	size_t maxvarlen = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
-		if (token_ignore(o)) {
-			continue;
-		}
 		if (token_type(o) == VARIABLE_START && token_variable(o)) {
 			char *var = variable_tostring(token_variable(o));
 			maxvarlen = MAX(maxvarlen, strlen(var));
@@ -988,9 +976,6 @@ parser_output_dump_tokens(struct Parser *parser)
 
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
-		if (token_ignore(t)) {
-			continue;
-		}
 		const char *type;
 		switch (token_type(t)) {
 		case VARIABLE_END:
@@ -1247,8 +1232,10 @@ parser_read_finish(struct Parser *parser)
 void
 parser_collapse_adjacent_variables(struct Parser *parser)
 {
+	struct Array *tokens = array_new(sizeof(struct Array *));
 	struct Variable *last_var = NULL;
 	struct Token *last = NULL;
+	struct Array *ignored_tokens = array_new(sizeof(struct Array *));
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
 		switch (token_type(t)) {
@@ -1257,9 +1244,9 @@ parser_collapse_adjacent_variables(struct Parser *parser)
 			    variable_cmp(token_variable(t), last_var) == 0 &&
 			    variable_modifier(last_var) != MODIFIER_EXPAND &&
 			    variable_modifier(token_variable(t)) != MODIFIER_EXPAND) {
-				token_set_ignore(t, 1);
+				array_append(ignored_tokens, t);
 				if (last) {
-					token_set_ignore(last, 1);
+					array_append(ignored_tokens, last);
 					last = NULL;
 				}
 			}
@@ -1272,6 +1259,17 @@ parser_collapse_adjacent_variables(struct Parser *parser)
 			break;
 		}
 	}
+
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		if (array_find(ignored_tokens, t, NULL) == -1) {
+			array_append(tokens, t);
+		}
+	}
+
+	array_free(ignored_tokens);
+	array_free(parser->tokens);
+	parser->tokens = tokens;
 }
 
 void
@@ -1282,9 +1280,6 @@ parser_sanitize_append_modifier(struct Parser *parser)
 	struct Array *seen = array_new(sizeof(struct Variable *));
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
-		if (token_ignore(t)) {
-			continue;
-		}
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			start = i;

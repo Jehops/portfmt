@@ -45,7 +45,6 @@ struct Token {
 	struct Target *target;
 	int goalcol;
 	struct Range lines;
-	int ignore;
 	int edited;
 };
 
@@ -109,7 +108,6 @@ token_clone(struct Token *token)
 	}
 	t->goalcol = token->goalcol;
 	t->lines = token->lines;
-	t->ignore = token->ignore;
 	t->edited = token->edited;
 
 	return t;
@@ -137,12 +135,6 @@ int
 token_goalcol(struct Token *token)
 {
 	return token->goalcol;
-}
-
-int
-token_ignore(struct Token *token)
-{
-	return token->ignore;
 }
 
 struct Range *
@@ -202,12 +194,6 @@ void
 token_set_goalcol(struct Token *token, int goalcol)
 {
 	token->goalcol = goalcol;
-}
-
-void
-token_set_ignore(struct Token *token, int ignore)
-{
-	token->ignore = ignore;
 }
 
 void
