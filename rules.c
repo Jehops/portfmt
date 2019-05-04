@@ -114,7 +114,6 @@ static const char *print_as_newlines_[] = {
 	"MASTER_SITES_SUBDIRS",
 	"MESON_ARGS",
 	"MOZ_OPTIONS",
-	"OPTIONS_EXCLUDE",
 	"PATCH_DEPENDS",
 	"PKG_DEPENDS",
 	"PKG_ENV",
