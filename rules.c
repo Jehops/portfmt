@@ -83,7 +83,7 @@ static struct {
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
 	[RE_TARGET] 	      = { "^([^:]|[^[:space:]])+::?([[:space:]]+|$)", REG_EXTENDED, {} },
-	[RE_VAR] 	      = { "^ *[^[:space:]]+[[:space:]]*[+!?:]?=",	      REG_EXTENDED, {} },
+	[RE_VAR] 	      = { "^ *[^[:space:]=]+[[:space:]]*[+!?:]?=",	      REG_EXTENDED, {} },
 };
 
 static const char *print_as_newlines_[] = {
