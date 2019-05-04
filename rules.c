@@ -72,6 +72,7 @@ static struct {
 				  "LICENSE_PERMS[+?:]?)",
 				  REG_EXTENDED, {} },
 	[RE_OPTIONS_HELPER]   = { "generated in compile_regular_expressions", REG_EXTENDED, {} },
+	[RE_OPT_USE_PREFIX]   = { "^[A-Za-z0-9_]+\\+?=", REG_EXTENDED, {} },
 	[RE_OPT_USE]	      = { "^[A-Z0-9_]+_USE$", REG_EXTENDED, {} },
 	[RE_OPT_VARS]	      = { "^[A-Z0-9_]+_VARS$", REG_EXTENDED, {} },
 	[RE_PLIST_FILES]      = { "^([A-Z0-9_]+_PLIST_DIRS[+?:]?|"

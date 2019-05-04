@@ -810,6 +810,10 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 	for (size_t i = 0; i < array_len(arr); i++) {
 		t = array_get(arr, i);
 		assert(token_type(t) == VARIABLE_TOKEN);
+		if (!matches(RE_OPT_USE_PREFIX, token_data(t), NULL)) {
+			array_append(up, t);
+			continue;
+		}
 		char *suffix = strchr(token_data(t), '=');
 		if (suffix == NULL ) {
 			array_append(up, t);
