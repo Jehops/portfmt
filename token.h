@@ -61,9 +61,4 @@ struct Range *token_lines(struct Token *);
 struct Target *token_target(struct Token *);
 enum TokenType token_type(struct Token *);
 struct Variable *token_variable(struct Token *);
-void token_set_conditional(struct Token *, struct Conditional *);
 void token_set_goalcol(struct Token *, int);
-void token_set_target(struct Token *, struct Target *);
-void token_set_type(struct Token *, enum TokenType);
-void token_set_variable(struct Token *, struct Variable *);
-

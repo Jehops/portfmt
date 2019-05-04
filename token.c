@@ -156,40 +156,8 @@ token_variable(struct Token *token)
 }
 
 void
-token_set_conditional(struct Token *token, struct Conditional *cond)
-{
-	if (token->cond) {
-		conditional_free(token->cond);
-	}
-	token->cond = cond;
-}
-
-void
 token_set_goalcol(struct Token *token, int goalcol)
 {
 	token->goalcol = goalcol;
 }
 
-void
-token_set_target(struct Token *token, struct Target *target)
-{
-	if (token->target) {
-		target_free(token->target);
-	}
-	token->target = target;
-}
-
-void
-token_set_type(struct Token *token, enum TokenType type)
-{
-	token->type = type;
-}
-
-void
-token_set_variable(struct Token *token, struct Variable *var)
-{
-	if (token->var) {
-		variable_free(token->var);
-	}
-	token->var = var;
-}
