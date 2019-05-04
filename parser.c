@@ -64,6 +64,7 @@ struct Parser {
 	char *targetname;
 	char *varname;
 
+	struct Array *edited; /* unowned struct Token * */
 	struct Array *tokengc;
 	struct Array *tokens;
 	struct Array *result;
@@ -227,6 +228,7 @@ parser_new(struct ParserSettings *settings)
 {
 	struct Parser *parser = xmalloc(sizeof(struct Parser));
 
+	parser->edited = array_new(sizeof(void *));
 	parser->tokengc = array_new(sizeof(void *));
 	parser->rawlines = array_new(sizeof(char *));
 	parser->result = array_new(sizeof(char *));
@@ -248,6 +250,8 @@ parser_new(struct ParserSettings *settings)
 void
 parser_free(struct Parser *parser)
 {
+	array_free(parser->edited);
+
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
 		token_free(t);
@@ -875,7 +879,7 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr)
 		goto cleanup;
 	}
 
-	if (!token_edited(t0) && (parser->settings.behavior & PARSER_OUTPUT_EDITED)) {
+	if (array_find(parser->edited, t0, NULL) == -1 && (parser->settings.behavior & PARSER_OUTPUT_EDITED)) {
 		parser_output_print_rawlines(parser, token_lines(t0));
 		goto cleanup;
 	}
@@ -1417,7 +1421,7 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 					array_append(parser->tokengc, t);
 					struct Token *et = token_clone(t);
 					token_set_data(et, value);
-					token_set_edited(et, 1);
+					array_append(parser->edited, et);
 					array_append(tokens, et);
 			} else {
 				array_append(tokens, t);
@@ -1436,17 +1440,17 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 				}
 				struct Token *token = token_new(VARIABLE_START, token_lines(t),
 								NULL, var, NULL, NULL);
-				token_set_edited(token, 1);
+				array_append(parser->edited, token);
 				array_append(tokens, token);
 
 				token = token_new(VARIABLE_TOKEN, token_lines(t),
 						  "1", var, NULL, NULL);
-				token_set_edited(token, 1);
+				array_append(parser->edited, token);
 				array_append(tokens, token);
 
 				token = token_new(VARIABLE_END, token_lines(t),
 						  NULL, var, NULL, NULL);
-				token_set_edited(token, 1);
+				array_append(parser->edited, token);
 				array_append(tokens, token);
 			}
 		}

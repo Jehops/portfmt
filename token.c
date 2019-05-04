@@ -45,7 +45,6 @@ struct Token {
 	struct Target *target;
 	int goalcol;
 	struct Range lines;
-	int edited;
 };
 
 struct Token *
@@ -108,7 +107,6 @@ token_clone(struct Token *token)
 	}
 	t->goalcol = token->goalcol;
 	t->lines = token->lines;
-	t->edited = token->edited;
 
 	return t;
 }
@@ -123,12 +121,6 @@ char *
 token_data(struct Token *token)
 {
 	return token->data;
-}
-
-int
-token_edited(struct Token *token)
-{
-	return token->edited;
 }
 
 int
@@ -182,12 +174,6 @@ token_set_data(struct Token *token, const char *data)
 	} else {
 		token->data = NULL;
 	}
-}
-
-void
-token_set_edited(struct Token *token, int edited)
-{
-	token->edited = edited;
 }
 
 void
