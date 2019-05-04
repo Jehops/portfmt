@@ -53,7 +53,7 @@ struct Token;
 
 struct Token *token_new(enum TokenType, struct Range *, const char *, char *, char *, char *);
 void token_free(struct Token *);
-struct Token *token_clone(struct Token *);
+struct Token *token_clone(struct Token *, const char *);
 struct Conditional *token_conditional(struct Token *);
 char *token_data(struct Token *);
 int token_goalcol(struct Token *);
@@ -62,7 +62,6 @@ struct Target *token_target(struct Token *);
 enum TokenType token_type(struct Token *);
 struct Variable *token_variable(struct Token *);
 void token_set_conditional(struct Token *, struct Conditional *);
-void token_set_data(struct Token *, const char *);
 void token_set_goalcol(struct Token *, int);
 void token_set_target(struct Token *, struct Target *);
 void token_set_type(struct Token *, enum TokenType);

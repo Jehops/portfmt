@@ -88,12 +88,14 @@ token_free(struct Token *token)
 }
 
 struct Token *
-token_clone(struct Token *token)
+token_clone(struct Token *token, const char *newdata)
 {
 	struct Token *t = xmalloc(sizeof(struct Token));
 
 	t->type = token->type;
-	if (token->data) {
+	if (newdata) {
+		t->data = xstrdup(newdata);
+	} else if (token->data) {
 		t->data = xstrdup(token->data);
 	}
 	if (token->cond) {
@@ -160,20 +162,6 @@ token_set_conditional(struct Token *token, struct Conditional *cond)
 		conditional_free(token->cond);
 	}
 	token->cond = cond;
-}
-
-void
-token_set_data(struct Token *token, const char *data)
-{
-	if (token->data) {
-		free(token->data);
-	}
-
-	if (data) {
-		token->data = xstrdup(data);
-	} else {
-		token->data = NULL;
-	}
 }
 
 void

@@ -581,9 +581,8 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 				array_append(arr, token);
 				continue;
 			} else {
-				struct Token *t = token_clone(token);
+				struct Token *t = token_clone(token, row);
 				array_append(parser->tokengc, t);
-				token_set_data(t, row);
 				array_append(arr, t);
 				row[0] = 0;
 			}
@@ -596,9 +595,8 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		}
 	}
 	if (token && strlen(row) > 0 && array_len(arr) < tokenslen) {
-		struct Token *t = token_clone(token);
+		struct Token *t = token_clone(token, row);
 		array_append(parser->tokengc, t);
-		token_set_data(t, row);
 		array_append(arr, t);
 	}
 	if (eol_comment) {
@@ -856,10 +854,10 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 			xstrlcat(buf, suffix, bufsz);
 		}
 		free(prefix);
-		token_set_data(t, buf);
-		free(buf);
 
-		array_append(up, t);
+		array_append(parser->tokengc, t);
+		array_append(up, token_clone(t, buf));
+		free(buf);
 	}
 	array_free(arr);
 	return up;
@@ -1419,8 +1417,7 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 			if (token_type(t) == VARIABLE_TOKEN &&
 			    strcmp(variable_name(token_variable(t)), name) == 0) {
 					array_append(parser->tokengc, t);
-					struct Token *et = token_clone(t);
-					token_set_data(et, value);
+					struct Token *et = token_clone(t, value);
 					array_append(parser->edited, et);
 					array_append(tokens, et);
 			} else {
