@@ -40,8 +40,6 @@
 #include "util.h"
 #include "variable.h"
 
-#define free(x)
-
 struct Variable {
 	char *name;
 	enum VariableModifier modifier;
@@ -56,7 +54,9 @@ variable_new(const char *buf) {
 		errx(1, "Variable with no modifier");
 	}
 
-	var->name = str_trim(str_substr_dup(buf, 0, match.rm_so));
+	char *tmp = str_substr_dup(buf, 0, match.rm_so);
+	var->name = str_trim(tmp);
+	free(tmp);
 
 	char *modifier = str_substr_dup(buf, match.rm_so, match.rm_eo);
 	if (strcmp(modifier, "+=") == 0) {

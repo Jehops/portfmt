@@ -80,7 +80,7 @@ str_strip_dup(const char *s)
 {
 	const char *sp = s;
 	for (; *sp && isspace(*sp); ++sp);
-	return str_trim(xstrdup(sp));
+	return str_trim(sp);
 }
 
 char *
@@ -92,14 +92,13 @@ str_substr_dup(const char *s, size_t start, size_t end)
 }
 
 char *
-str_trim(char *s)
+str_trim(const char *s)
 {
 	size_t len = strlen(s);
 	while (len > 0 && isspace(s[len - 1])) {
 		len--;
 	}
-	s[len] = 0;
-	return s;
+	return xstrndup(s, len);
 }
 
 void *

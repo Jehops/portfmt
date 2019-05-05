@@ -50,9 +50,10 @@ target_new(char *buf) {
 		errx(1, "invalid target: %s", buf);
 	}
 
-	target->name = xmalloc(strlen(buf));
-	strncpy(target->name, buf, after_target - buf);
-	target->name = str_trim(target->name);
+	char *tmp = xmalloc(strlen(buf));
+	strncpy(tmp, buf, after_target - buf);
+	target->name = str_trim(tmp);
+	free(tmp);
 
 	target->deps = xstrdup(after_target + 1);
 

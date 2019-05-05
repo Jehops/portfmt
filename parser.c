@@ -90,7 +90,7 @@ static struct Array *parser_output_sort_opt_use(struct Parser *, struct Array *)
 static struct Array *parser_output_reformatted_helper(struct Parser *, struct Array *);
 static void parser_output_reformatted(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
-static void parser_read_internal(struct Parser *, const char *);
+static void parser_read_internal(struct Parser *);
 static void parser_sanitize_append_modifier(struct Parser *);
 static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_t);
 static void print_newline_array(struct Parser *, struct Array *);
@@ -250,14 +250,6 @@ parser_new(struct ParserSettings *settings)
 void
 parser_free(struct Parser *parser)
 {
-	array_free(parser->edited);
-
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		token_free(t);
-	}
-	array_free(parser->tokens);
-
 	for (size_t i = 0; i < array_len(parser->result); i++) {
 		free(array_get(parser->result, i));
 	}
@@ -273,6 +265,8 @@ parser_free(struct Parser *parser)
 		token_free(t);
 	}
 	array_free(parser->tokengc);
+	array_free(parser->edited);
+	array_free(parser->tokens);
 
 	free(parser->inbuf);
 	free(parser);
@@ -283,6 +277,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, const char *data
 {
 	struct Token *t = token_new(type, &parser->lines, data, parser->varname,
 				    parser->condname, parser->targetname);
+	array_append_unique(parser->tokengc, t, NULL);
 	array_append(parser->tokens, t);
 }
 
@@ -582,7 +577,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 				continue;
 			} else {
 				struct Token *t = token_clone(token, row);
-				array_append(parser->tokengc, t);
+				array_append_unique(parser->tokengc, t, NULL);
 				array_append(arr, t);
 				row[0] = 0;
 			}
@@ -596,7 +591,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	}
 	if (token && strlen(row) > 0 && array_len(arr) < tokenslen) {
 		struct Token *t = token_clone(token, row);
-		array_append(parser->tokengc, t);
+		array_append_unique(parser->tokengc, t, NULL);
 		array_append(arr, t);
 	}
 	if (eol_comment) {
@@ -837,6 +832,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 				array_append(values, t2);
 			}
 			free(tmp);
+			free(var);
 			tmp = var = NULL;
 
 			array_sort(values, tokcompare);
@@ -846,6 +842,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 				if (j < array_len(values) - 1) {
 					xstrlcat(buf, ",", bufsz);
 				}
+				token_free(t2);
 			}
 			array_free(values);
 		} else {
@@ -854,8 +851,9 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 		}
 		free(prefix);
 
-		array_append(parser->tokengc, t);
-		array_append(up, token_clone(t, buf));
+		struct Token *t2 = token_clone(t, buf);
+		array_append_unique(parser->tokengc, t2, NULL);
+		array_append(up, t2);
 		free(buf);
 	}
 	array_free(arr);
@@ -863,7 +861,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 }
 
 struct Array *
-parser_output_reformatted_helper(struct Parser *parser, struct Array *arr)
+parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* unowned struct Token */)
 {
 	if (array_len(arr) == 0) {
 		return arr;
@@ -1115,7 +1113,7 @@ parser_read(struct Parser *parser, char *line)
 	xstrlcat(parser->inbuf, line, INBUF_SIZE);
 
 	if (!will_continue) {
-		parser_read_internal(parser, str_trim(parser->inbuf));
+		parser_read_internal(parser);
 		parser->lines.start = parser->lines.end;
 		memset(parser->inbuf, 0, INBUF_SIZE);
 	}
@@ -1124,8 +1122,9 @@ parser_read(struct Parser *parser, char *line)
 }
 
 void
-parser_read_internal(struct Parser *parser, const char *buf)
+parser_read_internal(struct Parser *parser)
 {
+	char *buf = str_trim(parser->inbuf);
 	size_t pos;
 
 	pos = consume_comment(buf);
@@ -1144,7 +1143,9 @@ parser_read_internal(struct Parser *parser, const char *buf)
 				free(parser->condname);
 				parser->condname = NULL;
 			}
-			parser->condname = str_trim(str_substr_dup(buf, 0, pos));
+			char *tmp = str_substr_dup(buf, 0, pos);
+			parser->condname = str_trim(tmp);
+			free(tmp);
 
 			parser_append_token(parser, CONDITIONAL_START, parser->condname);
 			parser_append_token(parser, CONDITIONAL_TOKEN, parser->condname);
@@ -1180,7 +1181,9 @@ parser_read_internal(struct Parser *parser, const char *buf)
 			free(parser->condname);
 			parser->condname = NULL;
 		}
-		parser->condname = str_trim(str_substr_dup(buf, 0, pos));
+		char *tmp = str_substr_dup(buf, 0, pos);
+		parser->condname = str_trim(tmp);
+		free(tmp);
 
 		parser_append_token(parser, CONDITIONAL_START, parser->condname);
 		parser_append_token(parser, CONDITIONAL_TOKEN, parser->condname);
@@ -1209,6 +1212,7 @@ next:
 		free(parser->varname);
 		parser->varname = NULL;
 	}
+	free(buf);
 }
 
 void
@@ -1217,7 +1221,7 @@ parser_read_finish(struct Parser *parser)
 	parser->lines.end++;
 
 	if (strlen(parser->inbuf) > 0) {
-		parser_read_internal(parser, str_trim(parser->inbuf));
+		parser_read_internal(parser);
 	}
 
 	if (parser->in_target) {
@@ -1276,6 +1280,8 @@ parser_collapse_adjacent_variables(struct Parser *parser)
 		struct Token *t = array_get(parser->tokens, i);
 		if (array_find(ignored_tokens, t, NULL) == -1) {
 			array_append(tokens, t);
+		} else {
+			array_append_unique(parser->tokengc, t, NULL);
 		}
 	}
 
@@ -1300,11 +1306,9 @@ parser_sanitize_append_modifier(struct Parser *parser)
 			if (start < 0) {
 				continue;
 			}
-			if (array_find(seen, token_variable(t), (ArrayCompareFn)&variable_cmp) != -1) {
+			if (!array_append_unique(seen, token_variable(t), (ArrayCompareFn)&variable_cmp)) {
 				start = -1;
 				continue;
-			} else {
-				array_append(seen, token_variable(t));
 			}
 			for (size_t j = start; j <= i; j++) {
 				struct Token *o = array_get(parser->tokens, j);
@@ -1415,7 +1419,7 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 			struct Token *t = array_get(parser->tokens, i);
 			if (token_type(t) == VARIABLE_TOKEN &&
 			    strcmp(variable_name(token_variable(t)), name) == 0) {
-					array_append(parser->tokengc, t);
+					array_append_unique(parser->tokengc, t, NULL);
 					struct Token *et = token_clone(t, value);
 					array_append(parser->edited, et);
 					array_append(tokens, et);

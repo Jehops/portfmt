@@ -83,6 +83,16 @@ array_append(struct Array *array, void *v)
 	}
 }
 
+int
+array_append_unique(struct Array *array, void *v, ArrayCompareFn compar)
+{
+	if (array_find(array, v, compar) == -1) {
+		array_append(array, v);
+		return 1;
+	}
+	return 0;
+}
+
 void
 array_free(struct Array *array)
 {
