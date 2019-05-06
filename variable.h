@@ -42,6 +42,7 @@ enum VariableModifier {
 struct Variable *variable_new(const char *);
 struct Variable *variable_clone(struct Variable *);
 int variable_cmp(struct Variable *, struct Variable *);
+int variable_compare(const void *, const void *);
 void variable_free(struct Variable *);
 enum VariableModifier variable_modifier(struct Variable *);
 void variable_set_modifier(struct Variable *, enum VariableModifier);

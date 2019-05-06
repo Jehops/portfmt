@@ -51,7 +51,7 @@ enum RegularExpression {
 	RE_VAR,
 };
 
-int compare_tokens(struct Variable *, const char *, const char *);
+int compare_tokens(const void *, const void *);
 void compile_regular_expressions(void);
 int ignore_wrap_col(struct Variable *);
 int indent_goalcol(struct Variable *);

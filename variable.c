@@ -101,6 +101,14 @@ variable_cmp(struct Variable *a, struct Variable *b)
 	return strcmp(a->name, b->name);
 }
 
+int
+variable_compare(const void *ap, const void *bp)
+{
+	struct Variable *a = *(struct Variable **)ap;
+	struct Variable *b = *(struct Variable **)bp;
+	return variable_cmp(a, b);
+}
+
 enum VariableModifier
 variable_modifier(struct Variable *var)
 {

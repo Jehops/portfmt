@@ -1255,28 +1255,36 @@ compare_rel(const char *rel[], size_t rellen, const char *a, const char *b)
 }
 
 int
-compare_tokens(struct Variable *var, const char *a, const char *b)
+compare_tokens(const void *ap, const void *bp)
 {
+	struct Token *a = *(struct Token**)ap;
+	struct Token *b = *(struct Token**)bp;
+	assert(token_type(a) == VARIABLE_TOKEN);
+	assert(token_type(b) == VARIABLE_TOKEN);
+	assert(variable_cmp(token_variable(a), token_variable(b)) == 0);
+
+	struct Variable *var = token_variable(a);
+
 	/* End-of-line comments always go last */
-	if (str_startswith(a, "#") && str_startswith(b, "#")) {
+	if (is_comment(a) && is_comment(b)) {
 		return 0;
 	}
-	if (str_startswith(a, "#")) {
+	if (is_comment(a)) {
 		return 1;
 	}
-	if (str_startswith(b, "#")) {
+	if (is_comment(b)) {
 		return -1;
 	}
 
 	int result;
-	if (compare_license_perms(var, a, b, &result) ||
-	    compare_plist_files(var, a, b, &result) ||
-	    compare_use_pyqt(var, a, b, &result) ||
-	    compare_use_qt(var, a, b, &result)) {
+	if (compare_license_perms(var, token_data(a), token_data(b), &result) ||
+	    compare_plist_files(var, token_data(a), token_data(b), &result) ||
+	    compare_use_pyqt(var, token_data(a), token_data(b), &result) ||
+	    compare_use_qt(var, token_data(a), token_data(b), &result)) {
 		return result;
 	}
 
-	return strcasecmp(a, b);
+	return strcasecmp(token_data(a), token_data(b));
 }
 
 int

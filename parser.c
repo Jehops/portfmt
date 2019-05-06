@@ -97,7 +97,6 @@ static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_
 static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
 static char *range_tostring(struct Range *);
-static int tokcompare(const void *, const void *);
 static int parser_has_variable(struct Parser *, const char *);
 
 size_t
@@ -498,25 +497,6 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	}
 }
 
-int
-tokcompare(const void *a, const void *b)
-{
-	struct Token *ao = *(struct Token**)a;
-	struct Token *bo = *(struct Token**)b;
-	if (variable_cmp(token_variable(ao), token_variable(bo)) == 0) {
-		return compare_tokens(token_variable(ao), token_data(ao), token_data(bo));
-	}
-	return strcasecmp(token_data(ao), token_data(bo));
-#if 0
-	# Hack to treat something like ${PYTHON_PKGNAMEPREFIX} or
-	# ${RUST_DEFAULT} as if they were PYTHON_PKGNAMEPREFIX or
-	# RUST_DEFAULT for the sake of approximately sorting them
-	# correctly in *_DEPENDS.
-	gsub(/[\$\{\}]/, "", a)
-	gsub(/[\$\{\}]/, "", b)
-#endif
-}
-
 void
 print_token_array(struct Parser *parser, struct Array *tokens)
 {
@@ -811,7 +791,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 			free(var);
 			tmp = var = NULL;
 
-			array_sort(values, tokcompare);
+			array_sort(values, compare_tokens);
 			for (size_t j = 0; j < array_len(values); j++) {
 				struct Token *t2 = array_get(values, j);
 				xstrlcat(buf, token_data(t2), bufsz);
@@ -858,7 +838,7 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* uno
 	if (!(parser->settings.behavior & PARSER_UNSORTED_VARIABLES) &&
 	    !leave_unsorted(token_variable(t0))) {
 		arr = parser_output_sort_opt_use(parser, arr);
-		array_sort(arr, tokcompare);
+		array_sort(arr, compare_tokens);
 	}
 
 	t0 = array_get(arr, 0);
@@ -1351,7 +1331,7 @@ parser_sanitize_append_modifier(struct Parser *parser)
 			if (start < 0) {
 				continue;
 			}
-			if (!array_append_unique(seen, token_variable(t), (ArrayCompareFn)&variable_cmp)) {
+			if (!array_append_unique(seen, token_variable(t), variable_compare)) {
 				start = -1;
 				continue;
 			}
