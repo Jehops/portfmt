@@ -1463,14 +1463,21 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 	if (parser_has_variable(parser, name)) {
 		for (size_t i = 0; i < array_len(parser->tokens); i++) {
 			struct Token *t = array_get(parser->tokens, i);
-			if (token_type(t) == VARIABLE_TOKEN &&
-			    strcmp(variable_name(token_variable(t)), name) == 0) {
+			switch (token_type(t)) {
+			case VARIABLE_TOKEN:
+				if (!str_startswith(token_data(t), "#") &&
+				    strcmp(variable_name(token_variable(t)), name) == 0) {
 					array_append_unique(parser->tokengc, t, NULL);
 					struct Token *et = token_clone(t, value);
 					array_append(parser->edited, et);
 					array_append(tokens, et);
-			} else {
+				} else {
+					array_append(tokens, t);
+				}
+				break;
+			default:
 				array_append(tokens, t);
+				break;
 			}
 		}
 	} else if (after != NULL) {
@@ -1538,6 +1545,8 @@ parser_edit_bump_revision(struct Parser *parser)
 		int revision = strtonum(current_revision, 0, INT_MAX, &errstr);
 		if (errstr == NULL) {
 			revision++;
+		} else {
+			errx(1, "unable to parse PORTREVISION: %s: %s", current_revision, errstr);
 		}
 		char *rev;
 		if (asprintf(&rev, "%d", revision) < 0) {
@@ -1565,7 +1574,7 @@ parser_lookup_variable(struct Parser *parser, const char *name)
 			break;
 		case VARIABLE_TOKEN:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				if (token_data(t)) {
+				if (token_data(t) && !str_startswith(token_data(t), "#")) {
 					array_append(tokens, token_data(t));
 				}
 			}
