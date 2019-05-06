@@ -304,10 +304,12 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			}
 		}
 		if (dollar) {
-			if (dollar == 2) {
+			if (dollar > 1) {
 				if (c == '(') {
 					i = consume_token(parser, line, i - 2, '(', ')', 0);
 					continue;
+				} else if (c == '$') {
+					dollar++;
 				} else {
 					dollar = 0;
 				}
@@ -317,8 +319,15 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			} else if (c == '(') {
 				i = consume_token(parser, line, i, '(', ')', 0);
 				dollar = 0;
-			} else if (isalnum(c) || c == '@' || c == '<' || c == '>' || c == '/') {
+			} else if (isalnum(c) || c == '@' || c == '<' || c == '>' || c == '/' ||
+				   c == '?' || c == '*' || c == '^') {
 				dollar = 0;
+			} else if (c == ' ' || c == '\\') {
+				/* '$ ' or '$\' are ignored by make for some reason instead of making
+				 * it an error, so we do the same...
+				 */
+				dollar = 0;
+				i--;
 			} else if (c == 1) {
 				dollar = 0;
 			} else if (c == '$') {
