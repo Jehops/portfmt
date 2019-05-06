@@ -59,7 +59,7 @@ static struct {
 				  "export\\.env|export-literal|info|undef|unexport|for|endfor|"
 				  "unexport-env|warning|if|ifdef|ifndef|include|"
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
-				  "elifmake|endif|sinclude))([[:space:]]+|$|\\(|!)",
+				  "elifmake|endif|sinclude))([[:space:]]*|$|\\(|!)",
 				  REG_EXTENDED, {} },
 	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$", REG_EXTENDED, {} },
 	[RE_EMPTY_LINE]       = { "^[[:space:]]*$", 			      0, {} },
@@ -1179,10 +1179,17 @@ preserve_eol_comment(struct Token *t)
 		return 1;
 	}
 
-	char *token = token_data(t);
-	for (; *token != 0 && isspace(*token); token++);
-	return strcmp(token, "#") == 0 || strcmp(token, "# empty") == 0 ||
-		strcmp(token, "#none") == 0 || strcmp(token, "# none") == 0;
+	/* Remove all whitespace from the comment first to cover more cases */
+	char *token = xmalloc(strlen(token_data(t)) + 1);
+	for (char *tokenp = token, *datap = token_data(t); *datap != 0; datap++) {
+		if (!isspace(*datap)) {
+			*tokenp++ = *datap;
+		}
+	}
+	int retval = strcmp(token, "#") == 0 || strcmp(token, "#empty") == 0 ||
+		strcmp(token, "#none") == 0;
+	free(token);
+	return retval;
 }
 
 int
