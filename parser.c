@@ -71,7 +71,7 @@ struct Parser {
 	struct Array *rawlines;
 };
 
-#define INBUF_SIZE 65536
+#define INBUF_SIZE 131072
 
 static size_t consume_comment(const char *);
 static size_t consume_conditional(const char *);
