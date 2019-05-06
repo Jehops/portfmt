@@ -424,7 +424,7 @@ parser_find_goalcols(struct Parser *parser)
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
 			 */
-			if (str_startswith(token_data(t), "#")) {
+			if (is_comment(t)) {
 				continue;
 			}
 			if (tokens_start != -1) {
@@ -1256,8 +1256,7 @@ parser_sanitize_eol_comments(struct Parser *parser)
 			break;
 		case VARIABLE_END:
 			if (placeholder_index > -1 && last_token_index > -1 &&
-			    last_token && str_startswith(token_data(last_token), "#") &&
-			    !preserve_eol_comment(token_data(last_token))) {
+			    !preserve_eol_comment(last_token)) {
 				struct Token *comment = token_new2(COMMENT, token_lines(last_token), token_data(last_token), NULL, token_conditional(last_token), NULL);
 				array_append_unique(parser->tokengc, comment, NULL);
 				array_append(parser->edited, comment);
@@ -1574,7 +1573,7 @@ parser_lookup_variable(struct Parser *parser, const char *name)
 			break;
 		case VARIABLE_TOKEN:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				if (token_data(t) && !str_startswith(token_data(t), "#")) {
+				if (!is_comment(t)) {
 					array_append(tokens, token_data(t));
 				}
 			}

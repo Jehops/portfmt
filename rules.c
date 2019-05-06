@@ -30,6 +30,7 @@
 
 #include <sys/param.h>
 #include <assert.h>
+#include <ctype.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -1125,6 +1126,18 @@ indent_goalcol(struct Variable *var)
 }
 
 int
+is_comment(struct Token *token)
+{
+	if (token == NULL || token_data(token) == NULL) {
+		return 0;
+	}
+
+	char *datap = token_data(token);
+	for (; *datap != 0 && isspace(*datap); datap++);
+	return *datap == '#';
+}
+
+int
 leave_unsorted(struct Variable *var)
 {
 	for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
@@ -1155,11 +1168,18 @@ leave_unsorted(struct Variable *var)
 }
 
 int
-preserve_eol_comment(const char *token)
+preserve_eol_comment(struct Token *t)
 {
-	if (!str_startswith(token, "#")) {
+	if (t == NULL || token_type(t) != VARIABLE_TOKEN) {
+		return 0;
+	}
+
+	if (!is_comment(t)) {
 		return 1;
 	}
+
+	char *token = token_data(t);
+	for (; *token != 0 && isspace(*token); token++);
 	return strcmp(token, "#") == 0 || strcmp(token, "# empty") == 0 ||
 		strcmp(token, "#none") == 0 || strcmp(token, "# none") == 0;
 }
