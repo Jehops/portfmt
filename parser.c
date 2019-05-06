@@ -1123,6 +1123,9 @@ parser_read_internal(struct Parser *parser)
 			parser_append_token(parser, TARGET_COMMAND_END, NULL);
 			goto next;
 		}
+		if (consume_var(buf) > 0) {
+			goto var;
+		}
 		parser_append_token(parser, TARGET_END, NULL);
 		parser->in_target = 0;
 	}
@@ -1156,6 +1159,7 @@ parser_read_internal(struct Parser *parser)
 		goto next;
 	}
 
+var:
 	pos = consume_var(buf);
 	if (pos != 0) {
 		if (pos > strlen(buf)) {
