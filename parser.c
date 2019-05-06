@@ -454,7 +454,8 @@ parser_find_goalcols(struct Parser *parser)
 void
 print_newline_array(struct Parser *parser, struct Array *arr)
 {
-	char sep[512] = {};
+	size_t sepsz = 1024;
+	char *sep = xmalloc(sepsz);
 	struct Token *o = array_get(arr, 0);
 	assert(o && token_data(o) != NULL);
 	assert(strlen(token_data(o)) != 0);
@@ -469,8 +470,8 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 
 	char *start = variable_tostring(token_variable(o));
 	size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
-	xstrlcpy(sep, start, sizeof(sep));
-	xstrlcat(sep, repeat('\t', ntabs), sizeof(sep));
+	xstrlcpy(sep, start, sepsz);
+	xstrlcat(sep, repeat('\t', ntabs), sepsz);
 	free(start);
 
 	const char *end = " \\\n";
@@ -490,7 +491,7 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		case VARIABLE_TOKEN:
 			if (i == 0) {
 				size_t ntabs = ceil(MAX(16, token_goalcol(o)) / 8.0);
-				xstrlcpy(sep, repeat('\t', ntabs), sizeof(sep));
+				xstrlcpy(sep, repeat('\t', ntabs), sepsz);
 			}
 			break;
 		case CONDITIONAL_TOKEN:
@@ -498,12 +499,13 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 			sep[1] = 0;
 			break;
 		case TARGET_COMMAND_TOKEN:
-			xstrlcpy(sep, repeat('\t', 2), sizeof(sep));
+			xstrlcpy(sep, repeat('\t', 2), sepsz);
 			break;
 		default:
 			errx(1, "unhandled token type: %i", token_type(o));
 		}
 	}
+	free(sep);
 }
 
 void
@@ -524,7 +526,8 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		wrapcol = parser->settings.wrapcol - token_goalcol(o) - 2;
 	}
 
-	char row[1024] = {};
+	size_t rowsz = 8192;
+	char *row = xmalloc(rowsz);
 	struct Token *token = NULL;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		token = array_get(tokens, i);
@@ -543,10 +546,10 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 			}
 		}
 		if (strlen(row) == 0) {
-			xstrlcpy(row, token_data(token), sizeof(row));
+			xstrlcpy(row, token_data(token), rowsz);
 		} else {
-			xstrlcat(row, " ", sizeof(row));
-			xstrlcat(row, token_data(token), sizeof(row));
+			xstrlcat(row, " ", rowsz);
+			xstrlcat(row, token_data(token), rowsz);
 		}
 	}
 	if (token && strlen(row) > 0 && array_len(arr) < array_len(tokens)) {
@@ -554,6 +557,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		array_append_unique(parser->tokengc, t, NULL);
 		array_append(arr, t);
 	}
+	free(row);
 	print_newline_array(parser, arr);
 
 	array_free(arr);
