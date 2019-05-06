@@ -613,6 +613,7 @@ static const char *leave_unsorted_[] = {
 	"_ALL_EXCLUDE",
 	"_BUILD_SEQ",
 	"_BUILD_SETUP",
+	"_CARGO_GIT_PATCH_CARGOTOML",
 	"_CONFIGURE_SEQ",
 	"_DEPENDS-LIST",
 	"_EXTRACT_SEQ",
