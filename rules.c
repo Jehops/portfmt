@@ -945,6 +945,7 @@ static const char *skip_goalcol_[] = {
 	"FETCH_BEFORE_ARGS",
 	"MAKE_JOBS_UNSAFE",
 	"MASTER_SITE_SUBDIR",
+	"ONLY_FOR_ARCHS_REASON",
 };
 
 /* Lines that are best not wrapped to 80 columns
