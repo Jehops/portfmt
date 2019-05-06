@@ -1457,16 +1457,24 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 {
 	struct Array *tokens = array_new(sizeof(char *));
 	if (parser_has_variable(parser, name)) {
+		int set = 0;
 		for (size_t i = 0; i < array_len(parser->tokens); i++) {
 			struct Token *t = array_get(parser->tokens, i);
 			switch (token_type(t)) {
 			case VARIABLE_TOKEN:
-				if (!str_startswith(token_data(t), "#") &&
-				    strcmp(variable_name(token_variable(t)), name) == 0) {
-					array_append_unique(parser->tokengc, t, NULL);
-					struct Token *et = token_clone(t, value);
-					array_append(parser->edited, et);
-					array_append(tokens, et);
+				if (strcmp(variable_name(token_variable(t)), name) == 0) {
+					if (is_comment(t)) {
+						array_append(tokens, t);
+					} else if (!set) {
+						// TODO: Parser-ception. This is too simple.  We need to run the value
+						// through a parser instance too and then inject all tokens it returns
+						// into our parser.
+						array_append_unique(parser->tokengc, t, NULL);
+						struct Token *et = token_clone(t, value);
+						array_append(parser->edited, et);
+						array_append(tokens, et);
+						set = 1;
+					}
 				} else {
 					array_append(tokens, t);
 				}
@@ -1477,10 +1485,11 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 			}
 		}
 	} else if (after != NULL) {
+		int set = 0;
 		for (size_t i = 0; i < array_len(parser->tokens); i++) {
 			struct Token *t = array_get(parser->tokens, i);
 			array_append(tokens, t);
-			if (token_type(t) == VARIABLE_END &&
+			if (!set && token_type(t) == VARIABLE_END &&
 			    strcmp(variable_name(token_variable(t)), after) == 0) {
 				char *var;
 				if (asprintf(&var, "%s=", name) < 0) {
@@ -1501,6 +1510,7 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 						  NULL, var, NULL, NULL);
 				array_append(parser->edited, token);
 				array_append(tokens, token);
+				set = 1;
 			}
 		}
 	} else {

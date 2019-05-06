@@ -49,6 +49,7 @@
 enum PorteditCommand {
 	PORTEDIT_BUMP_REVISION,
 	PORTEDIT_GET_VARIABLE,
+	PORTEDIT_SET_VARIABLE,
 };
 
 struct Portedit {
@@ -129,6 +130,10 @@ main(int argc, char *argv[])
 			edit.cmd = PORTEDIT_GET_VARIABLE;
 			edit.argc = 2;
 			edit.argv = argv;
+		} else if (strcmp(argv[0], "set") == 0 && argc > 1) {
+			edit.cmd = PORTEDIT_SET_VARIABLE;
+			edit.argc = 3;
+			edit.argv = argv;
 		} else {
 			usage();
 		}
@@ -203,6 +208,10 @@ main(int argc, char *argv[])
 				errx(1, "%s not found", edit.argv[1]);
 			}
 			break;
+		case PORTEDIT_SET_VARIABLE:
+			if (parser_edit_set_variable(parser, edit.argv[1], edit.argv[2], NULL) != 0) {
+				errx(1, "unable to set variable: %s", edit.argv[1]);
+			}
 		default:
 			break;
 		}
