@@ -33,6 +33,8 @@
 #if HAVE_ERR
 # include <err.h>
 #endif
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
@@ -99,6 +101,22 @@ str_trim(const char *s)
 		len--;
 	}
 	return xstrndup(s, len);
+}
+
+int
+xasprintf(char **ret, const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	int retval = vasprintf(ret, format, ap);
+	va_end(ap);
+
+	if (retval < 0) {
+		warn("vasprintf");
+		abort();
+	}
+
+	return retval;
 }
 
 void *

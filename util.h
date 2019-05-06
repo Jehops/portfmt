@@ -44,6 +44,7 @@ char *str_strip_dup(const char *);
 char *str_substr_dup(const char *, size_t, size_t);
 char *str_trim(const char *);
 
+int xasprintf(char **, const char *, ...);
 void *xmalloc(size_t);
 char *xstrdup(const char *);
 char *xstrndup(const char *, size_t);

@@ -61,10 +61,7 @@ conditional_new(char *s)
 	char *type;
 	if (tmp[0] == '.') {
 		char *tmp2 = str_strip_dup(tmp + 1);
-		if (asprintf(&type, ".%s", tmp2) < 0) {
-			warn("asprintf");
-			abort();
-		}
+		xasprintf(&type, ".%s", tmp2);
 		free(tmp2);
 	} else {
 		type = str_strip_dup(tmp);

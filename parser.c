@@ -200,15 +200,9 @@ range_tostring(struct Range *range)
 
 	char *s;
 	if (range->start == range->end - 1) {
-		if (asprintf(&s, "%zu", range->start) < 0) {
-			warn("asprintf");
-			abort();
-		}
+		xasprintf(&s, "%zu", range->start);
 	} else {
-		if (asprintf(&s, "%zu-%zu", range->start, range->end - 1) < 0) {
-			warn("asprintf");
-			abort();
-		}
+		xasprintf(&s, "%zu-%zu", range->start, range->end - 1);
 	}
 
 	return s;
@@ -789,10 +783,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 		char *buf = xmalloc(bufsz);
 		if (opt_use) {
 			char *var;
-			if (asprintf(&var, "USE_%s", prefix) < 0) {
-				warn("asprintf");
-				abort();
-			}
+			xasprintf(&var, "USE_%s", prefix);
 			xstrlcpy(buf, prefix, bufsz);
 			char *tmp, *s, *token;
 			tmp = s = xstrdup(suffix);
@@ -1021,10 +1012,7 @@ parser_output_dump_tokens(struct Parser *parser)
 		}
 		char *range = range_tostring(token_lines(t));
 		char *buf;
-		if (asprintf(&buf, "%-20s %8s ", type, range) < 0) {
-			warn("asprintf");
-			abort();
-		}
+		xasprintf(&buf, "%-20s %8s ", type, range);
 		free(range);
 		parser_enqueue_output(parser, buf);
 		free(buf);
@@ -1492,10 +1480,7 @@ parser_edit_set_variable(struct Parser *parser, const char *name, const char *va
 			if (!set && token_type(t) == VARIABLE_END &&
 			    strcmp(variable_name(token_variable(t)), after) == 0) {
 				char *var;
-				if (asprintf(&var, "%s=", name) < 0) {
-					warn("asprintf");
-					abort();
-				}
+				xasprintf(&var, "%s=", name);
 				struct Token *token = token_new(VARIABLE_START, token_lines(t),
 								NULL, var, NULL, NULL);
 				array_append(parser->edited, token);
@@ -1555,10 +1540,7 @@ parser_edit_bump_revision(struct Parser *parser)
 			errx(1, "unable to parse PORTREVISION: %s: %s", current_revision, errstr);
 		}
 		char *rev;
-		if (asprintf(&rev, "%d", revision) < 0) {
-			warn("asprintf");
-			abort();
-		}
+		xasprintf(&rev, "%d", revision);
 		parser_edit_set_variable(parser, "PORTREVISION", rev, after);
 		free(rev);
 	} else {

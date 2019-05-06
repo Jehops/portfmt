@@ -157,9 +157,6 @@ variable_tostring(struct Variable *var)
 	}
 
 	char *s;
-	if (asprintf(&s, "%s%s", var->name, mod) < 0) {
-		warn("asprintf");
-		abort();
-	}
+	xasprintf(&s, "%s%s", var->name, mod);
 	return s;
 }
