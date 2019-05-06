@@ -92,6 +92,7 @@ static void parser_output_reformatted(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read_internal(struct Parser *);
 static void parser_sanitize_append_modifier(struct Parser *);
+static void parser_sanitize_eol_comments(struct Parser *);
 static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_t);
 static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
@@ -451,41 +452,27 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	assert(strlen(token_data(o)) != 0);
 	assert(token_type(o) == VARIABLE_TOKEN);
 
-	char *start = variable_tostring(token_variable(o));
-	size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
-	xstrlcpy(sep, start, sizeof(sep));
-	xstrlcat(sep, repeat('\t', ntabs), sizeof(sep));
-	free(start);
-
-	size_t arrlen = array_len(arr);
-	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS) &&
-	    arrlen > 0 && (o = array_get(arr, arrlen - 1)) != NULL &&
-	    !preserve_eol_comment(token_data(o))) {
-		/* Try to push end of line comments out of the way above
-		 * the variable as a way to preserve them.  They clash badly
-		 * with sorting tokens in variables.  We could add more
-		 * special cases for this, but often having them at the top
-		 * is just as good.
-		 */
-		arrlen--;
-		parser_enqueue_output(parser, token_data(o));
-		parser_enqueue_output(parser, "\n");
-	}
-	if (arrlen == 0) {
+	if (array_len(arr) == 0) {
 		char *var = variable_tostring(token_variable(o));
 		parser_enqueue_output(parser, var);
 		parser_enqueue_output(parser, "\n");
 		return;
 	}
 
+	char *start = variable_tostring(token_variable(o));
+	size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
+	xstrlcpy(sep, start, sizeof(sep));
+	xstrlcat(sep, repeat('\t', ntabs), sizeof(sep));
+	free(start);
+
 	const char *end = " \\\n";
-	for (size_t i = 0; i < arrlen; i++) {
+	for (size_t i = 0; i < array_len(arr); i++) {
 		struct Token *o = array_get(arr, i);
 		char *line = token_data(o);
 		if (!line || strlen(line) == 0) {
 			continue;
 		}
-		if (i == arrlen - 1) {
+		if (i == array_len(arr) - 1) {
 			end = "\n";
 		}
 		parser_enqueue_output(parser, sep);
@@ -538,22 +525,6 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		return;
 	}
 
-	struct Token *eol_comment;
-	size_t tokenslen = array_len(tokens);
-	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS) &&
-	    tokenslen > 0 && (eol_comment = array_get(tokens, tokenslen - 1)) != NULL &&
-	    (token_type(eol_comment) == VARIABLE_TOKEN) && !preserve_eol_comment(token_data(eol_comment))) {
-		/* Try to push end of line comments out of the way above
-		 * the variable as a way to preserve them.  They clash badly
-		 * with sorting tokens in variables.  We could add more
-		 * special cases for this, but often having them at the top
-		 * is just as good.
-		 */
-		tokenslen--;
-	} else {
-		eol_comment = NULL;
-	}
-
 	struct Array *arr = array_new(sizeof(struct Token *));
 	struct Token *o = array_get(tokens, 0);
 	size_t wrapcol;
@@ -566,7 +537,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 
 	char row[1024] = {};
 	struct Token *token = NULL;
-	for (size_t i = 0; i < tokenslen; i++) {
+	for (size_t i = 0; i < array_len(tokens); i++) {
 		token = array_get(tokens, i);
 		if (strlen(token_data(token)) == 0) {
 			continue;
@@ -589,13 +560,10 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 			xstrlcat(row, token_data(token), sizeof(row));
 		}
 	}
-	if (token && strlen(row) > 0 && array_len(arr) < tokenslen) {
+	if (token && strlen(row) > 0 && array_len(arr) < array_len(tokens)) {
 		struct Token *t = token_clone(token, row);
 		array_append_unique(parser->tokengc, t, NULL);
 		array_append(arr, t);
-	}
-	if (eol_comment) {
-		array_append(arr, eol_comment);
 	}
 	print_newline_array(parser, arr);
 
@@ -766,6 +734,14 @@ parser_output_edited(struct Parser *parser)
 		case TARGET_END:
 			break;
 		case COMMENT:
+			variable_arr = parser_output_reformatted_helper(parser, variable_arr);
+			if (array_find(parser->edited, o, NULL) == -1) {
+				parser_output_print_rawlines(parser, token_lines(o));
+			} else {
+				parser_enqueue_output(parser, token_data(o));
+				parser_enqueue_output(parser, "\n");
+			}
+			break;
 		case TARGET_START:
 			variable_arr = parser_output_reformatted_helper(parser, variable_arr);
 			parser_output_print_rawlines(parser, token_lines(o));
@@ -943,6 +919,14 @@ parser_output_reformatted(struct Parser *parser)
 		case TARGET_END:
 			break;
 		case COMMENT:
+			variable_arr = parser_output_reformatted_helper(parser, variable_arr);
+			if (array_find(parser->edited, o, NULL) == -1) {
+				parser_output_print_rawlines(parser, token_lines(o));
+			} else {
+				parser_enqueue_output(parser, token_data(o));
+				parser_enqueue_output(parser, "\n");
+			}
+			break;
 		case TARGET_START:
 			variable_arr = parser_output_reformatted_helper(parser, variable_arr);
 			parser_output_print_rawlines(parser, token_lines(o));
@@ -1228,6 +1212,10 @@ parser_read_finish(struct Parser *parser)
 		parser_append_token(parser, TARGET_END, NULL);
 	}
 
+	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS)) {
+		parser_sanitize_eol_comments(parser);
+	}
+
 	if (parser->settings.behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES) {
 		parser_collapse_adjacent_variables(parser);
 	}
@@ -1235,6 +1223,64 @@ parser_read_finish(struct Parser *parser)
 	if (parser->settings.behavior & PARSER_SANITIZE_APPEND) {
 		parser_sanitize_append_modifier(parser);
 	}
+}
+
+void
+parser_sanitize_eol_comments(struct Parser *parser)
+{
+	/* Try to push end of line comments out of the way above
+	 * the variable as a way to preserve them.  They clash badly
+	 * with sorting tokens in variables.  We could add more
+	 * special cases for this, but often having them at the top
+	 * is just as good.
+	 */
+
+	struct Array *tokens = array_new(sizeof(struct Array *));
+	struct Token *last_token = NULL;
+	ssize_t last_token_index = -1;
+	ssize_t placeholder_index = -1;
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		switch (token_type(t)) {
+		case VARIABLE_START:
+			last_token = NULL;
+			last_token_index = -1;
+			placeholder_index = array_len(tokens);
+			array_append(tokens, NULL);
+			array_append(tokens, t);
+			break;
+		case VARIABLE_TOKEN:
+			last_token = t;
+			last_token_index = array_len(tokens);
+			array_append(tokens, t);
+			break;
+		case VARIABLE_END:
+			if (placeholder_index > -1 && last_token_index > -1 &&
+			    last_token && str_startswith(token_data(last_token), "#") &&
+			    !preserve_eol_comment(token_data(last_token))) {
+				struct Token *comment = token_new2(COMMENT, token_lines(last_token), token_data(last_token), NULL, token_conditional(last_token), NULL);
+				array_append_unique(parser->tokengc, comment, NULL);
+				array_append(parser->edited, comment);
+				array_set(tokens, placeholder_index, comment);
+				array_set(tokens, last_token_index, NULL);
+			}
+			array_append(tokens, t);
+			break;
+		default:
+			array_append(tokens, t);
+			break;
+		}
+	}
+
+	array_free(parser->tokens);
+	parser->tokens = array_new(sizeof(struct Array *));
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		if (t != NULL) {
+			array_append(parser->tokens, t);
+		}
+	}
+	array_free(tokens);
 }
 
 void
@@ -1253,8 +1299,8 @@ parser_collapse_adjacent_variables(struct Parser *parser)
 			    variable_cmp(token_variable(t), last_var) == 0 &&
 			    variable_modifier(last_var) != MODIFIER_EXPAND &&
 			    variable_modifier(token_variable(t)) != MODIFIER_EXPAND) {
-				array_append(ignored_tokens, t);
 				if (last_end) {
+					array_append(ignored_tokens, t);
 					array_append(ignored_tokens, last_end);
 					last_end = NULL;
 				}

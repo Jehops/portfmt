@@ -72,6 +72,31 @@ token_new(enum TokenType type, struct Range *lines, const char *data,
 	return t;
 }
 
+struct Token *
+token_new2(enum TokenType type, struct Range *lines, const char *data,
+	   struct Variable *var, struct Conditional *cond, struct Target *target)
+{
+	struct Token *t = xmalloc(sizeof(struct Token));
+
+	t->type = type;
+	t->lines = *lines;
+
+	if (data) {
+		t->data = xstrdup(data);
+	}
+	if (target) {
+		t->target = target_clone(target);
+	}
+	if (cond) {
+		t->cond = conditional_clone(cond);
+	}
+	if (var) {
+		t->var = variable_clone(var);
+	}
+
+	return t;
+}
+
 void
 token_free(struct Token *token)
 {
@@ -160,4 +185,3 @@ token_set_goalcol(struct Token *token, int goalcol)
 {
 	token->goalcol = goalcol;
 }
-

@@ -84,6 +84,7 @@ main(int argc, char *argv[])
 
 	if (strcmp(getprogname(), "portedit") == 0) {
 		settings.behavior |= PARSER_OUTPUT_EDITED;
+		settings.behavior |= PARSER_KEEP_EOL_COMMENTS;
 	}
 
 	int ch;

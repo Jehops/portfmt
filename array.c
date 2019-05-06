@@ -135,6 +135,14 @@ array_len(struct Array *array)
 }
 
 void
+array_set(struct Array *array, size_t i, void *v)
+{
+	if (i < array->len) {
+		array->buf[i] = v;
+	}
+}
+
+void
 array_sort(struct Array *array, ArrayCompareFn compar)
 {
 	qsort(array->buf, array->len, array->value_size, compar);

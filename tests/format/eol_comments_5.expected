@@ -1,4 +1,5 @@
+LDFLAGS+=	-fstack-protector-strong
 # plugins
-LDFLAGS+=	-fstack-protector-strong -Wl,-E
+LDFLAGS+=	-Wl,-E
 # ICE, SM, Xext
 LDFLAGS+=	-Wl,--as-needed

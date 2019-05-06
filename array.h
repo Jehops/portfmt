@@ -39,5 +39,6 @@ void array_free(struct Array *);
 void *array_get(struct Array *, size_t);
 ssize_t array_find(struct Array *, void *, ArrayCompareFn);
 size_t array_len(struct Array *);
+void array_set(struct Array *, size_t, void *);
 void array_sort(struct Array *, ArrayCompareFn);
 void array_truncate(struct Array *);

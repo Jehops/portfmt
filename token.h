@@ -29,6 +29,10 @@
 
 #include "config.h"
 
+#include "conditional.h"
+#include "target.h"
+#include "variable.h"
+
 enum TokenType {
 	COMMENT = 0,
 	CONDITIONAL_END,
@@ -52,6 +56,7 @@ struct Range {
 struct Token;
 
 struct Token *token_new(enum TokenType, struct Range *, const char *, char *, char *, char *);
+struct Token *token_new2(enum TokenType, struct Range *, const char *, struct Variable *, struct Conditional *, struct Target *);
 void token_free(struct Token *);
 struct Token *token_clone(struct Token *, const char *);
 struct Conditional *token_conditional(struct Token *);
