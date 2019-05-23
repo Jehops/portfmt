@@ -1642,6 +1642,32 @@ parser_get_all_variable_names(struct Parser *parser)
 }
 
 int
+parser_output_unknown_variables(struct Parser *parser)
+{
+	struct Array *vars = array_new(sizeof(char *));
+	parser->settings.behavior |= PARSER_OUTPUT_RAWLINES;
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		if (token_type(t) != VARIABLE_START) {
+			continue;
+		}
+		array_append(vars, variable_name(token_variable(t)));
+	}
+
+	for (size_t i = 0; i < array_len(vars); i++) {
+		char *var = array_get(vars, i);
+		if (variable_order_block(var) == BLOCK_UNKNOWN) {
+			parser_enqueue_output(parser, var);
+			parser_enqueue_output(parser, "\n");
+		}
+	}
+
+	array_free(vars);
+
+	return 0;
+}
+
+int
 parser_output_variable_order(struct Parser *parser)
 {
 	struct Array *vars = array_new(sizeof(char *));

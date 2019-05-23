@@ -65,3 +65,4 @@ int parser_output_variable_value(struct Parser *, const char *);
 void parser_output_write(struct Parser *, int);
 int parser_output_variable_order(struct Parser *);
 int parser_output_linted_variable_order(struct Parser *);
+int parser_output_unknown_variables(struct Parser *);
