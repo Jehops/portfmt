@@ -50,6 +50,8 @@ enum PorteditCommand {
 	PORTEDIT_BUMP_REVISION,
 	PORTEDIT_GET_VARIABLE,
 	PORTEDIT_SET_VARIABLE,
+	PORTEDIT_PRIVATE_LINT_ORDER,
+	PORTEDIT_PRIVATE_LIST_VARIABLES,
 };
 
 struct Portedit {
@@ -134,6 +136,14 @@ main(int argc, char *argv[])
 			edit.cmd = PORTEDIT_SET_VARIABLE;
 			edit.argc = 3;
 			edit.argv = argv;
+		} else if (strcmp(argv[0], "__private__lint-order") == 0 && argc > 0) {
+			edit.cmd = PORTEDIT_PRIVATE_LINT_ORDER;
+			edit.argc = 1;
+			edit.argv = argv;
+		} else if (strcmp(argv[0], "__private__list-variables") == 0 && argc > 0) {
+			edit.cmd = PORTEDIT_PRIVATE_LIST_VARIABLES;
+			edit.argc = 1;
+			edit.argv = argv;
 		} else {
 			usage();
 		}
@@ -212,6 +222,12 @@ main(int argc, char *argv[])
 			if (parser_edit_set_variable(parser, edit.argv[1], edit.argv[2], NULL) != 0) {
 				errx(1, "unable to set variable: %s", edit.argv[1]);
 			}
+		case PORTEDIT_PRIVATE_LIST_VARIABLES:
+			parser_output_variable_order(parser);
+			break;
+		case PORTEDIT_PRIVATE_LINT_ORDER:
+			parser_output_linted_variable_order(parser);
+			break;
 		default:
 			break;
 		}

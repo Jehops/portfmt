@@ -38,6 +38,7 @@
 
 char *repeat(char, size_t);
 
+int str_compare(const void *, const void *);
 int str_endswith(const char *, const char *);
 int str_startswith(const char *, const char *);
 char *str_strip_dup(const char *);

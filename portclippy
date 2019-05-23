@@ -1,0 +1,15 @@
+#!/bin/sh
+set -u
+makefile="$1"
+set +u
+is=$(mktemp /tmp/portclippy.XXXXXXXXX)
+should=$(mktemp /tmp/portclippy.XXXXXXXXX)
+portedit __private__list-variables "${makefile}" > "${is}"
+portedit __private__lint-order "${makefile}" > "${should}"
+if [ -t 1 ] && command -v colordiff >/dev/null; then
+	colordiff -U99999 -L "where it is" -L "where it should be" "${is}" "${should}" | \
+		less -XREF
+else
+	diff -U99999 -L "where it is" -L "where it should be" "${is}" "${should}"
+fi
+rm -f "${is}" "${should}"

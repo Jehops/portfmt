@@ -58,6 +58,14 @@ repeat(char c, size_t n)
 }
 
 int
+str_compare(const void *ap, const void *bp)
+{
+	const char *a = *(const char **)ap;
+	const char *b = *(const char **)bp;
+	return strcmp(a, b);
+}
+
+int
 str_endswith(const char *s, const char *end)
 {
 	size_t len = strlen(end);

@@ -1640,3 +1640,87 @@ parser_get_all_variable_names(struct Parser *parser)
 	}
 	return vars;
 }
+
+int
+parser_output_variable_order(struct Parser *parser)
+{
+	struct Array *vars = array_new(sizeof(char *));
+	parser->settings.behavior |= PARSER_OUTPUT_RAWLINES;
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		if (token_type(t) != VARIABLE_START) {
+			continue;
+		}
+		array_append(vars, variable_name(token_variable(t)));
+	}
+
+	enum BlockType block = BLOCK_UNKNOWN;
+	enum BlockType last_block = BLOCK_UNKNOWN;
+	int flag = 0;
+	for (size_t i = 0; i < array_len(vars); i++) {
+		char *var = array_get(vars, i);
+		block = variable_order_block(var);
+		if (flag && block != last_block) {
+			parser_enqueue_output(parser, "\n");
+		}
+		flag = 1;
+		parser_enqueue_output(parser, var);
+		parser_enqueue_output(parser, "\n");
+		last_block = block;
+	}
+
+	array_free(vars);
+
+	return 0;
+}
+
+int
+parser_output_linted_variable_order(struct Parser *parser)
+{
+	struct Array *vars = array_new(sizeof(char *));
+	parser->settings.behavior |= PARSER_OUTPUT_RAWLINES;
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		if (token_type(t) != VARIABLE_START) {
+			continue;
+		}
+		array_append(vars, variable_name(token_variable(t)));
+	}
+
+	array_sort(vars, compare_order);
+
+	struct Array *unknowns = array_new(sizeof(char *));
+	enum BlockType block = BLOCK_UNKNOWN;
+	enum BlockType last_block = BLOCK_UNKNOWN;
+	int flag = 0;
+	for (size_t i = 0; i < array_len(vars); i++) {
+		char *var = array_get(vars, i);
+		if ((block = variable_order_block(var)) != BLOCK_UNKNOWN) {
+			if (flag && block != last_block) {
+				parser_enqueue_output(parser, "\n");
+			}
+			flag = 1;
+			parser_enqueue_output(parser, var);
+			parser_enqueue_output(parser, "\n");
+			last_block = block;
+		} else {
+			array_append(unknowns, var);
+			last_block = BLOCK_UNKNOWN;
+		}
+	}
+
+	array_sort(unknowns, str_compare);
+	if (array_len(vars) > 0 && array_len(unknowns) > 0) {
+		parser_enqueue_output(parser, "\n");
+	}
+	for (size_t i = 0; i < array_len(unknowns); i++) {
+		char *var = array_get(unknowns, i);
+		parser_enqueue_output(parser, var);
+		parser_enqueue_output(parser, "\n");
+	}
+
+	array_free(unknowns);
+	array_free(vars);
+
+	return 0;
+}

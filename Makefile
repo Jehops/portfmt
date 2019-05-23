@@ -34,12 +34,14 @@ install:
 	${INSTALL_MAN} portfmt.1 ${DESTDIR}${MANDIR}/man1
 	${INSTALL_PROGRAM} portfmt ${DESTDIR}${PREFIX}/bin
 	cd ${DESTDIR}${PREFIX}/bin && ${LN} -sf portfmt portedit
+	${INSTALL_SCRIPT} portclippy ${DESTDIR}${PREFIX}/bin
 	@if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
 		${SED} -i '' 's,/usr/local,${PREFIX},' ${DESTDIR}${PREFIX}/bin/portfmt; \
 	fi
 
 install-symlinks:
 	@${MAKE} INSTALL_MAN="install -l as" \
+		INSTALL_PROGRAM="install -l as" \
 		INSTALL_SCRIPT="install -l as" \
 		install
 

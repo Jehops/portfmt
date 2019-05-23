@@ -1091,40 +1091,6 @@ static const char *ignore_wrap_col_[] = {
 	"RESTRICTED",
 };
 
-enum BlockType {
-	BLOCK_APACHE,
-	BLOCK_BROKEN,
-	BLOCK_CARGO1,
-	BLOCK_CARGO2,
-	BLOCK_CFLAGS,
-	BLOCK_CMAKE,
-	BLOCK_CONFIGURE,
-	BLOCK_DEPENDS,
-	BLOCK_ELIXIR,
-	BLOCK_EMACS,
-	BLOCK_ERLANG,
-	BLOCK_FLAVORS,
-	BLOCK_GO,
-	BLOCK_LAZARUS,
-	BLOCK_LICENSE,
-	BLOCK_LINUX,
-	BLOCK_MAINTAINER,
-	BLOCK_MAKE,
-	BLOCK_MESON,
-	BLOCK_NUGET,
-	BLOCK_OPTDEF,
-	BLOCK_OPTDESC,
-	BLOCK_OPTHELPER,
-	BLOCK_PATCHFILES,
-	BLOCK_PLIST,
-	BLOCK_PORTNAME,
-	BLOCK_QMAKE,
-	BLOCK_SHEBANGFIX,
-	BLOCK_STANDARD,
-	BLOCK_UNIQUEFILES,
-	BLOCK_USES,
-};
-
 struct VariableOrderEntry {
 	enum BlockType block;
 	const char *var;
@@ -1319,6 +1285,8 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_DEPENDS, "RUN_DEPENDS" },
 	{ BLOCK_DEPENDS, "TEST_DEPENDS" },
 
+	{ BLOCK_FLAVORS, "FLAVORS" },
+	{ BLOCK_FLAVORS, "FLAVOR" },
 	{ BLOCK_FLAVORS, "flavor_PKGNAMEPREFIX" },
 	{ BLOCK_FLAVORS, "flavor_PKGNAMESUFFIX" },
 	{ BLOCK_FLAVORS, "flavor_PLIST" },
@@ -1372,6 +1340,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_USES, "GH_ACCOUNT" },
 	{ BLOCK_USES, "GH_PROJECT" },
 	{ BLOCK_USES, "GH_SUBDIR" },
+	{ BLOCK_USES, "GH_TAGNAME" },
 	{ BLOCK_USES, "GH_TUPLE" },
 	{ BLOCK_USES, "USE_GITLAB" },
 	{ BLOCK_USES, "GL_SITE" },
@@ -1497,6 +1466,12 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_ERLANG, "ERL_RUN_DEPS" },
 	{ BLOCK_ERLANG, "ERL_DOCS" },
 
+	{ BLOCK_CMAKE, "CMAKE_ARGS" },
+	{ BLOCK_CMAKE, "CMAKE_OFF" },
+	{ BLOCK_CMAKE, "CMAKE_ON" },
+	{ BLOCK_CMAKE, "CMAKE_BUILD_TYPE" },
+	{ BLOCK_CMAKE, "CMAKE_SOURCE_PATH" },
+
 	{ BLOCK_CONFIGURE, "HAS_CONFIGURE" },
 	{ BLOCK_CONFIGURE, "GNU_CONFIGURE" },
 	{ BLOCK_CONFIGURE, "CONFIGURE_ARGS" },
@@ -1506,15 +1481,10 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_MAKE, "MAKE_ARGS" },
 	{ BLOCK_MAKE, "MAKE_ENV" },
 	{ BLOCK_MAKE, "MAKE_FLAGS" },
+	{ BLOCK_MAKE, "MAKE_JOBS_UNSAFE" },
 	{ BLOCK_MAKE, "ALL_TARGET" },
 	{ BLOCK_MAKE, "INSTALL_TARGET" },
 	{ BLOCK_MAKE, "TEST_TARGET" },
-
-	{ BLOCK_CMAKE, "CMAKE_OFF" },
-	{ BLOCK_CMAKE, "CMAKE_ON" },
-	{ BLOCK_CMAKE, "CMAKE_ARGS" },
-	{ BLOCK_CMAKE, "CMAKE_BUILD_TYPE" },
-	{ BLOCK_CMAKE, "CMAKE_SOURCE_PATH" },
 
 	{ BLOCK_QMAKE, "QMAKE_ARGS" },
 	{ BLOCK_QMAKE, "QMAKE_ENV" },
@@ -1604,16 +1574,24 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_CFLAGS, "LDFLAGS_powerpc" },
 	{ BLOCK_CFLAGS, "LDFLAGS_powerpc64" },
 	{ BLOCK_CFLAGS, "LDFLAGS_sparc64" },
+	{ BLOCK_CFLAGS, "LIBS" },
 	{ BLOCK_CFLAGS, "LLD_UNSAFE" },
 	{ BLOCK_CFLAGS, "SSP_UNSAFE" },
 	{ BLOCK_CFLAGS, "SSP_CFLAGS" },
 
+	{ BLOCK_CONFLICTS, "CONFLICTS" },
+	{ BLOCK_CONFLICTS, "CONFLICTS_BUILD" },
+	{ BLOCK_CONFLICTS, "CONFLICTS_INSTALL" },
+
+	{ BLOCK_STANDARD, "DESKTOP_ENTRIES" },
 	{ BLOCK_STANDARD, "FILESDIR" },
 	{ BLOCK_STANDARD, "MASTERDIR" },
 	{ BLOCK_STANDARD, "NO_ARCH" },
 	{ BLOCK_STANDARD, "NO_ARCH_IGNORE" },
 	{ BLOCK_STANDARD, "NO_BUILD" },
 	{ BLOCK_STANDARD, "NO_WRKSUBDIR" },
+	{ BLOCK_STANDARD, "SUB_FILES" },
+	{ BLOCK_STANDARD, "SUB_LIST" },
 	{ BLOCK_STANDARD, "USERS" },
 	{ BLOCK_STANDARD, "GROUPS" },
 	{ BLOCK_STANDARD, "SCRIPTDIR" },
@@ -1625,15 +1603,47 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_PLIST, "INFO_PATH" },
 	{ BLOCK_PLIST, "PLIST_DIRS" },
 	{ BLOCK_PLIST, "PLIST_FILES" },
+	{ BLOCK_PLIST, "PLIST_SUB" },
 	{ BLOCK_PLIST, "PORTDATA" },
 	{ BLOCK_PLIST, "PORTDOCS" },
 	{ BLOCK_PLIST, "PORTEXAMPLES" },
 
 	{ BLOCK_OPTDEF, "OPTIONS_DEFINE" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_aarch64" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_amd64" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_armv6" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_armv7" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_i386" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_mips" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_mips64" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_powerpc" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_powerpc64" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFINE_sparc64" },
 	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_aarch64" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_amd64" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_armv6" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_armv7" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_i386" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_mips" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_mips64" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_powerpc" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_powerpc64" },
+	{ BLOCK_OPTDEF, "OPTIONS_DEFAULT_sparc64" },
 	{ BLOCK_OPTDEF, "OPTIONS_GROUP" },
 	{ BLOCK_OPTDEF, "OPTIONS_MULTI" },
 	{ BLOCK_OPTDEF, "OPTIONS_RADIO" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_aarch64" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_amd64" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_armv6" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_armv7" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_i386" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_mips" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_mips64" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_powerpc" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_powerpc64" },
+	{ BLOCK_OPTDEF, "OPTIONS_EXCLUDE_sparc64" },
 	{ BLOCK_OPTDEF, "OPTIONS_SUB" },
 
 	{ BLOCK_OPTDESC, "DESC" },
@@ -2044,6 +2054,120 @@ compare_use_qt(struct Variable *var, const char *a, const char *b, int *result)
 
 	*result = compare_rel(use_qt_rel, nitems(use_qt_rel), a, b);
 	return 1;
+}
+
+enum BlockType
+variable_order_block(const char *var)
+{
+	for (size_t i = 0; i < nitems(variable_order_); i++) {
+		if (strcmp(var, variable_order_[i].var) == 0) {
+			return variable_order_[i].block;
+		}
+	}
+	return BLOCK_UNKNOWN;
+}
+
+int
+compare_order(const void *ap, const void *bp)
+{
+	const char *a = *(const char **)ap;
+	const char *b = *(const char **)bp;
+
+	if (strcmp(a, b) == 0) {
+		return 0;
+	}
+
+	ssize_t ai = -1;
+	ssize_t bi = -1;
+	for (size_t i = 0; i < nitems(variable_order_) && (ai == -1 || bi == -1); i++) {
+		if (strcmp(a, variable_order_[i].var) == 0) {
+			ai = i;
+		}
+		if (strcmp(b, variable_order_[i].var) == 0) {
+			bi = i;
+		}
+	}
+
+	if (ai < bi) {
+		return -1;
+	} else {
+		return 1;
+	}
+}
+
+const char *
+blocktype_tostring(enum BlockType block)
+{
+	switch (block) {
+	case BLOCK_APACHE:
+		return "BLOCK_APACHE";
+	case BLOCK_BROKEN:
+		return "BLOCK_BROKEN";
+	case BLOCK_CARGO1:
+		return "BLOCK_CARGO1";
+	case BLOCK_CARGO2:
+		return "BLOCK_CARGO2";
+	case BLOCK_CFLAGS:
+		return "BLOCK_CFLAGS";
+	case BLOCK_CMAKE:
+		return "BLOCK_CMAKE";
+	case BLOCK_CONFIGURE:
+		return "BLOCK_CONFIGURE";
+	case BLOCK_CONFLICTS:
+		return "BLOCK_CONFLICTS";
+	case BLOCK_DEPENDS:
+		return "BLOCK_DEPENDS";
+	case BLOCK_ELIXIR:
+		return "BLOCK_ELIXIR";
+	case BLOCK_EMACS:
+		return "BLOCK_EMACS";
+	case BLOCK_ERLANG:
+		return "BLOCK_ERLANG";
+	case BLOCK_FLAVORS:
+		return "BLOCK_FLAVORS";
+	case BLOCK_GO:
+		return "BLOCK_GO";
+	case BLOCK_LAZARUS:
+		return "BLOCK_LAZARUS";
+	case BLOCK_LICENSE:
+		return "BLOCK_LICENSE";
+	case BLOCK_LINUX:
+		return "BLOCK_LINUX";
+	case BLOCK_MAINTAINER:
+		return "BLOCK_MAINTAINER";
+	case BLOCK_MAKE:
+		return "BLOCK_MAKE";
+	case BLOCK_MESON:
+		return "BLOCK_MESON";
+	case BLOCK_NUGET:
+		return "BLOCK_NUGET";
+	case BLOCK_OPTDEF:
+		return "BLOCK_OPTDEF";
+	case BLOCK_OPTDESC:
+		return "BLOCK_OPTDESC";
+	case BLOCK_OPTHELPER:
+		return "BLOCK_OPTHELPER";
+	case BLOCK_PATCHFILES:
+		return "BLOCK_PATCHFILES";
+	case BLOCK_PLIST:
+		return "BLOCK_PLIST";
+	case BLOCK_PORTNAME:
+		return "BLOCK_PORTNAME";
+	case BLOCK_QMAKE:
+		return "BLOCK_QMAKE";
+	case BLOCK_SHEBANGFIX:
+		return "BLOCK_SHEBANGFIX";
+	case BLOCK_STANDARD:
+		return "BLOCK_STANDARD";
+	case BLOCK_UNIQUEFILES:
+		return "BLOCK_UNIQUEFILES";
+	case BLOCK_UNKNOWN:
+		return "BLOCK_UNKNOWN";
+	case BLOCK_USES:
+		return "BLOCK_USES";
+	}
+
+	abort();
 }
 
 char *

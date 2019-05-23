@@ -34,6 +34,42 @@
 #include "token.h"
 #include "variable.h"
 
+enum BlockType {
+	BLOCK_APACHE,
+	BLOCK_BROKEN,
+	BLOCK_CARGO1,
+	BLOCK_CARGO2,
+	BLOCK_CFLAGS,
+	BLOCK_CMAKE,
+	BLOCK_CONFIGURE,
+	BLOCK_CONFLICTS,
+	BLOCK_DEPENDS,
+	BLOCK_ELIXIR,
+	BLOCK_EMACS,
+	BLOCK_ERLANG,
+	BLOCK_FLAVORS,
+	BLOCK_GO,
+	BLOCK_LAZARUS,
+	BLOCK_LICENSE,
+	BLOCK_LINUX,
+	BLOCK_MAINTAINER,
+	BLOCK_MAKE,
+	BLOCK_MESON,
+	BLOCK_NUGET,
+	BLOCK_OPTDEF,
+	BLOCK_OPTDESC,
+	BLOCK_OPTHELPER,
+	BLOCK_PATCHFILES,
+	BLOCK_PLIST,
+	BLOCK_PORTNAME,
+	BLOCK_QMAKE,
+	BLOCK_SHEBANGFIX,
+	BLOCK_STANDARD,
+	BLOCK_UNIQUEFILES,
+	BLOCK_UNKNOWN,
+	BLOCK_USES,
+};
+
 enum RegularExpression {
 	RE_CONDITIONAL = 0,
 	RE_CONTINUE_LINE,
@@ -51,6 +87,8 @@ enum RegularExpression {
 	RE_VAR,
 };
 
+const char *blocktype_tostring(enum BlockType);
+int compare_order(const void *, const void *);
 int compare_tokens(const void *, const void *);
 void compile_regular_expressions(void);
 int ignore_wrap_col(struct Variable *);
@@ -63,3 +101,4 @@ int print_as_newlines(struct Variable *);
 int skip_goalcol(struct Variable *);
 char *sub(enum RegularExpression, const char *, const char *);
 int target_command_should_wrap(char *);
+enum BlockType variable_order_block(const char *);
