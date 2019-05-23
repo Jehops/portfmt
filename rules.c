@@ -131,151 +131,6 @@ static const char *print_as_newlines_[] = {
 	"VARS",
 };
 
-static const char *options_helpers_[] = {
-	// _OPTIONS_FLAGS
-	"ALL_TARGET",
-	"BINARY_ALIAS",
-	"BROKEN",
-	"CATEGORIES",
-	"CFLAGS",
-	"CONFIGURE_ENV",
-	"CONFLICTS",
-	"CONFLICTS_BUILD",
-	"CONFLICTS_INSTALL",
-	"CPPFLAGS",
-	"CXXFLAGS",
-	"DESC",
-	"DESKTOP_ENTRIES",
-	"DISTFILES",
-	"EXTRA_PATCHES",
-	"EXTRACT_ONLY",
-	"GH_ACCOUNT",
-	"GH_PROJECT",
-	"GH_SUBDIR",
-	"GH_TAGNAME",
-	"GH_TUPLE",
-	"GL_ACCOUNT",
-	"GL_COMMIT",
-	"GL_PROJECT",
-	"GL_SITE",
-	"GL_SUBDIR",
-	"GL_TUPLE",
-	"IGNORE",
-	"INFO",
-	"INSTALL_TARGET",
-	"LDFLAGS",
-	"LIBS",
-	"MAKE_ARGS",
-	"MAKE_ENV",
-	"MASTER_SITES",
-	"PATCH_SITES",
-	"PATCHFILES",
-	"PLIST_DIRS",
-	"PLIST_FILES",
-	"PLIST_SUB",
-	"PORTDOCS",
-	"PORTEXAMPLES",
-	"SUB_FILES",
-	"SUB_LIST",
-	"TEST_TARGET",
-	"USES",
-
-	// _OPTIONS_DEPENDS
-	"PKG_DEPENDS",
-	"FETCH_DEPENDS",
-	"EXTRACT_DEPENDS",
-	"PATCH_DEPENDS",
-	"BUILD_DEPENDS",
-	"LIB_DEPENDS",
-	"RUN_DEPENDS",
-	"TEST_DEPENDS",
-
-	// Other special options helpers
-	"USE",
-	"VARS",
-
-	// Add _OFF variants of the above
-	"ALL_TARGET_OFF",
-	"BINARY_ALIAS_OFF",
-	"BROKEN_OFF",
-	"CATEGORIES_OFF",
-	"CFLAGS_OFF",
-	"CONFIGURE_ENV_OFF",
-	"CONFLICTS_OFF",
-	"CONFLICTS_BUILD_OFF",
-	"CONFLICTS_INSTALL_OFF",
-	"CPPFLAGS_OFF",
-	"CXXFLAGS_OFF",
-	"DESKTOP_ENTRIES_OFF",
-	"DISTFILES_OFF",
-	"EXTRA_PATCHES_OFF",
-	"EXTRACT_ONLY_OFF",
-	"GH_ACCOUNT_OFF",
-	"GH_PROJECT_OFF",
-	"GH_SUBDIR_OFF",
-	"GH_TAGNAME_OFF",
-	"GH_TUPLE_OFF",
-	"GL_ACCOUNT_OFF",
-	"GL_COMMIT_OFF",
-	"GL_PROJECT_OFF",
-	"GL_SITE_OFF",
-	"GL_SUBDIR_OFF",
-	"GL_TUPLE_OFF",
-	"IGNORE_OFF",
-	"INFO_OFF",
-	"INSTALL_TARGET_OFF",
-	"LDFLAGS_OFF",
-	"LIBS_OFF",
-	"MAKE_ARGS_OFF",
-	"MAKE_ENV_OFF",
-	"MASTER_SITES_OFF",
-	"PATCH_SITES_OFF",
-	"PATCHFILES_OFF",
-	"PLIST_DIRS_OFF",
-	"PLIST_FILES_OFF",
-	"PLIST_SUB_OFF",
-	"PORTDOCS_OFF",
-	"PORTEXAMPLES_OFF",
-	"SUB_FILES_OFF",
-	"SUB_LIST_OFF",
-	"TEST_TARGET_OFF",
-	"USES_OFF",
-	"PKG_DEPENDS_OFF",
-	"FETCH_DEPENDS_OFF",
-	"EXTRACT_DEPENDS_OFF",
-	"PATCH_DEPENDS_OFF",
-	"BUILD_DEPENDS_OFF",
-	"LIB_DEPENDS_OFF",
-	"RUN_DEPENDS_OFF",
-	"TEST_DEPENDS_OFF",
-	"USE_OFF",
-	"VARS_OFF",
-
-	// Other irregular helpers
-	"CONFIGURE_ENABLE",
-	"CONFIGURE_WITH",
-	"CMAKE_BOOL",
-	"CMAKE_BOOL_OFF",
-	"CMAKE_ON",
-	"CMAKE_OFF",
-	"DESC",
-	"MESON_DISABLED",
-	"MESON_ENABLED",
-	"MESON_TRUE",
-	"MESON_FALSE",
-	"MESON_YES",
-	"MESON_NO",
-	"CONFIGURE_ON",
-	"MESON_ON",
-	"QMAKE_ON",
-	"CONFIGURE_OFF",
-	"MESON_OFF",
-	"QMAKE_OFF",
-	"CABAL_FLAGS",
-	"EXECUTABLES",
-	"USE_CABAL",
-};
-
 static const char *license_perms_rel[] = {
 	"dist-mirror",
 	"no-dist-mirror",
@@ -2174,25 +2029,26 @@ char *
 options_helpers_pattern()
 {
 	size_t len = strlen("_(");
-	for (size_t i = 0; i < nitems(options_helpers_); i++) {
-		const char *helper = options_helpers_[i];
-		len += strlen(helper);
-		if (i < (nitems(options_helpers_) - 1)) {
-			len += strlen("|");
+	for (size_t i = 0; i < nitems(variable_order_); i++) {
+		if (variable_order_[i].block != BLOCK_OPTHELPER) {
+			continue;
 		}
+		const char *helper = variable_order_[i].var;
+		len += strlen(helper) + strlen("|");
 	}
-	len += strlen(")$") + 1;
+	len += strlen("DESC)$") + 1;
 
 	char *buf = xmalloc(len);
 	xstrlcat(buf, "_(", len);
-	for (size_t i = 0; i < nitems(options_helpers_); i++) {
-		const char *helper = options_helpers_[i];
-		xstrlcat(buf, helper, len);
-		if (i < (nitems(options_helpers_) - 1)) {
-			xstrlcat(buf, "|", len);
+	for (size_t i = 0; i < nitems(variable_order_); i++) {
+		if (variable_order_[i].block != BLOCK_OPTHELPER) {
+			continue;
 		}
+		const char *helper = variable_order_[i].var;
+		xstrlcat(buf, helper, len);
+		xstrlcat(buf, "|", len);
 	}
-	xstrlcat(buf, ")$", len);
+	xstrlcat(buf, "DESC)$", len);
 
 	return buf;
 }
