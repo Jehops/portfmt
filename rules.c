@@ -72,6 +72,8 @@ static struct {
 				  "_LICENSE_LIST_PERMS[+?:]?|"
 				  "LICENSE_PERMS[+?:]?)",
 				  REG_EXTENDED, {} },
+	[RE_OPTIONS_GROUP]    = { "^_?OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_([A-Z0-9\\._+ ])+",
+				  REG_EXTENDED, {} },
 	[RE_OPTIONS_HELPER]   = { "generated in compile_regular_expressions", REG_EXTENDED, {} },
 	[RE_OPT_USE_PREFIX]   = { "^[A-Za-z0-9_]+\\+?=", REG_EXTENDED, {} },
 	[RE_OPT_USE]	      = { "^[A-Z0-9_]+_USE$", REG_EXTENDED, {} },
@@ -1511,7 +1513,9 @@ static struct VariableOrderEntry variable_order_[] = {
 
 	{ BLOCK_OPTDESC, 310000, "DESC" },
 
-	{ BLOCK_OPTHELPER, 320000, "CATEGORIES_OFF" },
+	{ BLOCK_OPTHELPER, 320000, "IMPLIES" },
+	{ BLOCK_OPTHELPER, 320005, "PREVENTS" },
+	{ BLOCK_OPTHELPER, 320025, "CATEGORIES_OFF" },
 	{ BLOCK_OPTHELPER, 320050, "CATEGORIES" },
 	{ BLOCK_OPTHELPER, 320100, "MASTER_SITES_OFF" },
 	{ BLOCK_OPTHELPER, 320150, "MASTER_SITES" },
@@ -1922,6 +1926,18 @@ compare_use_qt(struct Variable *var, const char *a, const char *b, int *result)
 enum BlockType
 variable_order_block(const char *var)
 {
+	if (matches(RE_OPTIONS_HELPER, var, NULL)) {
+		if (str_endswith(var, "_DESC")) {
+			return BLOCK_OPTDESC;
+		} else {
+			return BLOCK_OPTHELPER;
+		}
+	}
+
+	if (matches(RE_OPTIONS_GROUP, var, NULL)) {
+		return BLOCK_OPTDEF;
+	}
+
 	for (size_t i = 0; i < nitems(variable_order_); i++) {
 		if (strcmp(var, variable_order_[i].var) == 0) {
 			return variable_order_[i].block;
@@ -1939,22 +1955,86 @@ compare_order(const void *ap, const void *bp)
 	if (strcmp(a, b) == 0) {
 		return 0;
 	}
+	enum BlockType ablock = variable_order_block(a);
+	enum BlockType bblock = variable_order_block(b);
+	if (ablock < bblock) {
+		return -1;
+	} else if (ablock > bblock) {
+		return 1;
+	}
 
-	ssize_t ai = -1;
-	ssize_t bi = -1;
-	for (size_t i = 0; i < nitems(variable_order_) && (ai == -1 || bi == -1); i++) {
-		if (strcmp(a, variable_order_[i].var) == 0) {
-			ai = i;
+	if (ablock == BLOCK_OPTDESC) {
+		return strcmp(a, b);
+	}
+
+	if (ablock == BLOCK_OPTHELPER) {
+		int ascore = -1;
+		int bscore = -1;
+
+		for (size_t i = 0; i < nitems(variable_order_); i++) {
+			if (variable_order_[i].block != BLOCK_OPTHELPER) {
+				continue;
+			}
+			// TODO: Only compare if common prefix (helper for the same option)
+			if (str_endswith(a, variable_order_[i].var)) {
+				ascore = variable_order_[i].score;
+			}
+			if (str_endswith(b, variable_order_[i].var)) {
+				bscore = variable_order_[i].score;
+			}
 		}
-		if (strcmp(b, variable_order_[i].var) == 0) {
-			bi = i;
+
+		if (ascore < bscore) {
+			return -1;
+		} else if (ascore > bscore) {
+			return 1;
+		} else {
+			return strcmp(a, b);
 		}
 	}
 
-	if (ai < bi) {
+	if (ablock == BLOCK_OPTDEF) {
+		int ascore = -1;
+		int bscore = -1;
+
+		for (size_t i = 0; i < nitems(variable_order_); i++) {
+			if (variable_order_[i].block != BLOCK_OPTDEF) {
+				continue;
+			}
+			if (str_startswith(a, variable_order_[i].var)) {
+				ascore = variable_order_[i].score;
+			}
+			if (str_startswith(b, variable_order_[i].var)) {
+				bscore = variable_order_[i].score;
+			}
+		}
+
+		if (ascore < bscore) {
+			return -1;
+		} else if (ascore > bscore) {
+			return 1;
+		} else {
+			return strcmp(a, b);
+		}
+	}
+
+	int ascore = -1;
+	int bscore = -1;
+	for (size_t i = 0; i < nitems(variable_order_) && (ascore == -1 || bscore == -1); i++) {
+		if (strcmp(a, variable_order_[i].var) == 0) {
+			ascore = variable_order_[i].score;
+		}
+		if (strcmp(b, variable_order_[i].var) == 0) {
+			bscore = variable_order_[i].score;
+		}
+	}
+
+	if (ascore < bscore) {
 		return -1;
-	} else {
+	} else if (ascore > bscore) {
 		return 1;
+	} else {
+		return strcmp(a, b);
 	}
 }
 
