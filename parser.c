@@ -1634,6 +1634,14 @@ parser_get_all_variable_names(struct Parser *parser)
 		case VARIABLE_START:
 			array_append(vars, variable_name(token_variable(t)));
 			break;
+		case CONDITIONAL_TOKEN:
+			if (conditional_type(token_conditional(t)) == COND_INCLUDE &&
+			    (strcmp(token_data(t), "<bsd.port.options.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.pre.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.post.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.mk>") == 0)) {
+				return vars;
+			}
 		default:
 			break;
 		}
@@ -1674,6 +1682,15 @@ parser_output_variable_order(struct Parser *parser)
 	parser->settings.behavior |= PARSER_OUTPUT_RAWLINES;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
+		if (token_type(t) == CONDITIONAL_TOKEN) {
+			if (conditional_type(token_conditional(t)) == COND_INCLUDE &&
+			    (strcmp(token_data(t), "<bsd.port.options.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.pre.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.post.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.mk>") == 0)) {
+				break;
+			}
+		}
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
@@ -1707,6 +1724,15 @@ parser_output_linted_variable_order(struct Parser *parser)
 	parser->settings.behavior |= PARSER_OUTPUT_RAWLINES;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
+		if (token_type(t) == CONDITIONAL_TOKEN) {
+			if (conditional_type(token_conditional(t)) == COND_INCLUDE &&
+			    (strcmp(token_data(t), "<bsd.port.options.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.pre.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.post.mk>") == 0 ||
+			     strcmp(token_data(t), "<bsd.port.mk>") == 0)) {
+				break;
+			}
+		}
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
