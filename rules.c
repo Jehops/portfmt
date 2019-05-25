@@ -1975,12 +1975,18 @@ compare_order(const void *ap, const void *bp)
 			if (variable_order_[i].block != BLOCK_OPTHELPER) {
 				continue;
 			}
-			// TODO: Only compare if common prefix (helper for the same option)
-			if (str_endswith(a, variable_order_[i].var)) {
-				ascore = variable_order_[i].score;
-			}
-			if (str_endswith(b, variable_order_[i].var)) {
-				bscore = variable_order_[i].score;
+			// Only compare if common prefix (helper for the same option)
+			char *prefix;
+			if ((prefix = str_common_prefix(a, b)) != NULL) {
+				if (str_endswith(prefix, "_")) {
+					if (str_endswith(a, variable_order_[i].var)) {
+						ascore = variable_order_[i].score;
+					}
+					if (str_endswith(b, variable_order_[i].var)) {
+						bscore = variable_order_[i].score;
+					}
+				}
+				free(prefix);
 			}
 		}
 

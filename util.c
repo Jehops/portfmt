@@ -57,6 +57,21 @@ repeat(char c, size_t n)
 	return buf;
 }
 
+char *
+str_common_prefix(const char *a, const char *b)
+{
+	const char *ap = a;
+	const char *bp = b;
+	size_t i;
+	for (i = 0; *ap != 0 && *bp != 0 && *ap++ == *bp++; i++);
+
+	if (i > 0) {
+		return xstrndup(a, i);
+	} else {
+		return NULL;
+	}
+}
+
 int
 str_compare(const void *ap, const void *bp)
 {
