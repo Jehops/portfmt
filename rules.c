@@ -816,6 +816,9 @@ static const char *leave_unsorted_[] = {
 // Don't indent with the rest of the variables in a paragraph
 static const char *skip_goalcol_[] = {
 	"CARGO_CRATES",
+	"CMAKE_BUILD_TYPE",
+	"CMAKE_INSTALL_PREFIX",
+	"CMAKE_SOURCE_PATH",
 	"DISTFILES_amd64",
 	"DISTFILES_i386",
 	"DISTVERSIONPREFIX",
@@ -1500,7 +1503,8 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_CMAKE, 150050, "CMAKE_OFF" },
 	{ BLOCK_CMAKE, 150100, "CMAKE_ON" },
 	{ BLOCK_CMAKE, 150150, "CMAKE_BUILD_TYPE" },
-	{ BLOCK_CMAKE, 150200, "CMAKE_SOURCE_PATH" },
+	{ BLOCK_CMAKE, 150200, "CMAKE_INSTALL_PREFIX" },
+	{ BLOCK_CMAKE, 150250, "CMAKE_SOURCE_PATH" },
 
 	{ BLOCK_CONFIGURE, 160000, "HAS_CONFIGURE" },
 	{ BLOCK_CONFIGURE, 160050, "GNU_CONFIGURE" },
