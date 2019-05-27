@@ -48,6 +48,7 @@ static int compare_license_perms(struct Variable *, const char *, const char *, 
 static int compare_plist_files(struct Variable *, const char *, const char *, int *);
 static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
+static char *flavors_helpers_pattern(void);
 static char *options_helpers_pattern(void);
 
 static struct {
@@ -63,6 +64,7 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$", REG_EXTENDED, {} },
 	[RE_EMPTY_LINE]       = { "^[[:space:]]*$", 			      0, {} },
+	[RE_FLAVORS_HELPER]   = { "generated in compile_regular_expressions", REG_EXTENDED, {} },
 	[RE_LICENSE_NAME]     = { "^(_?(-|LICENSE_NAME_[A-Za-z0-9._+ ])+|"
 				  "^LICENSE_(FILE|NAME)_|"
 				  "^LICENSE_(NAME|TEXT)$|"
@@ -1300,21 +1302,22 @@ static struct VariableOrderEntry variable_order_[] = {
 
 	{ BLOCK_FLAVORS, 70000, "FLAVORS" },
 	{ BLOCK_FLAVORS, 70050, "FLAVOR" },
-	{ BLOCK_FLAVORS, 70100, "flavor_PKGNAMEPREFIX" },
-	{ BLOCK_FLAVORS, 70150, "flavor_PKGNAMESUFFIX" },
-	{ BLOCK_FLAVORS, 70200, "flavor_PLIST" },
-	{ BLOCK_FLAVORS, 70250, "flavor_DESCR" },
-	{ BLOCK_FLAVORS, 70300, "flavor_CONFLICTS" },
-	{ BLOCK_FLAVORS, 70350, "flavor_CONFLICTS_BUILD" },
-	{ BLOCK_FLAVORS, 70400, "flavor_CONFLICTS_INSTALL" },
-	{ BLOCK_FLAVORS, 70450, "flavor_PKG_DEPENDS" },
-	{ BLOCK_FLAVORS, 70500, "flavor_EXTRACT_DEPENDS" },
-	{ BLOCK_FLAVORS, 70550, "flavor_PATCH_DEPENDS" },
-	{ BLOCK_FLAVORS, 70600, "flavor_FETCH_DEPENDS" },
-	{ BLOCK_FLAVORS, 70650, "flavor_BUILD_DEPENDS" },
-	{ BLOCK_FLAVORS, 70700, "flavor_LIB_DEPENDS" },
-	{ BLOCK_FLAVORS, 70750, "flavor_RUN_DEPENDS" },
-	{ BLOCK_FLAVORS, 70800, "flavor_TEST_DEPENDS" },
+
+	{ BLOCK_FLAVORS_HELPER, 70100, "PKGNAMEPREFIX" },
+	{ BLOCK_FLAVORS_HELPER, 70150, "PKGNAMESUFFIX" },
+	{ BLOCK_FLAVORS_HELPER, 70200, "PKG_DEPENDS" },
+	{ BLOCK_FLAVORS_HELPER, 70250, "EXTRACT_DEPENDS" },
+	{ BLOCK_FLAVORS_HELPER, 70300, "PATCH_DEPENDS" },
+	{ BLOCK_FLAVORS_HELPER, 70350, "FETCH_DEPENDS" },
+	{ BLOCK_FLAVORS_HELPER, 70400, "BUILD_DEPENDS" },
+	{ BLOCK_FLAVORS_HELPER, 70450, "LIB_DEPENDS" },
+	{ BLOCK_FLAVORS_HELPER, 70500, "RUN_DEPENDS" },
+	{ BLOCK_FLAVORS_HELPER, 70550, "TEST_DEPENDS" },
+	{ BLOCK_FLAVORS_HELPER, 70600, "CONFLICTS" },
+	{ BLOCK_FLAVORS_HELPER, 70650, "CONFLICTS_BUILD" },
+	{ BLOCK_FLAVORS_HELPER, 70700, "CONFLICTS_INSTALL" },
+	{ BLOCK_FLAVORS_HELPER, 70750, "DESCR" },
+	{ BLOCK_FLAVORS_HELPER, 70800, "PLIST" },
 
 	{ BLOCK_USES, 80000, "USES" },
 	{ BLOCK_USES, 80050, "CPE_PART" },
@@ -2266,6 +2269,10 @@ compare_use_qt(struct Variable *var, const char *a, const char *b, int *result)
 enum BlockType
 variable_order_block(const char *var)
 {
+	if (matches(RE_FLAVORS_HELPER, var, NULL)) {
+		return BLOCK_FLAVORS_HELPER;
+	}
+
 	if (matches(RE_OPTIONS_HELPER, var, NULL)) {
 		if (str_endswith(var, "_DESC")) {
 			return BLOCK_OPTDESC;
@@ -2301,6 +2308,38 @@ compare_order(const void *ap, const void *bp)
 		return -1;
 	} else if (ablock > bblock) {
 		return 1;
+	}
+
+	if (ablock == BLOCK_FLAVORS_HELPER) {
+		int ascore = -1;
+		int bscore = -1;
+
+		for (size_t i = 0; i < nitems(variable_order_); i++) {
+			if (variable_order_[i].block != BLOCK_FLAVORS_HELPER) {
+				continue;
+			}
+			// Only compare if common prefix (helper for the same flavor)
+			char *prefix;
+			if ((prefix = str_common_prefix(a, b)) != NULL) {
+				if (str_endswith(prefix, "_")) {
+					if (str_endswith(a, variable_order_[i].var)) {
+						ascore = variable_order_[i].score;
+					}
+					if (str_endswith(b, variable_order_[i].var)) {
+						bscore = variable_order_[i].score;
+					}
+				}
+				free(prefix);
+			}
+		}
+
+		if (ascore < bscore) {
+			return -1;
+		} else if (ascore > bscore) {
+			return 1;
+		} else {
+			return strcmp(a, b);
+		}
 	}
 
 	if (ablock == BLOCK_OPTDESC) {
@@ -2414,6 +2453,8 @@ blocktype_tostring(enum BlockType block)
 		return "BLOCK_ERLANG";
 	case BLOCK_FLAVORS:
 		return "BLOCK_FLAVORS";
+	case BLOCK_FLAVORS_HELPER:
+		return "BLOCK_FLAVORS_HELPER";
 	case BLOCK_GO:
 		return "BLOCK_GO";
 	case BLOCK_LAZARUS:
@@ -2459,6 +2500,36 @@ blocktype_tostring(enum BlockType block)
 	}
 
 	abort();
+}
+
+char *
+flavors_helpers_pattern()
+{
+	size_t len = strlen("^[a-z0-9_]+_(");
+	for (size_t i = 0; i < nitems(variable_order_); i++) {
+		if (variable_order_[i].block != BLOCK_FLAVORS_HELPER) {
+			continue;
+		}
+		const char *helper = variable_order_[i].var;
+		len += strlen(helper) + strlen("|");
+	}
+	len -= 1;
+	len += strlen(")$") + 1;
+
+	char *buf = xmalloc(len);
+	xstrlcat(buf, "^[a-z0-9_]+_(", len);
+	for (size_t i = 0; i < nitems(variable_order_); i++) {
+		if (variable_order_[i].block != BLOCK_FLAVORS_HELPER) {
+			continue;
+		}
+		const char *helper = variable_order_[i].var;
+		xstrlcat(buf, helper, len);
+		xstrlcat(buf, "|", len);
+	}
+	buf[strlen(buf) - 1] = 0;
+	xstrlcat(buf, ")$", len);
+
+	return buf;
 }
 
 char *
@@ -2543,6 +2614,10 @@ compile_regular_expressions()
 		switch (i) {
 		case RE_OPTIONS_HELPER:
 			buf = options_helpers_pattern();
+			pattern = buf;
+			break;
+		case RE_FLAVORS_HELPER:
+			buf = flavors_helpers_pattern();
 			pattern = buf;
 			break;
 		default:
