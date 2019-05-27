@@ -105,7 +105,8 @@ array_find(struct Array *array, void *k, ArrayCompareFn compar)
 {
 	if (compar) {
 		for (size_t i = 0; i < array_len(array); i++) {
-			if (compar(array_get(array, i), k) == 0) {
+			void *v = array_get(array, i);
+			if (compar(&v, &k) == 0) {
 				return i;
 			}
 		}

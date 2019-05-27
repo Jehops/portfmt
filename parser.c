@@ -1694,7 +1694,7 @@ parser_output_variable_order(struct Parser *parser)
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
-		array_append(vars, variable_name(token_variable(t)));
+		array_append_unique(vars, variable_name(token_variable(t)), str_compare);
 	}
 
 	enum BlockType block = BLOCK_UNKNOWN;
@@ -1736,7 +1736,7 @@ parser_output_linted_variable_order(struct Parser *parser)
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
-		array_append(vars, variable_name(token_variable(t)));
+		array_append_unique(vars, variable_name(token_variable(t)), str_compare);
 	}
 
 	array_sort(vars, compare_order);
