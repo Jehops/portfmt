@@ -1408,6 +1408,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_USES, 84450, "PHP_MODPRIO" },
 	{ BLOCK_USES, 84500, "USE_PYQT" },
 	{ BLOCK_USES, 84550, "USE_PYTHON" },
+	{ BLOCK_USES, 84555, "USE_QT" },
 	{ BLOCK_USES, 84600, "USE_RC_SUBR" },
 	{ BLOCK_USES, 84650, "USE_RUBY" },
 	{ BLOCK_USES, 84700, "RUBY_NO_BUILD_DEPENDS" },
