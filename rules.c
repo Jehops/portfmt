@@ -1360,6 +1360,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_USES, 82050, "GL_SITE" },
 	{ BLOCK_USES, 82100, "GL_ACCOUNT" },
 	{ BLOCK_USES, 82150, "GL_PROJECT" },
+	{ BLOCK_USES, 82151, "GL_COMMIT" },
 	{ BLOCK_USES, 82200, "GL_SUBDIR" },
 	{ BLOCK_USES, 82250, "GL_TUPLE" },
 	{ BLOCK_USES, 82300, "USE_GL" },
