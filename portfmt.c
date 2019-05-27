@@ -125,6 +125,9 @@ main(int argc, char *argv[])
 
 	struct Portedit edit;
 	if (settings.behavior & PARSER_OUTPUT_EDITED) {
+		if (argc < 1) {
+			usage();
+		}
 		if (strcmp(argv[0], "bump-revision") == 0) {
 			edit.cmd = PORTEDIT_BUMP_REVISION;
 			edit.argc = 1;
