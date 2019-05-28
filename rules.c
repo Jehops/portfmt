@@ -1462,6 +1462,8 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_USES, 86050, "USE_WX" },
 	{ BLOCK_USES, 86100, "USE_WX_NOT" },
 	{ BLOCK_USES, 86150, "WANT_WX" },
+	{ BLOCK_USES, 86151, "WANT_WX_VER" },
+	{ BLOCK_USES, 86152, "WITH_WX_VER" },
 	{ BLOCK_USES, 86200, "WX_COMPS" },
 	{ BLOCK_USES, 86250, "WX_CONF_ARGS" },
 	{ BLOCK_USES, 86300, "WX_PREMK" },
