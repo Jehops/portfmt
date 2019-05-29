@@ -1813,8 +1813,6 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_STANDARD, 281600, "PORTSCOUT" },
 	{ BLOCK_STANDARD, 281650, "SUB_FILES" },
 	{ BLOCK_STANDARD, 281700, "SUB_LIST" },
-	{ BLOCK_STANDARD, 281750, "USERS" },
-	{ BLOCK_STANDARD, 281800, "GROUPS" },
 	{ BLOCK_STANDARD, 281850, "SCRIPTDIR" },
 	{ BLOCK_STANDARD, 281900, "WITHOUT_FBSD10_FIX" },
 	{ BLOCK_STANDARD, 281950, "WRKDIR" },
@@ -1822,6 +1820,9 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_STANDARD, 282050, "WRKSRC_SUBDIR" },
 	{ BLOCK_STANDARD, 282100, "STAGEDIR" },
 	// TODO: Missing *many* variables here
+
+	{ BLOCK_USERS, 289000, "USERS" },
+	{ BLOCK_USERS, 289050, "GROUPS" },
 
 	{ BLOCK_PLIST, 290000, "INFO" },
 	{ BLOCK_PLIST, 290050, "INFO_PATH" },
@@ -2530,6 +2531,8 @@ blocktype_tostring(enum BlockType block)
 		return "BLOCK_UNIQUEFILES";
 	case BLOCK_UNKNOWN:
 		return "BLOCK_UNKNOWN";
+	case BLOCK_USERS:
+		return "BLOCK_USERS";
 	case BLOCK_USES:
 		return "BLOCK_USES";
 	}
