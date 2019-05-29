@@ -1129,10 +1129,11 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_LICENSE, 30250, "LICENSE_FILE" },
 	{ BLOCK_LICENSE, 30300, "LICENSE_PERMS" },
 	{ BLOCK_LICENSE, 30350, "LICENSE_DISTFILES" },
-	{ BLOCK_LICENSE, 30400, "RESTRICTED" },
-	{ BLOCK_LICENSE, 30450, "RESTRICTED_FILES" },
-	{ BLOCK_LICENSE, 30500, "NO_CDROM" },
-	{ BLOCK_LICENSE, 30550, "NO_PACKAGE" },
+
+	{ BLOCK_LICENSE_OLD, 30400, "RESTRICTED" },
+	{ BLOCK_LICENSE_OLD, 30450, "RESTRICTED_FILES" },
+	{ BLOCK_LICENSE_OLD, 30500, "NO_CDROM" },
+	{ BLOCK_LICENSE_OLD, 30550, "NO_PACKAGE" },
 
 	{ BLOCK_BROKEN, 40000, "DEPRECATED" },
 	{ BLOCK_BROKEN, 40050, "EXPIRATION_DATE" },
@@ -2305,6 +2306,25 @@ compare_use_qt(struct Variable *var, const char *a, const char *b, int *result)
 enum BlockType
 variable_order_block(const char *var)
 {
+	if (strcmp(var, "LICENSE") == 0) {
+		return BLOCK_LICENSE;
+	}
+	for (size_t i = 0; i < nitems(variable_order_); i++) {
+		if (variable_order_[i].block != BLOCK_LICENSE ||
+		    strcmp(variable_order_[i].var, "LICENSE") == 0) {
+			continue;
+		}
+		if (strcmp(variable_order_[i].var, var) == 0) {
+			return BLOCK_LICENSE;
+		}
+		if (str_startswith(var, variable_order_[i].var)) {
+			const char *suffix = var + strlen(variable_order_[i].var);
+			if (*suffix == '_') {
+				return BLOCK_LICENSE;
+			}
+		}
+	}
+
 	if (matches(RE_FLAVORS_HELPER, var, NULL)) {
 		return BLOCK_FLAVORS_HELPER;
 	}
@@ -2346,7 +2366,29 @@ compare_order(const void *ap, const void *bp)
 		return 1;
 	}
 
-	if (ablock == BLOCK_FLAVORS_HELPER) {
+	if (ablock == BLOCK_LICENSE) {
+		int ascore = -1;
+		int bscore = -1;
+		for (size_t i = 0; i < nitems(variable_order_); i++) {
+			if (variable_order_[i].block != BLOCK_LICENSE) {
+				continue;
+			}
+			if (strcmp(variable_order_[i].var, "LICENSE") == 0) {
+				continue;
+			}
+			if (str_startswith(a, variable_order_[i].var)) {
+				ascore = variable_order_[i].score;
+			}
+			if (str_startswith(b, variable_order_[i].var)) {
+				bscore = variable_order_[i].score;
+			}
+		}
+		if (ascore < bscore) {
+			return -1;
+		} else if (ascore > bscore) {
+			return 1;
+		}
+	} else if (ablock == BLOCK_FLAVORS_HELPER) {
 		int ascore = -1;
 		int bscore = -1;
 
@@ -2376,13 +2418,9 @@ compare_order(const void *ap, const void *bp)
 		} else {
 			return strcmp(a, b);
 		}
-	}
-
-	if (ablock == BLOCK_OPTDESC) {
+	} else if (ablock == BLOCK_OPTDESC) {
 		return strcmp(a, b);
-	}
-
-	if (ablock == BLOCK_OPTHELPER) {
+	} else if (ablock == BLOCK_OPTHELPER) {
 		int ascore = -1;
 		int bscore = -1;
 
@@ -2412,9 +2450,7 @@ compare_order(const void *ap, const void *bp)
 		} else {
 			return strcmp(a, b);
 		}
-	}
-
-	if (ablock == BLOCK_OPTDEF) {
+	} else if (ablock == BLOCK_OPTDEF) {
 		int ascore = -1;
 		int bscore = -1;
 
@@ -2497,6 +2533,8 @@ blocktype_tostring(enum BlockType block)
 		return "BLOCK_LAZARUS";
 	case BLOCK_LICENSE:
 		return "BLOCK_LICENSE";
+	case BLOCK_LICENSE_OLD:
+		return "BLOCK_LICENSE_OLD";
 	case BLOCK_LINUX:
 		return "BLOCK_LINUX";
 	case BLOCK_MAINTAINER:
