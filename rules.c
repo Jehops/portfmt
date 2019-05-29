@@ -1779,6 +1779,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_STANDARD, 280050, "AR" },
 	{ BLOCK_STANDARD, 280100, "AS" },
 	{ BLOCK_STANDARD, 280150, "CC" },
+	{ BLOCK_STANDARD, 280151, "CPP" },
 	{ BLOCK_STANDARD, 280200, "CXX" },
 	{ BLOCK_STANDARD, 280250, "LD" },
 	{ BLOCK_STANDARD, 280251, "STRIP" },
