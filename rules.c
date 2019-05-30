@@ -1362,7 +1362,6 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_USES, 81303, "FASL_BUILD" },
 	{ BLOCK_USES, 81304, "ASDF_MODULES" },
 	{ BLOCK_USES, 81350, "USE_BINUTILS" },
-	{ BLOCK_USES, 81400, "USE_CABAL" },
 	{ BLOCK_USES, 81401, "USE_CLISP" },
 	{ BLOCK_USES, 81450, "USE_CSTD" },
 	{ BLOCK_USES, 81500, "USE_CXXSTD" },
@@ -1624,6 +1623,10 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_SCONS, 193050, "CPPPATH" },
 	{ BLOCK_SCONS, 193100, "LINKFLAGS" },
 	{ BLOCK_SCONS, 193150, "LIBPATH" },
+
+	{ BLOCK_CABAL, 199000, "USE_CABAL" },
+	{ BLOCK_CABAL, 199050, "CABAL_FLAGS" },
+	{ BLOCK_CABAL, 199100, "EXECUTABLES" },
 
 	{ BLOCK_CARGO1, 200000, "CARGO_CRATES" },
 	{ BLOCK_CARGO1, 200050, "CARGO_USE_GITHUB" },
@@ -2506,6 +2509,8 @@ blocktype_tostring(enum BlockType block)
 		return "BLOCK_APACHE";
 	case BLOCK_BROKEN:
 		return "BLOCK_BROKEN";
+	case BLOCK_CABAL:
+		return "BLOCK_CABAL";
 	case BLOCK_CARGO1:
 		return "BLOCK_CARGO1";
 	case BLOCK_CARGO2:
