@@ -68,7 +68,6 @@ void parser_output_prepare(struct Parser *);
 void parser_output_write(struct Parser *, int);
 int parser_output_variable_order(struct Parser *);
 int parser_output_linted_variable_order(struct Parser *);
-int parser_output_unknown_variables(struct Parser *);
 
 void parser_edit(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
@@ -81,3 +80,4 @@ struct Array *refactor_sanitize_append_modifier(struct Parser *, struct Array *,
 struct Array *refactor_sanitize_eol_comments(struct Parser *, struct Array *, const void *);
 struct Array *edit_bump_revision(struct Parser *, struct Array *, const void *);
 struct Array *edit_output_variable_value(struct Parser *, struct Array *, const void *);
+struct Array *edit_output_unknown_variables(struct Parser *, struct Array *, const void *);

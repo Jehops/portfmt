@@ -226,7 +226,7 @@ main(int argc, char *argv[])
 			parser_edit(parser, edit_output_variable_value, edit.argv[1]);
 			break;
 		case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
-			parser_output_unknown_variables(parser);
+			parser_edit(parser, edit_output_unknown_variables, NULL);
 			break;
 		case PORTEDIT_PRIVATE_LIST_VARIABLES:
 			parser_output_variable_order(parser);

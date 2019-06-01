@@ -8,8 +8,8 @@ CFLAGS+=	-std=c99
 LDADD+=		-lm
 
 OBJS=		array.o compats.o conditional.o edit_bump_revision.o \
-		edit_output_variable_value.o parser.o portfmt.o \
-		refactor_collapse_adjacent.o \
+		edit_output_unknown_variables.o edit_output_variable_value.o \
+		parser.o portfmt.o refactor_collapse_adjacent.o \
 		refactor_sanitize_append_modifier.o \
 		refactor_sanitize_eol_comments.o rules.o target.o token.o \
 		util.o variable.o
@@ -32,6 +32,7 @@ token.o: config.h conditional.h target.h token.h util.h variable.h
 util.o: config.h util.c util.h
 edit_bump_revision.o: config.h parser.h rules.h token.h util.h variable.h edit_bump_revision.c
 edit_output_variable_value.o: config.h parser.h token.h variable.h edit_output_variable_value.c
+edit_output_unknown_variables.o: config.h parser.h rules.h token.h variable.h edit_output_variable_value.c
 refactor_collapse_adjacent.o: config.h parser.h token.h util.h variable.h refactor_collapse_adjacent.c
 refactor_sanitize_append_modifier.o: config.h parser.h token.h refactor_sanitize_append_modifier.c
 refactor_sanitize_eol_comments.o: config.h parser.h rules.h token.h util.h variable.h refactor_sanitize_eol_comments.c
