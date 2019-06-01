@@ -34,10 +34,11 @@ enum ParserBehavior {
 	PARSER_KEEP_EOL_COMMENTS = 8,
 	PARSER_OUTPUT_DUMP_TOKENS = 16,
 	PARSER_OUTPUT_EDITED = 32,
-	PARSER_OUTPUT_RAWLINES = 64,
-	PARSER_OUTPUT_REFORMAT = 128,
-	PARSER_SANITIZE_APPEND = 256,
-	PARSER_UNSORTED_VARIABLES = 512,
+	PARSER_OUTPUT_NO_COLOR = 64,
+	PARSER_OUTPUT_RAWLINES = 128,
+	PARSER_OUTPUT_REFORMAT = 256,
+	PARSER_SANITIZE_APPEND = 512,
+	PARSER_UNSORTED_VARIABLES = 1024,
 };
 
 struct ParserSettings {
@@ -65,8 +66,6 @@ int parser_edit_set_variable(struct Parser *, const char *, const char *, const 
 void parser_read_finish(struct Parser *);
 void parser_output_prepare(struct Parser *);
 void parser_output_write(struct Parser *, int);
-int parser_output_variable_order(struct Parser *);
-int parser_output_linted_variable_order(struct Parser *);
 
 void parser_edit(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
@@ -80,3 +79,4 @@ struct Array *refactor_sanitize_eol_comments(struct Parser *, struct Array *, co
 struct Array *edit_bump_revision(struct Parser *, struct Array *, const void *);
 struct Array *edit_output_variable_value(struct Parser *, struct Array *, const void *);
 struct Array *edit_output_unknown_variables(struct Parser *, struct Array *, const void *);
+struct Array *lint_order(struct Parser *, struct Array *, const void *);

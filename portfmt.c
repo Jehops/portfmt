@@ -52,7 +52,6 @@ enum PorteditCommand {
 	PORTEDIT_SET_VARIABLE,
 	PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES,
 	PORTEDIT_PRIVATE_LINT_ORDER,
-	PORTEDIT_PRIVATE_LIST_VARIABLES,
 };
 
 struct Portedit {
@@ -85,6 +84,10 @@ main(int argc, char *argv[])
 	parser_init_settings(&settings);
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
 		PARSER_OUTPUT_REFORMAT;
+
+	if (isatty(STDOUT_FILENO) == 0 || getenv("NO_COLOR") != NULL) {
+		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
+	}
 
 	if (strcmp(getprogname(), "portedit") == 0) {
 		settings.behavior |= PARSER_OUTPUT_EDITED;
@@ -145,14 +148,12 @@ main(int argc, char *argv[])
 			edit.cmd = PORTEDIT_PRIVATE_LINT_ORDER;
 			edit.argc = 1;
 			edit.argv = argv;
+			settings.behavior |= PARSER_OUTPUT_RAWLINES;
 		} else if (strcmp(argv[0], "__private__list-unknown-variables") == 0 && argc > 0) {
 			edit.cmd = PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES;
 			edit.argc = 1;
 			edit.argv = argv;
-		} else if (strcmp(argv[0], "__private__list-variables") == 0 && argc > 0) {
-			edit.cmd = PORTEDIT_PRIVATE_LIST_VARIABLES;
-			edit.argc = 1;
-			edit.argv = argv;
+			settings.behavior |= PARSER_OUTPUT_RAWLINES;
 		} else {
 			usage();
 		}
@@ -228,11 +229,8 @@ main(int argc, char *argv[])
 		case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
 			parser_edit(parser, edit_output_unknown_variables, NULL);
 			break;
-		case PORTEDIT_PRIVATE_LIST_VARIABLES:
-			parser_output_variable_order(parser);
-			break;
 		case PORTEDIT_PRIVATE_LINT_ORDER:
-			parser_output_linted_variable_order(parser);
+			parser_edit(parser, lint_order, NULL);
 			break;
 		default:
 			break;
