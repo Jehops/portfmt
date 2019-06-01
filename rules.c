@@ -40,6 +40,7 @@
 #include <string.h>
 
 #include "rules.h"
+#include "token.h"
 #include "util.h"
 #include "variable.h"
 

@@ -27,8 +27,6 @@
  */
 #pragma once
 
-#include "array.h"
-
 enum ParserBehavior {
 	PARSER_DEFAULT = 0,
 	PARSER_COLLAPSE_ADJACENT_VARIABLES = 2,
@@ -49,6 +47,7 @@ struct ParserSettings {
 	size_t wrapcol;
 };
 
+struct Array;
 struct Parser;
 struct Token;
 

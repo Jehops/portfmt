@@ -34,12 +34,12 @@ parser.o: config.h array.h conditional.h parser.c parser.h rules.h target.h toke
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h
 util.o: config.h util.c util.h
-edit_bump_revision.o: config.h parser.h rules.h token.h util.h variable.h edit_bump_revision.c
-edit_output_variable_value.o: config.h parser.h token.h variable.h edit_output_variable_value.c
-edit_output_unknown_variables.o: config.h parser.h rules.h token.h variable.h edit_output_variable_value.c
-refactor_collapse_adjacent.o: config.h parser.h token.h util.h variable.h refactor_collapse_adjacent.c
-refactor_sanitize_append_modifier.o: config.h parser.h token.h refactor_sanitize_append_modifier.c
-refactor_sanitize_eol_comments.o: config.h parser.h rules.h token.h util.h variable.h refactor_sanitize_eol_comments.c
+edit_bump_revision.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_bump_revision.c
+edit_output_variable_value.o: config.h array.h parser.h token.h variable.h edit_output_variable_value.c
+edit_output_unknown_variables.o: config.h array.h parser.h rules.h token.h variable.h edit_output_variable_value.c
+refactor_collapse_adjacent.o: config.h array.h parser.h token.h util.h variable.h refactor_collapse_adjacent.c
+refactor_sanitize_append_modifier.o: config.h array.h conditional.h parser.h token.h variable.h refactor_sanitize_append_modifier.c
+refactor_sanitize_eol_comments.o: config.h array.h parser.h rules.h token.h util.h variable.h refactor_sanitize_eol_comments.c
 variable.o: config.h rules.h util.h variable.c variable.h
 
 install:

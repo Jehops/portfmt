@@ -28,6 +28,7 @@
 
 #include "config.h"
 
+#include "array.h"
 #include "parser.h"
 #include "token.h"
 #include "util.h"

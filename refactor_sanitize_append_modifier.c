@@ -30,8 +30,11 @@
 
 #include <string.h>
 
+#include "array.h"
+#include "conditional.h"
 #include "parser.h"
 #include "token.h"
+#include "variable.h"
 
 struct Array *
 refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, const void *userdata)

@@ -31,9 +31,6 @@
 
 #include <regex.h>
 
-#include "token.h"
-#include "variable.h"
-
 /* Order is significant here and should match variable_order_ in rules.c */
 enum BlockType {
 	BLOCK_PORTNAME,
@@ -94,6 +91,9 @@ enum RegularExpression {
 	RE_TARGET,
 	RE_VAR,
 };
+
+struct Token;
+struct Variable;
 
 const char *blocktype_tostring(enum BlockType);
 int compare_order(const void *, const void *);

@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "array.h"
 #include "parser.h"
 #include "token.h"
 #include "variable.h"

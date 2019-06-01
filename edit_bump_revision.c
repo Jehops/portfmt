@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "array.h"
 #include "parser.h"
 #include "rules.h"
 #include "token.h"
