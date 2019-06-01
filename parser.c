@@ -1703,7 +1703,13 @@ parser_output_variable_order(struct Parser *parser)
 	for (size_t i = 0; i < array_len(vars); i++) {
 		char *var = array_get(vars, i);
 		block = variable_order_block(var);
-		if (flag && block != last_block) {
+		if (block != last_block) {
+			if (flag && block != last_block) {
+				parser_enqueue_output(parser, "\n# ");
+			} else {
+				parser_enqueue_output(parser, "# ");
+			}
+			parser_enqueue_output(parser, blocktype_tostring(block));
 			parser_enqueue_output(parser, "\n");
 		}
 		flag = 1;
@@ -1748,7 +1754,13 @@ parser_output_linted_variable_order(struct Parser *parser)
 	for (size_t i = 0; i < array_len(vars); i++) {
 		char *var = array_get(vars, i);
 		if ((block = variable_order_block(var)) != BLOCK_UNKNOWN) {
-			if (flag && block != last_block) {
+			if (block != last_block) {
+				if (flag && block != last_block) {
+					parser_enqueue_output(parser, "\n# ");
+				} else {
+					parser_enqueue_output(parser, "# ");
+				}
+				parser_enqueue_output(parser, blocktype_tostring(block));
 				parser_enqueue_output(parser, "\n");
 			}
 			flag = 1;
@@ -1763,7 +1775,13 @@ parser_output_linted_variable_order(struct Parser *parser)
 
 	array_sort(unknowns, str_compare);
 	if (array_len(vars) > 0 && array_len(unknowns) > 0) {
-		parser_enqueue_output(parser, "\n");
+		parser_enqueue_output(parser, "\n# ");
+		parser_enqueue_output(parser, blocktype_tostring(BLOCK_UNKNOWN));
+		parser_enqueue_output(parser, "\n# NOTE:\n");
+		parser_enqueue_output(parser, "# Portclippy did not recognize the following variables.\n");
+		parser_enqueue_output(parser, "# They could be port-local variables only, misspellings of\n");
+		parser_enqueue_output(parser, "# framework variables, or Portclippy needs to be made aware\n");
+		parser_enqueue_output(parser, "# of them.  Please double check them.\n");
 	}
 	for (size_t i = 0; i < array_len(unknowns); i++) {
 		char *var = array_get(unknowns, i);
