@@ -76,6 +76,7 @@ usage()
 int
 main(int argc, char *argv[])
 {
+	int status = 0;
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
 	int iflag = 0;
@@ -230,7 +231,7 @@ main(int argc, char *argv[])
 			parser_edit(parser, edit_output_unknown_variables, NULL);
 			break;
 		case PORTEDIT_PRIVATE_LINT_ORDER:
-			parser_edit(parser, lint_order, NULL);
+			parser_edit(parser, lint_order, &status);
 			break;
 		default:
 			break;
@@ -254,5 +255,5 @@ main(int argc, char *argv[])
 	free(line);
 	parser_free(parser);
 
-	return 0;
+	return status;
 }

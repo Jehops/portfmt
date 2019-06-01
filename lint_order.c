@@ -104,6 +104,7 @@ variable_list(struct Array *tokens)
 struct Array *
 lint_order(struct Parser *parser, struct Array *tokens, const void *userdata)
 {
+	int *status = (int*)userdata;
 	struct ParserSettings settings = parser_settings(parser);
 	if (!(settings.behavior & PARSER_OUTPUT_RAWLINES)) {
 		return NULL;
@@ -197,9 +198,11 @@ lint_order(struct Parser *parser, struct Array *tokens, const void *userdata)
 		}
 	}
 	if (edits == 0) {
+		*status = 0;
 		goto done;
 	}
 
+	*status = 1;
 	for (size_t i = 0; i < p.sessz; i++) {
 		const char *s = *(const char **)p.ses[i].e;
 		if (strlen(s) == 0) {
