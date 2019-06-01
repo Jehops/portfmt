@@ -65,18 +65,19 @@ int parser_edit_bump_revision(struct Parser *);
 int parser_edit_set_variable(struct Parser *, const char *, const char *, const char *);
 void parser_read_finish(struct Parser *);
 void parser_output_prepare(struct Parser *);
-int parser_output_variable_value(struct Parser *, const char *);
 void parser_output_write(struct Parser *, int);
 int parser_output_variable_order(struct Parser *);
 int parser_output_linted_variable_order(struct Parser *);
 int parser_output_unknown_variables(struct Parser *);
 
+void parser_edit(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token*);
+struct ParserSettings parser_settings(struct Parser *);
 
-void parser_edit(struct Parser *, ParserEditFn, const void *);
 struct Array *refactor_collapse_adjacent_variables(struct Parser *, struct Array *, const void *);
 struct Array *refactor_sanitize_append_modifier(struct Parser *, struct Array *, const void *);
 struct Array *refactor_sanitize_eol_comments(struct Parser *, struct Array *, const void *);
 struct Array *edit_bump_revision(struct Parser *, struct Array *, const void *);
+struct Array *edit_output_variable_value(struct Parser *, struct Array *, const void *);

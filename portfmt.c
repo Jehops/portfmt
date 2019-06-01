@@ -136,6 +136,7 @@ main(int argc, char *argv[])
 			edit.cmd = PORTEDIT_GET_VARIABLE;
 			edit.argc = 2;
 			edit.argv = argv;
+			settings.behavior |= PARSER_OUTPUT_RAWLINES;
 		} else if (strcmp(argv[0], "set") == 0 && argc > 1) {
 			edit.cmd = PORTEDIT_SET_VARIABLE;
 			edit.argc = 3;
@@ -222,9 +223,7 @@ main(int argc, char *argv[])
 			parser_edit(parser, edit_bump_revision, NULL);
 			break;
 		case PORTEDIT_GET_VARIABLE:
-			if (parser_output_variable_value(parser, edit.argv[1]) != 0) {
-				errx(1, "%s not found", edit.argv[1]);
-			}
+			parser_edit(parser, edit_output_variable_value, edit.argv[1]);
 			break;
 		case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
 			parser_output_unknown_variables(parser);

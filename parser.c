@@ -1240,31 +1240,6 @@ parser_output_write(struct Parser *parser, int fd)
 	free(iov);
 }
 
-int
-parser_output_variable_value(struct Parser *parser, const char *name)
-{
-	parser->settings.behavior |= PARSER_OUTPUT_RAWLINES;
-	int found = 0;
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_TOKEN:
-			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				found = 1;
-				if (token_data(t)) {
-					parser_enqueue_output(parser, token_data(t));
-					parser_enqueue_output(parser, "\n");
-				}
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
-	return !found;
-}
-
 struct Parser *
 parser_parse_string(struct Parser *parser, const char *input)
 {
@@ -1473,4 +1448,9 @@ parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
 		array_free(parser->tokens);
 		parser->tokens = tokens;
 	}
+}
+
+struct ParserSettings parser_settings(struct Parser *parser)
+{
+	return parser->settings;
 }
