@@ -1257,31 +1257,6 @@ parser_parse_string(struct Parser *parser, const char *input)
 	return subparser;
 }
 
-struct Array *
-parser_get_all_variable_names(struct Parser *parser)
-{
-	struct Array *vars = array_new(sizeof(char *));
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			array_append(vars, variable_name(token_variable(t)));
-			break;
-		case CONDITIONAL_TOKEN:
-			if (conditional_type(token_conditional(t)) == COND_INCLUDE &&
-			    (strcmp(token_data(t), "<bsd.port.options.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.pre.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.post.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.mk>") == 0)) {
-				return vars;
-			}
-		default:
-			break;
-		}
-	}
-	return vars;
-}
-
 int
 parser_output_unknown_variables(struct Parser *parser)
 {
