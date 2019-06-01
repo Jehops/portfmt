@@ -2350,6 +2350,18 @@ variable_order_block(const char *var)
 	}
 
 	for (size_t i = 0; i < nitems(variable_order_); i++) {
+		switch (variable_order_[i].block) {
+		case BLOCK_FLAVORS_HELPER:
+		case BLOCK_OPTHELPER:
+		case BLOCK_OPTDESC:
+			continue;
+		case BLOCK_LICENSE:
+		case BLOCK_OPTDEF:
+			// RE_LICENSE_*, RE_OPTIONS_GROUP do not
+			// cover all cases.
+		default:
+			break;
+		}
 		if (strcmp(var, variable_order_[i].var) == 0) {
 			return variable_order_[i].block;
 		}
