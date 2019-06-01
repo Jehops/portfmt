@@ -28,9 +28,6 @@
 
 #include "config.h"
 
-#if HAVE_ERR
-# include <err.h>
-#endif
 #include <stdlib.h>
 #include <string.h>
 
