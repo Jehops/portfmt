@@ -16,13 +16,16 @@ OBJS=		array.o compats.o conditional.o diff.o edit_bump_revision.o \
 
 all: portedit portfmt
 
+diffwords: array.o diffwords.o diff.o util.o compats.o
+	${CC} ${LDFLAGS} -o diffwords array.o util.o compats.o diffwords.o diff.o ${LDADD}
+
 portfmt: ${OBJS}
 	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LDADD}
 
 portedit: portfmt
 	${LN} -sf portfmt portedit
 
-array.o: config.h array.c array.h
+array.o: config.h array.c array.h diff.h
 conditional.o: config.h conditional.c conditional.h
 diff.o: config.h diff.h
 portfmt.o: config.h parser.h portfmt.c
