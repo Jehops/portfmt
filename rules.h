@@ -27,8 +27,6 @@
  */
 #pragma once
 
-#include "config.h"
-
 #include <regex.h>
 
 /* Order is significant here and should match variable_order_ in rules.c */

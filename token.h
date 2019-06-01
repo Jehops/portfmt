@@ -27,8 +27,6 @@
  */
 #pragma once
 
-#include "config.h"
-
 enum TokenType {
 	COMMENT = 0,
 	CONDITIONAL_END,

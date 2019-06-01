@@ -27,11 +27,6 @@
  */
 #pragma once
 
-#include "config.h"
-
-#include <sys/param.h>
-#include <sys/types.h>
-
 #ifndef nitems
 #define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
 #endif

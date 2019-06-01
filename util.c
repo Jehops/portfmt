@@ -28,6 +28,7 @@
 
 #include "config.h"
 
+#include <sys/param.h>
 #include <assert.h>
 #include <ctype.h>
 #if HAVE_ERR
@@ -37,7 +38,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
 
 #include "util.h"
 

@@ -27,8 +27,6 @@
  */
 #pragma once
 
-#include "config.h"
-
 struct Conditional;
 
 enum ConditionalType {

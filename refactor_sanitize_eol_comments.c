@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+#include <stdlib.h>
+
 #include "array.h"
 #include "parser.h"
 #include "rules.h"

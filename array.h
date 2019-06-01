@@ -27,8 +27,6 @@
  */
 #pragma once
 
-#include <sys/types.h>
-
 struct Array;
 struct diff;
 typedef int (*ArrayCompareFn)(const void *, const void *);

@@ -28,6 +28,7 @@
 
 #include "config.h"
 
+#include <sys/param.h>
 #if HAVE_ERR
 # include <err.h>
 #endif

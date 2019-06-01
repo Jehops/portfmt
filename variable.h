@@ -27,8 +27,6 @@
  */
 #pragma once
 
-#include "config.h"
-
 struct Variable;
 
 enum VariableModifier {
