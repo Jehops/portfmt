@@ -188,7 +188,10 @@ lint_order(struct Parser *parser, struct Array *tokens, const void *userdata)
 
 	for (size_t i = 0; i < p.sessz; i++) {
 		const char *s = *(const char **)p.ses[i].e;
-		if (*s == '#') {
+		if (strlen(s) == 0) {
+			parser_enqueue_output(parser, "\n");
+			continue;
+		} else if (*s == '#') {
 			if (p.ses[i].type != DIFF_DELETE) {
 				if (!no_color) {
 					parser_enqueue_output(parser, ANSI_COLOR_CYAN);
