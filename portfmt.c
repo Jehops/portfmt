@@ -219,17 +219,13 @@ main(int argc, char *argv[])
 	if (settings.behavior & PARSER_OUTPUT_EDITED) {
 		switch (edit.cmd) {
 		case PORTEDIT_BUMP_REVISION:
-			parser_edit_bump_revision(parser);
+			parser_edit(parser, edit_bump_revision, NULL);
 			break;
 		case PORTEDIT_GET_VARIABLE:
 			if (parser_output_variable_value(parser, edit.argv[1]) != 0) {
 				errx(1, "%s not found", edit.argv[1]);
 			}
 			break;
-		case PORTEDIT_SET_VARIABLE:
-			if (parser_edit_set_variable(parser, edit.argv[1], edit.argv[2], NULL) != 0) {
-				errx(1, "unable to set variable: %s", edit.argv[1]);
-			}
 		case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
 			parser_output_unknown_variables(parser);
 			break;

@@ -50,8 +50,12 @@ struct ParserSettings {
 };
 
 struct Parser;
+struct Token;
+
+typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, const void *);
 
 struct Parser *parser_new(struct ParserSettings *);
+struct Parser *parser_parse_string(struct Parser *, const char *);
 void parser_init_settings(struct ParserSettings *);
 void parser_read(struct Parser *, char *);
 void parser_free(struct Parser *);
@@ -66,3 +70,13 @@ void parser_output_write(struct Parser *, int);
 int parser_output_variable_order(struct Parser *);
 int parser_output_linted_variable_order(struct Parser *);
 int parser_output_unknown_variables(struct Parser *);
+
+void parser_enqueue_output(struct Parser *, const char *);
+void parser_mark_for_gc(struct Parser *, struct Token *);
+void parser_mark_edited(struct Parser *, struct Token*);
+
+void parser_edit(struct Parser *, ParserEditFn, const void *);
+struct Array *refactor_collapse_adjacent_variables(struct Parser *, struct Array *, const void *);
+struct Array *refactor_sanitize_append_modifier(struct Parser *, struct Array *, const void *);
+struct Array *refactor_sanitize_eol_comments(struct Parser *, struct Array *, const void *);
+struct Array *edit_bump_revision(struct Parser *, struct Array *, const void *);

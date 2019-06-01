@@ -7,8 +7,11 @@ SED?=		sed
 CFLAGS+=	-std=c99
 LDADD+=		-lm
 
-OBJS=		array.o compats.o conditional.o parser.o portfmt.o rules.o \
-		target.o token.o util.o variable.o
+OBJS=		array.o compats.o conditional.o edit_bump_revision.o parser.o \
+		portfmt.o refactor_collapse_adjacent.o \
+		refactor_sanitize_append_modifier.o \
+		refactor_sanitize_eol_comments.o rules.o target.o token.o \
+		util.o variable.o
 
 all: portedit portfmt
 
@@ -26,6 +29,10 @@ parser.o: config.h array.h conditional.h parser.c parser.h rules.h target.h toke
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h
 util.o: config.h util.c util.h
+edit_bump_revision.o: config.h parser.h rules.h token.h util.h variable.h edit_bump_revision.c
+refactor_collapse_adjacent.o: config.h parser.h token.h util.h variable.h refactor_collapse_adjacent.c
+refactor_sanitize_append_modifier.o: config.h parser.h token.h refactor_sanitize_append_modifier.c
+refactor_sanitize_eol_comments.o: config.h parser.h rules.h token.h util.h variable.h refactor_sanitize_eol_comments.c
 variable.o: config.h rules.h util.h variable.c variable.h
 
 install:

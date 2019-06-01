@@ -79,8 +79,6 @@ static size_t consume_target(const char *);
 static size_t consume_token(struct Parser *, const char *, size_t, char, char, int);
 static size_t consume_var(const char *);
 static void parser_append_token(struct Parser *, enum TokenType, const char *);
-static void parser_collapse_adjacent_variables(struct Parser *);
-static void parser_enqueue_output(struct Parser *, const char *);
 static void parser_find_goalcols(struct Parser *);
 static void parser_output_dump_tokens(struct Parser *);
 static void parser_output_edited(struct Parser *);
@@ -88,17 +86,13 @@ static void parser_output_print_rawlines(struct Parser *, struct Range *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
 static struct Array *parser_output_sort_opt_use(struct Parser *, struct Array *);
 static struct Array *parser_output_reformatted_helper(struct Parser *, struct Array *);
-static struct Parser *parser_parse_string(struct Parser *, const char *);
 static void parser_output_reformatted(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read_internal(struct Parser *);
-static void parser_sanitize_append_modifier(struct Parser *);
-static void parser_sanitize_eol_comments(struct Parser *);
 static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_t);
 static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
 static char *range_tostring(struct Range *);
-static struct Variable *parser_has_variable(struct Parser *, const char *);
 
 size_t
 consume_comment(const char *buf)
@@ -1199,173 +1193,16 @@ parser_read_finish(struct Parser *parser)
 	}
 
 	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS)) {
-		parser_sanitize_eol_comments(parser);
+		parser_edit(parser, refactor_sanitize_eol_comments, NULL);
 	}
 
 	if (parser->settings.behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES) {
-		parser_collapse_adjacent_variables(parser);
+		parser_edit(parser, refactor_collapse_adjacent_variables, NULL);
 	}
 
 	if (parser->settings.behavior & PARSER_SANITIZE_APPEND) {
-		parser_sanitize_append_modifier(parser);
+		parser_edit(parser, refactor_sanitize_append_modifier, NULL);
 	}
-}
-
-void
-parser_sanitize_eol_comments(struct Parser *parser)
-{
-	/* Try to push end of line comments out of the way above
-	 * the variable as a way to preserve them.  They clash badly
-	 * with sorting tokens in variables.  We could add more
-	 * special cases for this, but often having them at the top
-	 * is just as good.
-	 */
-
-	struct Array *tokens = array_new(sizeof(struct Array *));
-	struct Token *last_token = NULL;
-	ssize_t last_token_index = -1;
-	ssize_t placeholder_index = -1;
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			last_token = NULL;
-			last_token_index = -1;
-			placeholder_index = array_len(tokens);
-			array_append(tokens, NULL);
-			array_append(tokens, t);
-			break;
-		case VARIABLE_TOKEN:
-			last_token = t;
-			last_token_index = array_len(tokens);
-			array_append(tokens, t);
-			break;
-		case VARIABLE_END:
-			if (placeholder_index > -1 && last_token_index > -1 &&
-			    !preserve_eol_comment(last_token)) {
-				struct Token *comment = token_new2(COMMENT, token_lines(last_token), token_data(last_token), NULL, token_conditional(last_token), NULL);
-				array_append_unique(parser->tokengc, comment, NULL);
-				array_append(parser->edited, comment);
-				array_set(tokens, placeholder_index, comment);
-				array_set(tokens, last_token_index, NULL);
-			}
-			array_append(tokens, t);
-			break;
-		default:
-			array_append(tokens, t);
-			break;
-		}
-	}
-
-	array_free(parser->tokens);
-	parser->tokens = array_new(sizeof(struct Array *));
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-		if (t != NULL) {
-			array_append(parser->tokens, t);
-		}
-	}
-	array_free(tokens);
-}
-
-void
-parser_collapse_adjacent_variables(struct Parser *parser)
-{
-	struct Array *tokens = array_new(sizeof(struct Array *));
-	struct Variable *last_var = NULL;
-	struct Token *last_end = NULL;
-	struct Token *last_token = NULL;
-	struct Array *ignored_tokens = array_new(sizeof(struct Array *));
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			if (last_var != NULL &&
-			    variable_cmp(token_variable(t), last_var) == 0 &&
-			    variable_modifier(last_var) != MODIFIER_EXPAND &&
-			    variable_modifier(token_variable(t)) != MODIFIER_EXPAND) {
-				if (last_end) {
-					array_append(ignored_tokens, t);
-					array_append(ignored_tokens, last_end);
-					last_end = NULL;
-				}
-			}
-			break;
-		case VARIABLE_TOKEN:
-			last_token = t;
-			break;
-		case VARIABLE_END:
-			if (!last_token || !str_startswith(token_data(last_token), "#")) {
-				last_end = t;
-			}
-			last_token = NULL;
-			last_var = token_variable(t);
-			break;
-		default:
-			last_var = NULL;
-			break;
-		}
-	}
-
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		if (array_find(ignored_tokens, t, NULL) == -1) {
-			array_append(tokens, t);
-		} else {
-			array_append_unique(parser->tokengc, t, NULL);
-		}
-	}
-
-	array_free(ignored_tokens);
-	array_free(parser->tokens);
-	parser->tokens = tokens;
-}
-
-void
-parser_sanitize_append_modifier(struct Parser *parser)
-{
-	/* Sanitize += before bsd.options.mk */
-	ssize_t start = -1;
-	struct Array *seen = array_new(sizeof(struct Variable *));
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			start = i;
-			break;
-		case VARIABLE_END: {
-			if (start < 0) {
-				continue;
-			}
-			if (!array_append_unique(seen, token_variable(t), variable_compare)) {
-				start = -1;
-				continue;
-			}
-			for (size_t j = start; j <= i; j++) {
-				struct Token *o = array_get(parser->tokens, j);
-				if (strcmp(variable_name(token_variable(o)), "CXXFLAGS") != 0 &&
-				    strcmp(variable_name(token_variable(o)), "CFLAGS") != 0 &&
-				    strcmp(variable_name(token_variable(o)), "LDFLAGS") != 0 &&
-				    variable_modifier(token_variable(o)) == MODIFIER_APPEND) {
-					variable_set_modifier(token_variable(o), MODIFIER_ASSIGN);
-				}
-			}
-			start = -1;
-			break;
-		} case CONDITIONAL_TOKEN:
-			if (conditional_type(token_conditional(t)) == COND_INCLUDE &&
-			    (strcmp(token_data(t), "<bsd.port.options.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.pre.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.post.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.mk>") == 0)) {
-				goto end;
-			}
-		default:
-			break;
-		}
-	}
-end:
-	array_free(seen);
 }
 
 void
@@ -1401,19 +1238,6 @@ parser_output_write(struct Parser *parser, int fd)
 	}
 	array_truncate(parser->result);
 	free(iov);
-}
-
-struct Variable *
-parser_has_variable(struct Parser *parser, const char *var)
-{
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		if (token_type(t) == VARIABLE_START &&
-		    strcmp(variable_name(token_variable(t)), var) == 0) {
-			return token_variable(t);
-		}
-	}
-	return NULL;
 }
 
 int
@@ -1456,172 +1280,6 @@ parser_parse_string(struct Parser *parser, const char *input)
 	parser_read_finish(subparser);
 
 	return subparser;
-}
-
-int
-parser_edit_set_variable(struct Parser *parser, const char *name, const char *value, const char *after)
-{
-	char *tmp;
-	struct Variable *var = NULL;
-	if ((var = parser_has_variable(parser, name)) != NULL) {
-		char *varmod = variable_tostring(var);
-		xasprintf(&tmp, "%s\t\\\n%s", varmod, value);
-		free(varmod);
-	} else {
-		xasprintf(&tmp, "%s=\t\\\n%s", name, value);
-	}
-	struct Parser *subparser = parser_parse_string(parser, tmp);
-	free(tmp);
-
-	struct Array *tokens = array_new(sizeof(char *));
-	if (parser_has_variable(parser, name)) {
-		int set = 0;
-		for (size_t i = 0; i < array_len(parser->tokens); i++) {
-			struct Token *t = array_get(parser->tokens, i);
-			switch (token_type(t)) {
-			case VARIABLE_TOKEN:
-				if (variable_cmp(token_variable(t), var) == 0) {
-					if (is_comment(t)) {
-						array_append(tokens, t);
-					} else if (!set) {
-						array_append_unique(parser->tokengc, t, NULL);
-						for (size_t j = 0; j < array_len(subparser->tokens); j++) {
-							struct Token *vt = array_get(subparser->tokens, j);
-							if (token_type(vt) == VARIABLE_TOKEN) {
-								struct Token *et = token_clone(vt, NULL);
-								array_append(parser->edited, et);
-								array_append(tokens, et);
-							}
-						}
-						set = 1;
-					}
-				} else {
-					array_append(tokens, t);
-				}
-				break;
-			default:
-				array_append(tokens, t);
-				break;
-			}
-		}
-	} else if (after != NULL) {
-		int set = 0;
-		for (size_t i = 0; i < array_len(parser->tokens); i++) {
-			struct Token *t = array_get(parser->tokens, i);
-			array_append(tokens, t);
-			if (!set && token_type(t) == VARIABLE_END &&
-			    strcmp(variable_name(token_variable(t)), after) == 0) {
-				for (size_t j = 0; j < array_len(subparser->tokens); j++) {
-					struct Token *vt = array_get(subparser->tokens, j);
-					struct Token *et = token_clone(vt, NULL);
-					array_append(parser->edited, et);
-					array_append(tokens, et);
-				}
-				set = 1;
-			}
-		}
-	} else {
-		errx(1, "cannot append: %s not currently set", name);
-		array_free(tokens);
-		return 1;
-	}
-
-	parser_free(subparser);
-	array_free(parser->tokens);
-	parser->tokens = tokens;
-
-	return 0;
-}
-
-int
-parser_edit_bump_revision(struct Parser *parser)
-{
-	const char *after = "PORTVERSION";
-	if (parser_has_variable(parser, "DISTVERSION")) {
-		after = "DISTVERSION";
-	}
-	if (parser_has_variable(parser, "DISTVERSIONSUFFIX")) {
-		after = "DISTVERSIONSUFFIX";
-	}
-	if (parser_has_variable(parser, "PORTVERSION") &&
-	    !parser_has_variable(parser, "DISTVERSION")) {
-		if (parser_has_variable(parser, "DISTVERSIONPREFIX")) {
-			after = "DISTVERSIONPREFIX";
-		}
-		if (parser_has_variable(parser, "DISTVERSIONSUFFIX")) {
-			after = "DISTVERSIONSUFFIX";
-		}
-	}
-
-	char *current_revision = parser_lookup_variable(parser, "PORTREVISION");
-	if (current_revision) {
-		const char *errstr = NULL;
-		int revision = strtonum(current_revision, 0, INT_MAX, &errstr);
-		if (errstr == NULL) {
-			revision++;
-		} else {
-			errx(1, "unable to parse PORTREVISION: %s: %s", current_revision, errstr);
-		}
-		char *rev;
-		xasprintf(&rev, "%d", revision);
-		parser_edit_set_variable(parser, "PORTREVISION", rev, after);
-		free(rev);
-	} else {
-		parser_edit_set_variable(parser, "PORTREVISION", "1", after);
-	}
-
-	return 0;
-}
-
-char *
-parser_lookup_variable(struct Parser *parser, const char *name)
-{
-	struct Array *tokens = array_new(sizeof(char *));
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			array_truncate(tokens);
-			break;
-		case VARIABLE_TOKEN:
-			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				if (!is_comment(t)) {
-					array_append(tokens, token_data(t));
-				}
-			}
-			break;
-		case VARIABLE_END:
-			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				goto found;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
-	array_free(tokens);
-	return NULL;
-
-	size_t sz;
-found:
-	sz = array_len(tokens) + 1;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		char *s = array_get(tokens, i);
-		sz += strlen(s);
-	}
-
-	char *buf = xmalloc(sz);
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		char *s = array_get(tokens, i);
-		xstrlcat(buf, s, sz);
-		if (i != array_len(tokens) - 1) {
-			xstrlcat(buf, " ", sz);
-		}
-	}
-
-	array_free(tokens);
-	return buf;
 }
 
 struct Array *
@@ -1793,4 +1451,26 @@ parser_output_linted_variable_order(struct Parser *parser)
 	array_free(vars);
 
 	return 0;
+}
+
+void
+parser_mark_for_gc(struct Parser *parser, struct Token *t)
+{
+	array_append_unique(parser->tokengc, t, NULL);
+}
+
+void
+parser_mark_edited(struct Parser *parser, struct Token *t)
+{
+	array_append(parser->edited, t);
+}
+
+void
+parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
+{
+	struct Array *tokens = f(parser, parser->tokens, userdata);
+	if (tokens && tokens != parser->tokens) {
+		array_free(parser->tokens);
+		parser->tokens = tokens;
+	}
 }
