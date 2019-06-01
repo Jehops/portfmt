@@ -203,18 +203,16 @@ lint_order(struct Parser *parser, struct Array *tokens, const void *userdata)
 		}
 		switch (p.ses[i].type) {
 		case DIFF_ADD:
-			if (no_color) {
-				parser_enqueue_output(parser, "+");
-			} else {
+			if (!no_color) {
 				parser_enqueue_output(parser, ANSI_COLOR_GREEN);
 			}
+			parser_enqueue_output(parser, "+");
 			break;
 		case DIFF_DELETE:
-			if (no_color) {
-				parser_enqueue_output(parser, "-");
-			} else {
+			if (!no_color) {
 				parser_enqueue_output(parser, ANSI_COLOR_RED);
 			}
+			parser_enqueue_output(parser, "-");
 			break;
 		default:
 			break;
