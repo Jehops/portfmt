@@ -181,9 +181,23 @@ lint_order(struct Parser *parser, struct Array *tokens, const void *userdata)
 
 	struct diff p;
 	int rc = array_diff(origin, target, &p, line_cmp);
-
 	if (rc <= 0) {
 		errx(1, "cannot compute difference");
+	}
+
+	size_t edits = 0;
+	for (size_t i = 0; i < p.sessz; i++) {
+		switch (p.ses[i].type) {
+		case DIFF_ADD:
+		case DIFF_DELETE:
+			edits++;
+			break;
+		default:
+			break;
+		}
+	}
+	if (edits == 0) {
+		goto done;
 	}
 
 	for (size_t i = 0; i < p.sessz; i++) {
@@ -227,6 +241,7 @@ lint_order(struct Parser *parser, struct Array *tokens, const void *userdata)
 		}
 	}
 
+done:
 	free(p.ses);
 	free(p.lcs);
 
