@@ -49,12 +49,6 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-static int
-line_cmp(const void *p1, const void *p2)
-{
-	return 0 == strcmp(*(const char **)p1, *(const char **)p2);
-}
-
 static struct Array *
 variable_list(struct Array *tokens)
 {
@@ -181,7 +175,7 @@ lint_order(struct Parser *parser, struct Array *tokens, const void *userdata)
 	// Diff
 
 	struct diff p;
-	int rc = array_diff(origin, target, &p, line_cmp);
+	int rc = array_diff(origin, target, &p, str_compare);
 	if (rc <= 0) {
 		errx(1, "cannot compute difference");
 	}

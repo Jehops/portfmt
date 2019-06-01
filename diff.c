@@ -74,7 +74,7 @@ onp_snake(struct onp_diff *diff, int k, int above, int below)
 		diff->path[k + 1 + diff->offset];
 
 	while (x < (int)diff->m && y < (int)diff->n && 
-	       ONP_CMP(diff, x, y)) {
+	       ONP_CMP(diff, x, y) == 0) {
 		++x;
 		++y;
 	}
