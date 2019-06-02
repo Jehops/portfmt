@@ -12,7 +12,7 @@ OBJS=		array.o compats.o conditional.o diff.o edit_bump_revision.o \
 		lint_order.o parser.o portfmt.o refactor_collapse_adjacent.o \
 		refactor_sanitize_append_modifier.o \
 		refactor_sanitize_eol_comments.o rules.o target.o token.o \
-		util.o variable.o
+		util.o variable.o regexp.o
 
 all: portedit portfmt
 
@@ -26,11 +26,12 @@ portedit: portfmt
 	${LN} -sf portfmt portedit
 
 array.o: config.h array.c array.h diff.h
-conditional.o: config.h conditional.c conditional.h
+conditional.o: config.h conditional.c conditional.h regexp.h
 diff.o: config.h diff.h
+regexp.o: config.h
 portfmt.o: config.h parser.h portfmt.c
-rules.o: config.h rules.c rules.h token.h util.h variable.h
-parser.o: config.h array.h conditional.h parser.c parser.h rules.h target.h token.h util.h variable.h
+rules.o: config.h rules.c regexp.h rules.h token.h util.h variable.h
+parser.o: config.h array.h conditional.h regexp.h parser.c parser.h rules.h target.h token.h util.h variable.h
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h
 util.o: config.h util.c util.h
@@ -41,7 +42,7 @@ lint_order.o: config.h array.h conditional.h diff.h parser.h rules.h token.h uti
 refactor_collapse_adjacent.o: config.h array.h parser.h token.h util.h variable.h refactor_collapse_adjacent.c
 refactor_sanitize_append_modifier.o: config.h array.h conditional.h parser.h token.h variable.h refactor_sanitize_append_modifier.c
 refactor_sanitize_eol_comments.o: config.h array.h parser.h rules.h token.h util.h variable.h refactor_sanitize_eol_comments.c
-variable.o: config.h rules.h util.h variable.c variable.h
+variable.o: config.h regexp.h rules.h util.h variable.c variable.h
 
 install:
 	${MKDIR} ${DESTDIR}${PREFIX}/bin \

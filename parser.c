@@ -47,6 +47,7 @@
 #include "array.h"
 #include "conditional.h"
 #include "parser.h"
+#include "regexp.h"
 #include "rules.h"
 #include "target.h"
 #include "token.h"
@@ -111,10 +112,11 @@ size_t
 consume_conditional(const char *buf)
 {
 	size_t pos = 0;
-	regmatch_t match[1];
-	if (matches(RE_CONDITIONAL, buf, match)) {
-		pos = match->rm_eo - match->rm_so;
+	struct Regexp *re = regexp_new(regex(RE_CONDITIONAL), buf);
+	if (regexp_exec(re) == 0) {
+		pos = regexp_length(re, 0);
 	}
+	regexp_free(re);
 
 	if(pos > 0 && (buf[pos - 1] == '(' || buf[pos - 1] == '!')) {
 		pos--;
@@ -127,10 +129,11 @@ size_t
 consume_target(const char *buf)
 {
 	size_t pos = 0;
-	regmatch_t match[1];
-	if (matches(RE_TARGET, buf, match)) {
-		pos = match->rm_eo - match->rm_so;
+	struct Regexp *re = regexp_new(regex(RE_TARGET), buf);
+	if (regexp_exec(re) == 0) {
+		pos = regexp_length(re, 0);
 	}
+	regexp_free(re);
 	return pos;
 }
 
@@ -180,10 +183,11 @@ size_t
 consume_var(const char *buf)
 {
 	size_t pos = 0;
-	regmatch_t match[1];
-	if (matches(RE_VAR, buf, match)) {
-		pos = match->rm_eo - match->rm_so;
+	struct Regexp *re = regexp_new(regex(RE_VAR), buf);
+	if (regexp_exec(re) == 0) {
+		pos = regexp_length(re, 0);
 	}
+	regexp_free(re);
 	return pos;
 }
 
@@ -746,9 +750,9 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 	struct Token *t = array_get(arr, 0);
 	assert(token_type(t) == VARIABLE_TOKEN);
 	int opt_use = 0;
-	if (matches(RE_OPT_USE, variable_name(token_variable(t)), NULL)) {
+	if (matches(RE_OPT_USE, variable_name(token_variable(t)))) {
 		opt_use = 1;
-	} else if (matches(RE_OPT_VARS, variable_name(token_variable(t)), NULL)) {
+	} else if (matches(RE_OPT_VARS, variable_name(token_variable(t)))) {
 		opt_use = 0;
 	} else {
 		return arr;
@@ -758,7 +762,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 	for (size_t i = 0; i < array_len(arr); i++) {
 		t = array_get(arr, i);
 		assert(token_type(t) == VARIABLE_TOKEN);
-		if (!matches(RE_OPT_USE_PREFIX, token_data(t), NULL)) {
+		if (!matches(RE_OPT_USE_PREFIX, token_data(t))) {
 			array_append(up, t);
 			continue;
 		}
@@ -1047,7 +1051,7 @@ parser_read(struct Parser *parser, char *line)
 
 	parser->lines.end++;
 
-	int will_continue = matches(RE_CONTINUE_LINE, line, NULL);
+	int will_continue = matches(RE_CONTINUE_LINE, line);
 	if (will_continue) {
  		if (linelen > 2 && line[linelen - 2] == '$' && line[linelen - 3] != '$') {
 			/* Hack to "handle" things like $\ in variable values */
@@ -1091,7 +1095,7 @@ parser_read_internal(struct Parser *parser)
 	if (pos > 0) {
 		parser_append_token(parser, COMMENT, buf);
 		goto next;
-	} else if (matches(RE_EMPTY_LINE, buf, NULL)) {
+	} else if (matches(RE_EMPTY_LINE, buf)) {
 		parser_append_token(parser, COMMENT, buf);
 		goto next;
 	}

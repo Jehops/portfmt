@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include "conditional.h"
+#include "regexp.h"
 #include "rules.h"
 #include "util.h"
 
@@ -47,12 +48,14 @@ conditional_new(char *s)
 {
 	struct Conditional *cond = xmalloc(sizeof(struct Conditional));
 
-	regmatch_t match;
-	if (!matches(RE_CONDITIONAL, s, &match)) {
+	struct Regexp *re = regexp_new(regex(RE_CONDITIONAL), s);
+	if (regexp_exec(re) != 0) {
 		errx(1, "not a conditional: %s", s);
 	}
 
-	char *tmp = str_substr_dup(s, match.rm_so, match.rm_eo);
+	char *tmp = regexp_substr(re, 0);
+	regexp_free(re);
+	re = NULL;
 	if (strlen(tmp) < 2) {
 		free(tmp);
 		errx(1, "not a conditional: %s", s);

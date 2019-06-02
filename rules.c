@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "regexp.h"
 #include "rules.h"
 #include "token.h"
 #include "util.h"
@@ -2077,7 +2078,7 @@ int
 ignore_wrap_col(struct Variable *var)
 {
 	if (variable_modifier(var) == MODIFIER_SHELL ||
-	    matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
+	    matches(RE_LICENSE_NAME, variable_name(var))) {
 		return 1;
 	}
 
@@ -2087,7 +2088,7 @@ ignore_wrap_col(struct Variable *var)
 		}
 	}
 
-	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
+	if (matches(RE_OPTIONS_HELPER, variable_name(var))) {
 		for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
 			if (str_endswith(variable_name(var), ignore_wrap_col_[i])) {
 				return 1;
@@ -2148,11 +2149,11 @@ leave_unsorted(struct Variable *var)
 	    str_endswith(variable_name(var), "_REASON") ||
 	    str_endswith(variable_name(var), "_USE_GNOME_IMPL") ||
 	    str_endswith(variable_name(var), "FLAGS") ||
-	    matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
+	    matches(RE_LICENSE_NAME, variable_name(var))) {
 		return 1;
 	}
 
-	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
+	if (matches(RE_OPTIONS_HELPER, variable_name(var))) {
 		for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
 			if (str_endswith(variable_name(var), leave_unsorted_[i])) {
 				return 1;
@@ -2196,7 +2197,7 @@ print_as_newlines(struct Variable *var)
 		}
 	}
 
-	if (matches(RE_OPTIONS_HELPER, variable_name(var), NULL)) {
+	if (matches(RE_OPTIONS_HELPER, variable_name(var))) {
 		for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
 			if (str_endswith(variable_name(var), print_as_newlines_[i])) {
 				return 1;
@@ -2210,7 +2211,7 @@ print_as_newlines(struct Variable *var)
 int
 skip_goalcol(struct Variable *var)
 {
-	if (matches(RE_LICENSE_NAME, variable_name(var), NULL)) {
+	if (matches(RE_LICENSE_NAME, variable_name(var))) {
 		return 1;
 	}
 
@@ -2287,7 +2288,7 @@ compare_license_perms(struct Variable *var, const char *a, const char *b, int *r
 {
 	assert(result != NULL);
 
-	if (!matches(RE_LICENSE_PERMS, variable_name(var), NULL)) {
+	if (!matches(RE_LICENSE_PERMS, variable_name(var))) {
 		return 0;
 	}
 
@@ -2300,7 +2301,7 @@ compare_plist_files(struct Variable *var, const char *a, const char *b, int *res
 {
 	assert(result != NULL);
 
-	if (!matches(RE_PLIST_FILES, variable_name(var), NULL)) {
+	if (!matches(RE_PLIST_FILES, variable_name(var))) {
 		return 0;
 	}
 
@@ -2362,11 +2363,11 @@ variable_order_block(const char *var)
 		}
 	}
 
-	if (matches(RE_FLAVORS_HELPER, var, NULL)) {
+	if (matches(RE_FLAVORS_HELPER, var)) {
 		return BLOCK_FLAVORS_HELPER;
 	}
 
-	if (matches(RE_OPTIONS_HELPER, var, NULL)) {
+	if (matches(RE_OPTIONS_HELPER, var)) {
 		if (str_endswith(var, "_DESC")) {
 			return BLOCK_OPTDESC;
 		} else {
@@ -2374,7 +2375,7 @@ variable_order_block(const char *var)
 		}
 	}
 
-	if (matches(RE_OPTIONS_GROUP, var, NULL)) {
+	if (matches(RE_OPTIONS_GROUP, var)) {
 		return BLOCK_OPTDEF;
 	}
 
@@ -2701,14 +2702,16 @@ target_command_should_wrap(char *word)
 	return 0;
 }
 
-int
-matches(enum RegularExpression re, const char *s, regmatch_t *match)
+regex_t *
+regex(enum RegularExpression re)
 {
-	int nmatch = 0;
-	if (match) {
-		nmatch = 1;
-	}
-	return regexec(&regular_expressions[re].re, s, nmatch, match, 0) == 0;
+	return &regular_expressions[re].re;
+}
+
+int
+matches(enum RegularExpression re, const char *s)
+{
+	return regexec(&regular_expressions[re].re, s, 0, NULL, 0) == 0;
 }
 
 char *

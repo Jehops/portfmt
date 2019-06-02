@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "regexp.h"
 #include "rules.h"
 #include "util.h"
 #include "variable.h"
@@ -49,16 +50,16 @@ struct Variable *
 variable_new(const char *buf) {
 	struct Variable *var = xmalloc(sizeof(struct Variable));
 
-	regmatch_t match;
-	if (!matches(RE_MODIFIER, buf, &match)) {
+	struct Regexp *re = regexp_new(regex(RE_MODIFIER), buf);
+	if (regexp_exec(re) != 0) {
 		errx(1, "Variable with no modifier");
 	}
 
-	char *tmp = str_substr_dup(buf, 0, match.rm_so);
+	char *tmp = str_substr_dup(buf, 0, regexp_start(re, 0));
 	var->name = str_trim(tmp);
 	free(tmp);
 
-	char *modifier = str_substr_dup(buf, match.rm_so, match.rm_eo);
+	char *modifier = regexp_substr(re, 0);
 	if (strcmp(modifier, "+=") == 0) {
 		var->modifier = MODIFIER_APPEND;
 	} else if (strcmp(modifier, "=") == 0) {
@@ -73,6 +74,7 @@ variable_new(const char *buf) {
 		errx(1, "Unknown variable modifier: %s", modifier);
 	}
 	free(modifier);
+	regexp_free(re);
 
 	return var;
 }
