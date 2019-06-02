@@ -86,7 +86,11 @@ main(int argc, char *argv[])
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
 		PARSER_OUTPUT_REFORMAT;
 
-	if (isatty(STDOUT_FILENO) == 0 || getenv("NO_COLOR") != NULL) {
+	if (getenv("CLICOLOR_FORCE") == NULL && isatty(STDOUT_FILENO) == 0) {
+		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
+	}
+	if (getenv("NO_COLOR") != NULL) {
+		// NO_COLOR takes precedence even when CLICOLOR_FORCE is set
 		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
 	}
 
