@@ -64,7 +64,7 @@ static struct {
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
 				  "elifmake|endif|sinclude))([[:space:]]*|$|\\(|!)",
 				  REG_EXTENDED, {} },
-	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$", REG_EXTENDED, {} },
+	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$",			      REG_EXTENDED, {} },
 	[RE_EMPTY_LINE]       = { "^[[:space:]]*$", 			      0, {} },
 	[RE_FLAVORS_HELPER]   = { "generated in compile_regular_expressions", REG_EXTENDED, {} },
 	[RE_LICENSE_NAME]     = { "^(_?(-|LICENSE_NAME_[A-Za-z0-9._+ ])+|"
@@ -72,25 +72,24 @@ static struct {
 				  "^LICENSE_(NAME|TEXT)$|"
 				  "_?(-|LICENSE_TEXT_[A-Za-z0-9._+ ])+$)",
 				  REG_EXTENDED, {} },
-	[RE_LICENSE_PERMS]    = { "^(_?LICENSE_PERMS_(-|[A-Z0-9\\._+ ])+[+?:]?|"
-				  "_LICENSE_LIST_PERMS[+?:]?|"
-				  "LICENSE_PERMS[+?:]?)",
+	[RE_LICENSE_PERMS]    = { "^(_?LICENSE_PERMS_(-|[A-Z0-9\\._+ ])+|"
+				  "_LICENSE_LIST_PERMS|LICENSE_PERMS)",
 				  REG_EXTENDED, {} },
-	[RE_OPTIONS_GROUP]    = { "^_?OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_([A-Z0-9\\._+ ])+",
+	[RE_OPTIONS_GROUP]    = { "^_?OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_([-_[:upper:][:digit:]]+)",
 				  REG_EXTENDED, {} },
 	[RE_OPTIONS_HELPER]   = { "generated in compile_regular_expressions", REG_EXTENDED, {} },
-	[RE_OPT_USE_PREFIX]   = { "^[A-Za-z0-9_]+\\+?=", REG_EXTENDED, {} },
-	[RE_OPT_USE]	      = { "^[A-Z0-9_]+_USE$", REG_EXTENDED, {} },
-	[RE_OPT_VARS]	      = { "^[A-Z0-9_]+_VARS$", REG_EXTENDED, {} },
-	[RE_PLIST_FILES]      = { "^([A-Z0-9_]+_PLIST_DIRS[+?:]?|"
-				  "[A-Z0-9_]+_PLIST_FILES[+?:]?|"
-				  "PLIST_FILES[+?:]?|"
-				  "PLIST_DIRS[+?:]?)",
+	[RE_OPT_USE_PREFIX]   = { "^([-_[:upper:][:lower:][:digit:]]+)\\+?=", REG_EXTENDED, {} },
+	[RE_OPT_USE]	      = { "^([-_[:upper:][:digit:]]+)_USE$",	      REG_EXTENDED, {} },
+	[RE_OPT_VARS]	      = { "^([-_[:upper:][:digit:]]+)_VARS$",	      REG_EXTENDED, {} },
+	[RE_PLIST_FILES]      = { "^(([-_[:upper:][:digit:]]+)_PLIST_DIRS|"
+				  "([-_[:upper:][:digit:]]+)_PLIST_FILES|"
+				  "PLIST_FILES|PLIST_DIRS)",
 				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
-	[RE_TARGET] 	      = { "^([^:]|[^[:space:]])+::?(\\.|[[:space:]]+|$)", REG_EXTENDED, {} },
-	[RE_VAR] 	      = { "^ *[^[:space:]=]+[[:space:]]*[+!?:]?=",	      REG_EXTENDED, {} },
+	[RE_TARGET] 	      = { "^([^:]|[^[:space:]])+::?(\\.|[[:space:]]+|$)",
+				  REG_EXTENDED, {} },
+	[RE_VAR] 	      = { "^ *[^[:space:]=]+[[:space:]]*[+!?:]?=",    REG_EXTENDED, {} },
 };
 
 static const char *print_as_newlines_[] = {
