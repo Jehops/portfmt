@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <err.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

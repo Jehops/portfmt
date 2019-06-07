@@ -32,6 +32,7 @@
 #if HAVE_ERR
 # include <err.h>
 #endif
+#include <regex.h>
 #include <stdlib.h>
 #include <string.h>
 

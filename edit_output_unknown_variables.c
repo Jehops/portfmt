@@ -28,6 +28,7 @@
 
 #include "config.h"
 
+#include <regex.h>
 #include <stdlib.h>
 #include <string.h>
 

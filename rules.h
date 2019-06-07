@@ -27,8 +27,6 @@
  */
 #pragma once
 
-#include <regex.h>
-
 /* Order is significant here and should match variable_order_ in rules.c */
 enum BlockType {
 	BLOCK_PORTNAME,

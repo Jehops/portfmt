@@ -27,8 +27,6 @@
  */
 #pragma once
 
-#include <regex.h>
-
 struct Regexp;
 
 struct Regexp *regexp_new(regex_t *, const char *);

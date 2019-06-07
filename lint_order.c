@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include <err.h>
+#include <regex.h>
 #include <stdlib.h>
 #include <string.h>
 
