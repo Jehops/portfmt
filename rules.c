@@ -2075,6 +2075,8 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_OPTHELPER, 326650, "VARS" },
 };
 
+static volatile int rules_initialized = 0;
+
 int
 ignore_wrap_col(struct Variable *var)
 {
@@ -2779,8 +2781,12 @@ sub(enum RegularExpression re, const char *replacement, const char *s)
 }
 
 void
-compile_regular_expressions()
+rules_init()
 {
+	if (rules_initialized) {
+		return;
+	}
+
 	for (size_t i = 0; i < nitems(regular_expressions); i++) {
 		char *buf = NULL;
 		const char *pattern;
@@ -2811,4 +2817,6 @@ compile_regular_expressions()
 			free(buf);
 		}
 	}
+
+	rules_initialized = 1;
 }

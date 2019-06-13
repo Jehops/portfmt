@@ -220,6 +220,8 @@ parser_init_settings(struct ParserSettings *settings)
 struct Parser *
 parser_new(struct ParserSettings *settings)
 {
+	rules_init();
+
 	struct Parser *parser = xmalloc(sizeof(struct Parser));
 
 	parser->edited = array_new(sizeof(void *));
@@ -231,8 +233,6 @@ parser_new(struct ParserSettings *settings)
 	parser->lines.end = 1;
 	parser->inbuf = xmalloc(INBUF_SIZE);
 	parser->settings = *settings;
-
-	compile_regular_expressions();
 
 	if (parser->settings.behavior & PARSER_OUTPUT_EDITED) {
 		parser->settings.behavior &= ~PARSER_COLLAPSE_ADJACENT_VARIABLES;
