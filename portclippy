@@ -1,3 +1,0 @@
-#!/bin/sh
-set -eu
-exec portedit __private__lint-order "$1"

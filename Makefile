@@ -14,7 +14,7 @@ OBJS=		array.o compats.o conditional.o diff.o edit_bump_revision.o \
 		refactor_sanitize_eol_comments.o regexp.o rules.o target.o \
 		token.o util.o variable.o
 
-all: portedit portfmt
+all: portclippy portedit portfmt
 
 .c.o:
 	${CC} ${CPPFLAGS} -fPIC ${CFLAGS} -o $@ -c $<
@@ -23,11 +23,17 @@ libportfmt.so: ${OBJS}
 	${CC} ${LDFLAGS} -shared -Wl,-soname=libportfmt.so -o libportfmt.so \
 		${OBJS} ${LDADD}
 
+portclippy: libportfmt.so portclippy.o
+	${CC} ${LDFLAGS} -o portclippy portclippy.o -Wl,-rpath=${LIBDIR} libportfmt.so
+
 portedit: libportfmt.so portedit.o
 	${CC} ${LDFLAGS} -o portedit portedit.o -Wl,-rpath=${LIBDIR} libportfmt.so
 
 portfmt: libportfmt.so portfmt.o
 	${CC} ${LDFLAGS} -o portfmt portfmt.o -Wl,-rpath=${LIBDIR} libportfmt.so
+
+portclippy.o: portclippy.c config.h mainutils.h parser.h
+	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 portedit.o: portedit.c config.h mainutils.h parser.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
@@ -57,10 +63,7 @@ variable.o: config.h regexp.h rules.h util.h variable.c variable.h
 install:
 	${MKDIR} ${DESTDIR}${BINDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${MANDIR}/man1
 	${INSTALL_MAN} portfmt.1 ${DESTDIR}${MANDIR}/man1
-	${INSTALL_PROGRAM} portfmt ${DESTDIR}${BINDIR}
-	cd ${DESTDIR}${PREFIX}/bin && \
-		${LN} -sf portfmt portedit
-	${INSTALL_SCRIPT} portclippy ${DESTDIR}${BINDIR}
+	${INSTALL_PROGRAM} portclippy portedit portfmt ${DESTDIR}${BINDIR}
 	${INSTALL_LIB} libportfmt.so ${DESTDIR}${LIBDIR}
 	@if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
 		${SED} -i '' 's,/usr/local,${PREFIX},' ${DESTDIR}${PREFIX}/bin/portfmt; \
@@ -72,7 +75,8 @@ install-symlinks:
 		install
 
 clean:
-	@rm -f ${OBJS} portedit portfmt portfmt.o libportfmt.so config.*.old
+	@rm -f ${OBJS} portclippy portclippy.o portedit portedit.o portfmt \
+		portfmt.o libportfmt.so config.*.old
 
 debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \
