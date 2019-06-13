@@ -37,7 +37,6 @@
 #endif
 #include <fcntl.h>
 #include <limits.h>
-#define _WITH_GETLINE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -209,17 +208,8 @@ main(int argc, char *argv[])
 #endif
 
 	struct Parser *parser = parser_new(&settings);
-
-	ssize_t linelen;
-	size_t linecap = 0;
-	char *line = NULL;
-	FILE *fp = fdopen(fd_in, "r");
-	if (fp == NULL) {
-		err(1, "fdopen");
-	}
-	while ((linelen = getline(&line, &linecap, fp)) > 0) {
-		line[linelen - 1] = 0;
-		parser_read(parser, line);
+	if (!parser_read_from_fd(parser, fd_in)) {
+		err(1, "parser_read_from_fd");
 	}
 	parser_read_finish(parser);
 
@@ -256,7 +246,6 @@ main(int argc, char *argv[])
 	close(fd_out);
 	close(fd_in);
 
-	free(line);
 	parser_free(parser);
 
 	return status;

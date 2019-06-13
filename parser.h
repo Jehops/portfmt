@@ -58,6 +58,7 @@ struct Parser *parser_new(struct ParserSettings *);
 struct Parser *parser_parse_string(struct Parser *, const char *);
 void parser_init_settings(struct ParserSettings *);
 void parser_read(struct Parser *, char *);
+int parser_read_from_fd(struct Parser *, int);
 void parser_free(struct Parser *);
 char *parser_lookup_variable(struct Parser *, const char *);
 struct Array *parser_get_all_variable_names(struct Parser *);

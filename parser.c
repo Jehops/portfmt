@@ -38,6 +38,7 @@
 #endif
 #include <math.h>
 #include <regex.h>
+#define _WITH_GETLINE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1083,6 +1084,27 @@ parser_read(struct Parser *parser, char *line)
 	}
 
 	parser->continued = will_continue;
+}
+
+int
+parser_read_from_fd(struct Parser *parser, int fd)
+{
+	FILE *fp = fdopen(fd, "r");
+	if (fp == NULL) {
+		return 1;
+	}
+
+	ssize_t linelen;
+	size_t linecap = 0;
+	char *line = NULL;
+	while ((linelen = getline(&line, &linecap, fp)) > 0) {
+		line[linelen - 1] = 0;
+		parser_read(parser, line);
+	}
+
+	free(line);
+
+	return 1;
 }
 
 void
