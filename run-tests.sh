@@ -9,6 +9,8 @@ export PORTEDIT
 export PORTFMT
 export ROOT
 
+export LD_LIBRARY_PATH="${ROOT}"
+
 cd "${ROOT}/tests/format"
 for test in *.in; do
 	t=${test%*.in}

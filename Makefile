@@ -9,19 +9,25 @@ LDADD+=		-lm
 
 OBJS=		array.o compats.o conditional.o diff.o edit_bump_revision.o \
 		edit_output_unknown_variables.o edit_output_variable_value.o \
-		lint_order.o mainutils.o parser.o portfmt.o \
-		refactor_collapse_adjacent.o \
+		lint_order.o mainutils.o parser.o refactor_collapse_adjacent.o \
 		refactor_sanitize_append_modifier.o \
 		refactor_sanitize_eol_comments.o regexp.o rules.o target.o \
 		token.o util.o variable.o
 
 all: portedit portfmt
 
-diffwords: array.o diffwords.o diff.o util.o compats.o
-	${CC} ${LDFLAGS} -o diffwords array.o util.o compats.o diffwords.o diff.o ${LDADD}
+.c.o:
+	${CC} ${CPPFLAGS} -fPIC ${CFLAGS} -o $@ -c $<
 
-portfmt: ${OBJS}
-	${CC} ${LDFLAGS} -o portfmt ${OBJS} ${LDADD}
+libportfmt.so: ${OBJS}
+	${CC} ${LDFLAGS} -shared -Wl,-soname=libportfmt.so -o libportfmt.so \
+		${OBJS} ${LDADD}
+
+portfmt: libportfmt.so portfmt.o
+	${CC} ${LDFLAGS} -o portfmt portfmt.o -Wl,-rpath=${LIBDIR} libportfmt.so
+
+portfmt.o: portfmt.c config.h mainutils.h parser.h
+	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 portedit: portfmt
 	${LN} -sf portfmt portedit
@@ -31,7 +37,6 @@ conditional.o: config.h conditional.c conditional.h regexp.h
 diff.o: config.h diff.h
 mainutils.o: config.h mainutils.c mainutils.h parser.h
 regexp.o: config.h
-portfmt.o: config.h mainutils.h parser.h portfmt.c
 rules.o: config.h rules.c regexp.h rules.h token.h util.h variable.h
 parser.o: config.h array.h conditional.h regexp.h parser.c parser.h rules.h target.h token.h util.h variable.h
 target.o: config.h target.h util.h
@@ -47,29 +52,28 @@ refactor_sanitize_eol_comments.o: config.h array.h parser.h rules.h token.h util
 variable.o: config.h regexp.h rules.h util.h variable.c variable.h
 
 install:
-	${MKDIR} ${DESTDIR}${PREFIX}/bin \
-		${DESTDIR}${MANDIR}/man1
+	${MKDIR} ${DESTDIR}${BINDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${MANDIR}/man1
 	${INSTALL_MAN} portfmt.1 ${DESTDIR}${MANDIR}/man1
-	${INSTALL_PROGRAM} portfmt ${DESTDIR}${PREFIX}/bin
-	cd ${DESTDIR}${PREFIX}/bin && ${LN} -sf portfmt portedit
-	${INSTALL_SCRIPT} portclippy ${DESTDIR}${PREFIX}/bin
+	${INSTALL_PROGRAM} portfmt ${DESTDIR}${BINDIR}
+	cd ${DESTDIR}${PREFIX}/bin && \
+		${LN} -sf portfmt portedit
+	${INSTALL_SCRIPT} portclippy ${DESTDIR}${BINDIR}
+	${INSTALL_LIB} libportfmt.so ${DESTDIR}${LIBDIR}
 	@if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
 		${SED} -i '' 's,/usr/local,${PREFIX},' ${DESTDIR}${PREFIX}/bin/portfmt; \
 	fi
 
 install-symlinks:
-	@${MAKE} INSTALL_MAN="install -l as" \
-		INSTALL_PROGRAM="install -l as" \
-		INSTALL_SCRIPT="install -l as" \
+	@${MAKE} INSTALL_LIB="install -l as" INSTALL_MAN="install -l as" \
+		INSTALL_PROGRAM="install -l as" INSTALL_SCRIPT="install -l as" \
 		install
 
 clean:
-	@rm -f ${OBJS} portedit portfmt config.*.old
+	@rm -f ${OBJS} portedit portfmt portfmt.o libportfmt.so config.*.old
 
 debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \
-		LDFLAGS="-g" \
-		portfmt
+		LDFLAGS="-g" portfmt
 
 test: portedit portfmt
 	@/bin/sh run-tests.sh
