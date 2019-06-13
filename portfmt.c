@@ -28,10 +28,6 @@
 
 #include "config.h"
 
-#if HAVE_CAPSICUM
-# include <sys/capsicum.h>
-# include "capsicum_helpers.h"
-#endif
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -43,6 +39,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "mainutils.h"
 #include "parser.h"
 
 enum PorteditCommand {
@@ -78,57 +75,20 @@ main(int argc, char *argv[])
 	int status = 0;
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
-	int iflag = 0;
 	struct ParserSettings settings;
 
 	parser_init_settings(&settings);
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
 		PARSER_OUTPUT_REFORMAT;
 
-	if (getenv("CLICOLOR_FORCE") == NULL && isatty(STDOUT_FILENO) == 0) {
-		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
-	}
-	if (getenv("NO_COLOR") != NULL) {
-		// NO_COLOR takes precedence even when CLICOLOR_FORCE is set
-		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
-	}
-
 	if (strcmp(getprogname(), "portedit") == 0) {
 		settings.behavior |= PARSER_OUTPUT_EDITED;
 		settings.behavior |= PARSER_KEEP_EOL_COMMENTS;
 	}
 
-	int ch;
-	while ((ch = getopt(argc, argv, "adituw:")) != -1) {
-		switch (ch) {
-		case 'a':
-			settings.behavior |= PARSER_SANITIZE_APPEND;
-			break;
-		case 'd':
-			settings.behavior |= PARSER_OUTPUT_DUMP_TOKENS;
-			break;
-		case 'i':
-			iflag = 1;
-			break;
-		case 't':
-			settings.behavior |= PARSER_FORMAT_TARGET_COMMANDS;
-			break;
-		case 'u':
-			settings.behavior |= PARSER_UNSORTED_VARIABLES;
-			break;
-		case 'w': {
-			const char *errstr = NULL;
-			settings.wrapcol = strtonum(optarg, -1, INT_MAX, &errstr);
-			if (errstr != NULL) {
-				errx(1, "strtonum: %s", errstr);
-			}
-			break;
-		} default:
-			usage();
-		}
+	if (!read_common_args(&argc, &argv, &settings)) {
+		usage();
 	}
-	argc -= optind;
-	argv += optind;
 
 	struct Portedit edit;
 	if (settings.behavior & PARSER_OUTPUT_EDITED) {
@@ -166,46 +126,30 @@ main(int argc, char *argv[])
 	}
 
 	if (settings.behavior & PARSER_OUTPUT_DUMP_TOKENS) {
-		iflag = 0;
+		settings.behavior &= ~PARSER_OUTPUT_INPLACE;
 	}
 
-	if (argc > 1 || (iflag && argc == 0)) {
+	if (argc > 1 || ((settings.behavior & PARSER_OUTPUT_INPLACE) && argc == 0)) {
 		usage();
 	} else if (argc == 1) {
-		fd_in = open(argv[0], iflag ? O_RDWR : O_RDONLY);
-		if (fd_in < 0) {
-			err(1, "open");
-		}
-		if (iflag) {
+		if (settings.behavior & PARSER_OUTPUT_INPLACE) {
+			fd_in = open(argv[0], O_RDWR);
+			if (fd_in < 0) {
+				err(1, "open");
+			}
 			fd_out = fd_in;
-			close(STDIN_FILENO);
-			close(STDOUT_FILENO);
+		} else  {
+			fd_in = open(argv[0], O_RDONLY);
+			if (fd_in < 0) {
+				err(1, "open");
+			}
 		}
 	}
 
-#if HAVE_CAPSICUM
-	if (iflag) {
-		if (caph_limit_stream(fd_in, CAPH_READ | CAPH_WRITE | CAPH_FTRUNCATE) < 0) {
-			err(1, "caph_limit_stream");
-		}
-		if (caph_limit_stderr() < 0) {
-			err(1, "caph_limit_stderr");
-		}
-	} else {
-		if (caph_limit_stdio() < 0) {
-			err(1, "caph_limit_stdio");
-		}
+	if (!can_use_colors(fd_out)) {
+		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
 	}
-
-	if (caph_enter() < 0) {
-		err(1, "caph_enter");
-	}
-#endif
-#if HAVE_PLEDGE
-	if (pledge("stdio", NULL) == -1) {
-		err(1, "pledge");
-	}
-#endif
+	enter_sandbox(fd_in, fd_out);
 
 	struct Parser *parser = parser_new(&settings);
 	if (!parser_read_from_fd(parser, fd_in)) {
@@ -233,20 +177,11 @@ main(int argc, char *argv[])
 	}
 
 	parser_output_prepare(parser);
-	if (iflag) {
-		if (lseek(fd_out, 0, SEEK_SET) < 0) {
-			err(1, "lseek");
-		}
-		if (ftruncate(fd_out, 0) < 0) {
-			err(1, "ftruncate");
-		}
-	}
 	parser_output_write(parser, fd_out);
+	parser_free(parser);
 
 	close(fd_out);
 	close(fd_in);
-
-	parser_free(parser);
 
 	return status;
 }

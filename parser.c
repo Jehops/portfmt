@@ -1234,6 +1234,15 @@ parser_read_finish(struct Parser *parser)
 void
 parser_output_write(struct Parser *parser, int fd)
 {
+	if (parser->settings.behavior & PARSER_OUTPUT_INPLACE) {
+		if (lseek(fd, 0, SEEK_SET) < 0) {
+			err(1, "lseek");
+		}
+		if (ftruncate(fd, 0) < 0) {
+			err(1, "ftruncate");
+		}
+	}
+
 	size_t len = array_len(parser->result);
 	if (len == 0) {
 		return;
