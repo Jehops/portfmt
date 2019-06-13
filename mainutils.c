@@ -121,5 +121,35 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings)
 	*argc -= optind;
 	*argv += optind;
 
+	if (settings->behavior & PARSER_OUTPUT_DUMP_TOKENS) {
+		settings->behavior &= ~PARSER_OUTPUT_INPLACE;
+	}
+
+	return 1;
+}
+
+int
+open_file(int *argc, char ***argv, struct ParserSettings *settings, int *fd_in, int *fd_out)
+{
+	if (*argc > 1 || ((settings->behavior & PARSER_OUTPUT_INPLACE) && *argc == 0)) {
+		return 0;
+	} else if (*argc == 1) {
+		if (settings->behavior & PARSER_OUTPUT_INPLACE) {
+			*fd_in = open(*argv[0], O_RDWR);
+			*fd_out = *fd_in;
+			if (*fd_in < 0) {
+				return 0;
+			}
+		} else  {
+			*fd_in = open(*argv[0], O_RDONLY);
+			if (*fd_in < 0) {
+				return 0;
+			}
+		}
+	}
+
+	*argc -= 1;
+	*argv += 1;
+
 	return 1;
 }

@@ -31,4 +31,5 @@ struct ParserSettings;
 
 int can_use_colors(int);
 void enter_sandbox(int, int);
+int open_file(int *, char ***, struct ParserSettings *, int *, int *);
 int read_common_args(int *, char ***, struct ParserSettings *);
