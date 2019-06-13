@@ -42,28 +42,74 @@
 #include "mainutils.h"
 #include "parser.h"
 
+enum PorteditCommand {
+	PORTEDIT_BUMP_REVISION,
+	PORTEDIT_GET_VARIABLE,
+	PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES,
+	PORTEDIT_PRIVATE_LINT_ORDER,
+};
+
+struct Portedit {
+	enum PorteditCommand cmd;
+	char **argv;
+	int argc;
+};
+
 static void usage(void);
 
 void
 usage()
 {
-	fprintf(stderr, "usage: portfmt [-aditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit bump-revision|get [-aditu] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 int
 main(int argc, char *argv[])
 {
-	int status = 0;
 	struct ParserSettings settings;
 
 	parser_init_settings(&settings);
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
-		PARSER_OUTPUT_REFORMAT;
+		PARSER_OUTPUT_REFORMAT | PARSER_OUTPUT_EDITED |
+		PARSER_KEEP_EOL_COMMENTS;
+
+	struct Portedit edit;
+	if (argc < 2) {
+		usage();
+	}
+	const char *command = argv[1];
+	argv++;
+	argc--;
 
 	if (!read_common_args(&argc, &argv, &settings)) {
 		usage();
 	}
+
+	if (strcmp(command, "bump-revision") == 0) {
+		edit.cmd = PORTEDIT_BUMP_REVISION;
+		edit.argc = 0;
+		edit.argv = argv;
+	} else if (strcmp(command, "get") == 0 && argc > 0) {
+		edit.cmd = PORTEDIT_GET_VARIABLE;
+		edit.argc = 1;
+		edit.argv = argv;
+		settings.behavior |= PARSER_OUTPUT_RAWLINES;
+	} else if (strcmp(command, "__private__lint-order") == 0 && argc > 0) {
+		edit.cmd = PORTEDIT_PRIVATE_LINT_ORDER;
+		edit.argc = 0;
+		edit.argv = NULL;
+		settings.behavior |= PARSER_OUTPUT_RAWLINES;
+	} else if (strcmp(command, "__private__list-unknown-variables") == 0 && argc > 0) {
+		edit.cmd = PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES;
+		edit.argc = 0;
+		edit.argv = NULL;
+		settings.behavior |= PARSER_OUTPUT_RAWLINES;
+	} else {
+		usage();
+	}
+	argc -= edit.argc;
+	argv += edit.argc;
 
 	int fd_in = STDIN_FILENO;
 	int fd_out = STDOUT_FILENO;
@@ -84,6 +130,25 @@ main(int argc, char *argv[])
 		err(1, "parser_read_from_fd");
 	}
 	parser_read_finish(parser);
+
+	int status = 0;
+	switch (edit.cmd) {
+	case PORTEDIT_BUMP_REVISION:
+		parser_edit(parser, edit_bump_revision, NULL);
+		break;
+	case PORTEDIT_GET_VARIABLE:
+		parser_edit(parser, edit_output_variable_value, edit.argv[0]);
+		break;
+	case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
+		parser_edit(parser, edit_output_unknown_variables, NULL);
+		break;
+	case PORTEDIT_PRIVATE_LINT_ORDER:
+		parser_edit(parser, lint_order, &status);
+		break;
+	default:
+		usage();
+		break;
+	}
 
 	parser_output_prepare(parser);
 	parser_output_write(parser, fd_out);

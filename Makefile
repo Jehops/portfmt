@@ -23,14 +23,17 @@ libportfmt.so: ${OBJS}
 	${CC} ${LDFLAGS} -shared -Wl,-soname=libportfmt.so -o libportfmt.so \
 		${OBJS} ${LDADD}
 
+portedit: libportfmt.so portedit.o
+	${CC} ${LDFLAGS} -o portedit portedit.o -Wl,-rpath=${LIBDIR} libportfmt.so
+
 portfmt: libportfmt.so portfmt.o
 	${CC} ${LDFLAGS} -o portfmt portfmt.o -Wl,-rpath=${LIBDIR} libportfmt.so
 
-portfmt.o: portfmt.c config.h mainutils.h parser.h
+portedit.o: portedit.c config.h mainutils.h parser.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portedit: portfmt
-	${LN} -sf portfmt portedit
+portfmt.o: portfmt.c config.h mainutils.h parser.h
+	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 array.o: config.h array.c array.h diff.h
 conditional.o: config.h conditional.c conditional.h regexp.h
