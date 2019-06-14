@@ -453,6 +453,21 @@ exec > Makefile.configure
 [ -z "${INSTALL_MAN}"     ] && INSTALL_MAN="${INSTALL} -m 0444"
 [ -z "${INSTALL_DATA}"    ] && INSTALL_DATA="${INSTALL} -m 0444"
 
+# TODO: This should all be auto-discovered
+case $(uname -s) in
+Darwin)
+	LIBSUFFIX="dylib"
+	SHARED_LDFLAGS="-dynamiclib"
+	;;
+OpenBSD)
+	LIBSUFFIX="so"
+	SHARED_LDFLAGS="-shared"
+	;;
+*)
+	LIBSUFFIX="so"
+	SHARED_LDFLAGS='-shared -Wl,-soname=${LIBNAME}.${LIBSUFFIX}'
+esac
+
 cat << __HEREDOC__
 CC		= ${CC}
 CFLAGS		= ${CFLAGS}
@@ -473,6 +488,8 @@ INSTALL_SCRIPT	= ${INSTALL_SCRIPT}
 INSTALL_LIB	= ${INSTALL_LIB}
 INSTALL_MAN	= ${INSTALL_MAN}
 INSTALL_DATA	= ${INSTALL_DATA}
+SHARED_LDFLAGS	= ${SHARED_LDFLAGS}
+LIBSUFFIX	= ${LIBSUFFIX}
 __HEREDOC__
 
 echo "Makefile.configure: written" 1>&2

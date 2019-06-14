@@ -1,3 +1,5 @@
+LIBNAME=	libportfmt
+
 include Makefile.configure
 
 MKDIR?=		mkdir -p
@@ -19,18 +21,18 @@ all: portclippy portedit portfmt
 .c.o:
 	${CC} ${CPPFLAGS} -fPIC ${CFLAGS} -o $@ -c $<
 
-libportfmt.so: ${OBJS}
-	${CC} ${LDFLAGS} -shared -Wl,-soname=libportfmt.so -o libportfmt.so \
-		${OBJS} ${LDADD}
+${LIBNAME}.${LIBSUFFIX}: ${OBJS}
+	${CC} ${LDFLAGS} ${SHARED_LDFLAGS} -o ${LIBNAME}.${LIBSUFFIX} ${OBJS} \
+		${LDADD}
 
-portclippy: libportfmt.so portclippy.o
-	${CC} ${LDFLAGS} -o portclippy portclippy.o -Wl,-rpath=${LIBDIR} libportfmt.so
+portclippy: ${LIBNAME}.${LIBSUFFIX} portclippy.o
+	${CC} ${LDFLAGS} -o portclippy portclippy.o ${LIBNAME}.${LIBSUFFIX}
 
-portedit: libportfmt.so portedit.o
-	${CC} ${LDFLAGS} -o portedit portedit.o -Wl,-rpath=${LIBDIR} libportfmt.so
+portedit: ${LIBNAME}.${LIBSUFFIX} portedit.o
+	${CC} ${LDFLAGS} -o portedit portedit.o ${LIBNAME}.${LIBSUFFIX}
 
-portfmt: libportfmt.so portfmt.o
-	${CC} ${LDFLAGS} -o portfmt portfmt.o -Wl,-rpath=${LIBDIR} libportfmt.so
+portfmt: ${LIBNAME}.${LIBSUFFIX} portfmt.o
+	${CC} ${LDFLAGS} -o portfmt portfmt.o ${LIBNAME}.${LIBSUFFIX}
 
 portclippy.o: portclippy.c config.h mainutils.h parser.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
@@ -64,7 +66,7 @@ install:
 	${MKDIR} ${DESTDIR}${BINDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${MANDIR}/man1
 	${INSTALL_MAN} portfmt.1 ${DESTDIR}${MANDIR}/man1
 	${INSTALL_PROGRAM} portclippy portedit portfmt ${DESTDIR}${BINDIR}
-	${INSTALL_LIB} libportfmt.so ${DESTDIR}${LIBDIR}
+	${INSTALL_LIB} ${LIBNAME}.${LIBSUFFIX} ${DESTDIR}${LIBDIR}
 	@if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
 		${SED} -i '' 's,/usr/local,${PREFIX},' ${DESTDIR}${PREFIX}/bin/portfmt; \
 	fi
@@ -76,7 +78,7 @@ install-symlinks:
 
 clean:
 	@rm -f ${OBJS} portclippy portclippy.o portedit portedit.o portfmt \
-		portfmt.o libportfmt.so config.*.old
+		portfmt.o ${LIBNAME}.${LIBSUFFIX} config.*.old
 
 debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \
