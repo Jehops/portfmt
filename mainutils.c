@@ -35,6 +35,8 @@
 #if HAVE_ERR
 # include <err.h>
 #endif
+#include <fcntl.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
 
