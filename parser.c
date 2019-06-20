@@ -73,6 +73,8 @@ struct Parser {
 	struct Array *tokens;
 	struct Array *result;
 	struct Array *rawlines;
+
+	int read_finished;
 };
 
 #define INBUF_SIZE 131072
@@ -86,6 +88,7 @@ static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
 static void parser_output_dump_tokens(struct Parser *);
 static void parser_output_edited(struct Parser *);
+static void parser_output_prepare(struct Parser *);
 static void parser_output_print_rawlines(struct Parser *, struct Range *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
 static struct Array *parser_output_sort_opt_use(struct Parser *, struct Array *);
@@ -707,6 +710,10 @@ cleanup:
 void
 parser_output_prepare(struct Parser *parser)
 {
+	if (!parser->read_finished) {
+		parser_read_finish(parser);
+	}
+
 	if (parser->settings.behavior & PARSER_OUTPUT_DUMP_TOKENS) {
 		parser_output_dump_tokens(parser);
 	} else if (parser->settings.behavior & PARSER_OUTPUT_RAWLINES) {
@@ -1285,6 +1292,9 @@ parser_read_finish(struct Parser *parser)
 		parser_append_token(parser, TARGET_END, NULL);
 	}
 
+	// Set it now to avoid recursion in parser_edit()
+	parser->read_finished = 1;
+
 	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS)) {
 		parser_edit(parser, refactor_sanitize_eol_comments, NULL);
 	}
@@ -1304,6 +1314,8 @@ parser_output_write(struct Parser *parser, int fd)
 	if (parser->error != NULL) {
 		return;
 	}
+
+	parser_output_prepare(parser);
 
 	if (parser->settings.behavior & PARSER_OUTPUT_INPLACE) {
 		if (lseek(fd, 0, SEEK_SET) < 0) {
@@ -1362,8 +1374,6 @@ parser_parse_string(struct Parser *parser, const char *input)
 	}
 	free(buf);
 
-	parser_read_finish(subparser);
-
 	return subparser;
 }
 
@@ -1382,6 +1392,10 @@ parser_mark_edited(struct Parser *parser, struct Token *t)
 void
 parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
 {
+	if (!parser->read_finished) {
+		parser_read_finish(parser);
+	}
+
 	struct Array *tokens = f(parser, parser->tokens, userdata);
 	if (tokens && tokens != parser->tokens) {
 		array_free(parser->tokens);

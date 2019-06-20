@@ -86,8 +86,10 @@ main(int argc, char *argv[])
 	int status = 0;
 	parser_edit(parser, lint_order, &status);
 
-	parser_output_prepare(parser);
 	parser_output_write(parser, fd_out);
+	if (parser_error(parser)) {
+		errx(1, "failed to write file: %s", parser_error(parser));
+	}
 	parser_free(parser);
 
 	close(fd_out);

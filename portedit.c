@@ -123,7 +123,7 @@ main(int argc, char *argv[])
 	parser_read_from_fd(parser, fd_in);
 	parser_read_finish(parser);
 	if (parser_error(parser)) {
-		err(1, "failed to read file: %s", parser_error(parser));
+		errx(1, "failed to read file: %s", parser_error(parser));
 	}
 
 	int status = 0;
@@ -142,8 +142,10 @@ main(int argc, char *argv[])
 		break;
 	}
 
-	parser_output_prepare(parser);
 	parser_output_write(parser, fd_out);
+	if (parser_error(parser)) {
+		errx(1, "failed to write file: %s", parser_error(parser));
+	}
 	parser_free(parser);
 
 	close(fd_out);

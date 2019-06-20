@@ -60,14 +60,9 @@ struct Parser *parser_parse_string(struct Parser *, const char *);
 void parser_init_settings(struct ParserSettings *);
 void parser_read(struct Parser *, char *);
 void parser_read_from_fd(struct Parser *, int);
+void parser_read_finish(struct Parser *);
 const char *parser_error(struct Parser *);
 void parser_free(struct Parser *);
-char *parser_lookup_variable(struct Parser *, const char *);
-struct Array *parser_get_all_variable_names(struct Parser *);
-int parser_edit_bump_revision(struct Parser *);
-int parser_edit_set_variable(struct Parser *, const char *, const char *, const char *);
-void parser_read_finish(struct Parser *);
-void parser_output_prepare(struct Parser *);
 void parser_output_write(struct Parser *, int);
 
 void parser_edit(struct Parser *, ParserEditFn, const void *);
