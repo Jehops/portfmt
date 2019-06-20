@@ -485,8 +485,6 @@ parser_find_goalcols(struct Parser *parser)
 void
 print_newline_array(struct Parser *parser, struct Array *arr)
 {
-	size_t sepsz = 1024;
-	char *sep = xmalloc(sepsz);
 	struct Token *o = array_get(arr, 0);
 	assert(o && token_data(o) != NULL);
 	assert(strlen(token_data(o)) != 0);
@@ -500,12 +498,9 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	}
 
 	char *start = variable_tostring(token_variable(o));
+	parser_enqueue_output(parser, start);
 	size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
-	char *tabs = repeat('\t', ntabs);
-	xstrlcpy(sep, start, sepsz);
-	xstrlcat(sep, tabs, sepsz);
-	free(tabs);
-	free(start);
+	char *sep = repeat('\t', ntabs);
 
 	const char *end = " \\\n";
 	for (size_t i = 0; i < array_len(arr); i++) {
@@ -524,17 +519,17 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		case VARIABLE_TOKEN:
 			if (i == 0) {
 				size_t ntabs = ceil(MAX(16, token_goalcol(o)) / 8.0);
-				char *tabs = repeat('\t', ntabs);
-				xstrlcpy(sep, tabs, sepsz);
-				free(tabs);
+				free(sep);
+				sep = repeat('\t', ntabs);
 			}
 			break;
 		case CONDITIONAL_TOKEN:
-			sep[0] = '\t';
-			sep[1] = 0;
+			free(sep);
+			sep = xstrdup("\t");
 			break;
 		case TARGET_COMMAND_TOKEN:
-			xstrlcpy(sep, "\t\t", sepsz);
+			free(sep);
+			sep = xstrdup("\t\t");
 			break;
 		default:
 			xasprintf(&parser->error, "unhandled token type: %i", token_type(o));
