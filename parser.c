@@ -1302,7 +1302,9 @@ parser_read_finish(struct Parser *parser)
 		return;
 	}
 
-	parser->lines.end++;
+	if (!parser->continued) {
+		parser->lines.end++;
+	}
 
 	if (strlen(parser->inbuf) > 0) {
 		parser_read_internal(parser);
