@@ -120,10 +120,11 @@ main(int argc, char *argv[])
 	enter_sandbox(fd_in, fd_out);
 
 	struct Parser *parser = parser_new(&settings);
-	if (!parser_read_from_fd(parser, fd_in)) {
-		err(1, "parser_read_from_fd");
-	}
+	parser_read_from_fd(parser, fd_in);
 	parser_read_finish(parser);
+	if (parser_error(parser)) {
+		err(1, "failed to read file: %s", parser_error(parser));
+	}
 
 	int status = 0;
 	switch (edit.cmd) {

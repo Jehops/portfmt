@@ -36,6 +36,7 @@
 #if HAVE_ERR
 # include <err.h>
 #endif
+#include <errno.h>
 #include <math.h>
 #include <regex.h>
 #define _WITH_GETLINE
@@ -61,6 +62,7 @@ struct Parser {
 	int in_target;
 	struct Range lines;
 	int skip;
+	char *error;
 	char *inbuf;
 	char *condname;
 	char *targetname;
@@ -174,7 +176,8 @@ consume_token(struct Parser *parser, const char *line, size_t pos,
 		}
 	}
 	if (!eol_ok) {
-		errx(1, "%s: expected %c", range_tostring(&parser->lines), endchar);
+		xasprintf(&parser->error, "%s: expected %c", range_tostring(&parser->lines), endchar);
+		return 0;
 	} else {
 		return i;
 	}
@@ -229,6 +232,7 @@ parser_new(struct ParserSettings *settings)
 	parser->rawlines = array_new(sizeof(char *));
 	parser->result = array_new(sizeof(char *));
 	parser->tokens = array_new(sizeof(struct Token *));
+	parser->error = NULL;
 	parser->lines.start = 1;
 	parser->lines.end = 1;
 	parser->inbuf = xmalloc(INBUF_SIZE);
@@ -262,8 +266,17 @@ parser_free(struct Parser *parser)
 	array_free(parser->edited);
 	array_free(parser->tokens);
 
+	if (parser->error) {
+		free(parser->error);
+	}
 	free(parser->inbuf);
 	free(parser);
+}
+
+const char *
+parser_error(struct Parser *parser)
+{
+	return parser->error;
 }
 
 void
@@ -301,6 +314,9 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			if (dollar > 1) {
 				if (c == '(') {
 					i = consume_token(parser, line, i - 2, '(', ')', 0);
+					if (parser->error != NULL) {
+						return;
+					}
 					continue;
 				} else if (c == '$') {
 					dollar++;
@@ -327,7 +343,10 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			} else if (c == '$') {
 				dollar++;
 			} else {
-				errx(1, "%s: unterminated $", range_tostring(&parser->lines));
+				xasprintf(&parser->error, "%s: unterminated $", range_tostring(&parser->lines));
+			}
+			if (parser->error != NULL) {
+				return;
 			}
 		} else {
 			if (c == ' ' || c == '\t') {
@@ -358,6 +377,9 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 
 				free(token);
 				token = NULL;
+				return;
+			}
+			if (parser->error != NULL) {
 				return;
 			}
 		}
@@ -437,7 +459,8 @@ parser_find_goalcols(struct Parser *parser)
 			}
 			break;
 		default:
-			errx(1, "Unhandled token type: %i", token_type(t));
+			xasprintf(&parser->error, "unhandled token type: %i", token_type(t));
+			return;
 		}
 	}
 	if (tokens_start != -1) {
@@ -496,9 +519,11 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 			xstrlcpy(sep, repeat('\t', 2), sepsz);
 			break;
 		default:
-			errx(1, "unhandled token type: %i", token_type(o));
+			xasprintf(&parser->error, "unhandled token type: %i", token_type(o));
+			goto cleanup;
 		}
 	}
+cleanup:
 	free(sep);
 }
 
@@ -525,10 +550,11 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	struct Token *token = NULL;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		token = array_get(tokens, i);
-		if (strlen(token_data(token)) == 0) {
+		size_t tokenlen = strlen(token_data(token));
+		if (tokenlen == 0) {
 			continue;
 		}
-		if ((strlen(row) + strlen(token_data(token))) > wrapcol) {
+		if ((strlen(row) + tokenlen) > wrapcol) {
 			if (strlen(row) == 0) {
 				array_append(arr, token);
 				continue;
@@ -539,11 +565,21 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 				row[0] = 0;
 			}
 		}
+		size_t len;
 		if (strlen(row) == 0) {
-			xstrlcpy(row, token_data(token), rowsz);
+			if ((len = strlcpy(row, token_data(token), rowsz)) >= rowsz) {
+				xasprintf(&parser->error, "over maximum row length: %zu vs %zu", len, rowsz);
+				goto cleanup;
+			}
 		} else {
-			xstrlcat(row, " ", rowsz);
-			xstrlcat(row, token_data(token), rowsz);
+			if ((len = strlcat(row, " ", rowsz)) >= rowsz) {
+				xasprintf(&parser->error, "over maximum row length: %zu vs %zu", len, rowsz);
+				goto cleanup;
+			}
+			if ((len = strlcat(row, token_data(token), rowsz)) >= rowsz) {
+				xasprintf(&parser->error, "over maximum row length: %zu vs %zu", len, rowsz);
+				goto cleanup;
+			}
 		}
 	}
 	if (token && strlen(row) > 0 && array_len(arr) < array_len(tokens)) {
@@ -551,9 +587,10 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		array_append_unique(parser->tokengc, t, NULL);
 		array_append(arr, t);
 	}
-	free(row);
 	print_newline_array(parser, arr);
 
+cleanup:
+	free(row);
 	array_free(arr);
 }
 
@@ -685,6 +722,9 @@ void
 parser_output_edited(struct Parser *parser)
 {
 	parser_find_goalcols(parser);
+	if (parser->error != NULL) {
+		return;
+	}
 
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
@@ -734,10 +774,12 @@ parser_output_edited(struct Parser *parser)
 			parser_output_print_rawlines(parser, token_lines(o));
 			break;
 		default:
-			errx(1, "Unhandled output type: %i", token_type(o));
+			xasprintf(&parser->error, "unhandled output type: %i", token_type(o));
+			goto cleanup;
 		}
 	}
 	variable_arr = parser_output_reformatted_helper(parser, variable_arr);
+cleanup:
 	array_free(variable_arr);
 }
 
@@ -861,6 +903,9 @@ void
 parser_output_reformatted(struct Parser *parser)
 {
 	parser_find_goalcols(parser);
+	if (parser->error != NULL) {
+		return;
+	}
 
 	struct Array *target_arr = array_new(sizeof(struct Token *));
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
@@ -916,7 +961,11 @@ parser_output_reformatted(struct Parser *parser)
 			parser_output_print_rawlines(parser, token_lines(o));
 			break;
 		default:
-			errx(1, "Unhandled output type: %i", token_type(o));
+			xasprintf(&parser->error, "unhandled output type: %i", token_type(o));
+			goto cleanup;
+		}
+		if (parser->error != NULL) {
+			goto cleanup;
 		}
 	}
 	if (array_len(target_arr) > 0) {
@@ -924,6 +973,7 @@ parser_output_reformatted(struct Parser *parser)
 		array_truncate(target_arr);
 	}
 	variable_arr = parser_output_reformatted_helper(parser, variable_arr);
+cleanup:
 	array_free(target_arr);
 	array_free(variable_arr);
 }
@@ -983,7 +1033,8 @@ parser_output_dump_tokens(struct Parser *parser)
 			type = "comment";
 			break;
 		default:
-			errx(1, "Unhandled output type: %i", token_type(t));
+			xasprintf(&parser->error, "unhandled output type: %i", token_type(t));
+			return;
 		}
 		char *var = NULL;
 		ssize_t len;
@@ -1046,6 +1097,10 @@ parser_output_dump_tokens(struct Parser *parser)
 void
 parser_read(struct Parser *parser, char *line)
 {
+	if (parser->error != NULL) {
+		return;
+	}
+
 	size_t linelen = strlen(line);
 
 	array_append(parser->rawlines, xstrdup(line));
@@ -1086,12 +1141,17 @@ parser_read(struct Parser *parser, char *line)
 	parser->continued = will_continue;
 }
 
-int
+void
 parser_read_from_fd(struct Parser *parser, int fd)
 {
+	if (parser->error != NULL) {
+		return;
+	}
+
 	FILE *fp = fdopen(fd, "r");
 	if (fp == NULL) {
-		return 1;
+		parser->error = xstrdup("fdopen");
+		return;
 	}
 
 	ssize_t linelen;
@@ -1103,13 +1163,15 @@ parser_read_from_fd(struct Parser *parser, int fd)
 	}
 
 	free(line);
-
-	return 1;
 }
 
 void
 parser_read_internal(struct Parser *parser)
 {
+	if (parser->error != NULL) {
+		return;
+	}
+
 	char *buf = str_trim(parser->inbuf);
 	size_t pos;
 
@@ -1185,7 +1247,8 @@ var:
 	pos = consume_var(buf);
 	if (pos != 0) {
 		if (pos > strlen(buf)) {
-			errx(1, "parser->varname too small");
+			xasprintf(&parser->error, "parser->varname too small");
+			goto next;
 		}
 		char *tmp = str_substr_dup(buf, 0, pos);
 		parser->varname = str_strip_dup(tmp);
@@ -1194,7 +1257,7 @@ var:
 	}
 	parser_tokenize(parser, buf, VARIABLE_TOKEN, pos);
 	if (parser->varname == NULL) {
-		errx(1, "parse error on line %s", range_tostring(&parser->lines));
+		xasprintf(&parser->error, "parse error on line %s", range_tostring(&parser->lines));
 	}
 next:
 	if (parser->varname) {
@@ -1208,6 +1271,10 @@ next:
 void
 parser_read_finish(struct Parser *parser)
 {
+	if (parser->error != NULL) {
+		return;
+	}
+
 	parser->lines.end++;
 
 	if (strlen(parser->inbuf) > 0) {
@@ -1234,12 +1301,18 @@ parser_read_finish(struct Parser *parser)
 void
 parser_output_write(struct Parser *parser, int fd)
 {
+	if (parser->error != NULL) {
+		return;
+	}
+
 	if (parser->settings.behavior & PARSER_OUTPUT_INPLACE) {
 		if (lseek(fd, 0, SEEK_SET) < 0) {
-			err(1, "lseek");
+			xasprintf(&parser->error, "lseek: %s", strerror(errno));
+			return;
 		}
 		if (ftruncate(fd, 0) < 0) {
-			err(1, "ftruncate");
+			xasprintf(&parser->error, "ftruncate: %s", strerror(errno));
+			return;
 		}
 	}
 
@@ -1263,7 +1336,9 @@ parser_output_write(struct Parser *parser, int fd)
 			iov[j].iov_len = strlen(s);
 		}
 		if (writev(fd, iov, j) < 0) {
-			err(1, "writev");
+			xasprintf(&parser->error, "writev: %s", strerror(errno));
+			free(iov);
+			return;
 		}
 	}
 
