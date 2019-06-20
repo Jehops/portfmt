@@ -47,4 +47,18 @@ for test in *.sh; do
 	fi
 done
 
+cd "${ROOT}/tests"
+find reject -name '*.in' | while read t; do
+	out=$(portfmt ${t} 2>&1)
+	if [ $? -ne 1 ]; then
+		cat <<EOF
+${t} not rejected:
+${out}
+
+EOF
+		exit 1
+	fi
+done
+
+
 exit ${status}

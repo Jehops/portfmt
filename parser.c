@@ -287,6 +287,9 @@ parser_append_token(struct Parser *parser, enum TokenType type, const char *data
 {
 	struct Token *t = token_new(type, &parser->lines, data, parser->varname,
 				    parser->condname, parser->targetname);
+	if (t == NULL) {
+		return;
+	}
 	array_append_unique(parser->tokengc, t, NULL);
 	array_append(parser->tokens, t);
 }
@@ -838,7 +841,9 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 			tmp = s = xstrdup(suffix);
 			while ((token = strsep(&s, ",")) != NULL) {
 				struct Token *t2 = token_new(VARIABLE_TOKEN, token_lines(t), token, var, NULL, NULL);
-				array_append(values, t2);
+				if (t2 != NULL) {
+					array_append(values, t2);
+				}
 			}
 			free(tmp);
 			free(var);

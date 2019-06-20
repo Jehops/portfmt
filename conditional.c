@@ -29,7 +29,6 @@
 #include "config.h"
 
 #include <assert.h>
-#include <err.h>
 #include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,11 +46,10 @@ struct Conditional {
 struct Conditional *
 conditional_new(char *s)
 {
-	struct Conditional *cond = xmalloc(sizeof(struct Conditional));
 
 	struct Regexp *re = regexp_new(regex(RE_CONDITIONAL), s);
 	if (regexp_exec(re) != 0) {
-		errx(1, "not a conditional: %s", s);
+		return NULL;
 	}
 
 	char *tmp = regexp_substr(re, 0);
@@ -59,7 +57,7 @@ conditional_new(char *s)
 	re = NULL;
 	if (strlen(tmp) < 2) {
 		free(tmp);
-		errx(1, "not a conditional: %s", s);
+		return NULL;
 	}
 
 	char *type;
@@ -73,62 +71,67 @@ conditional_new(char *s)
 	free(tmp);
 	tmp = NULL;
 
+	enum ConditionalType cond_type;
 	if (strcmp(type, "include") == 0) {
-		cond->type = COND_INCLUDE_POSIX;
+		cond_type = COND_INCLUDE_POSIX;
 	} else if (strcmp(type, ".include") == 0) {
-		cond->type = COND_INCLUDE;
+		cond_type = COND_INCLUDE;
 	} else if (strcmp(type, ".error") == 0) {
-		cond->type = COND_ERROR;
+		cond_type = COND_ERROR;
 	} else if (strcmp(type, ".export") == 0) {
-		cond->type = COND_EXPORT;
+		cond_type = COND_EXPORT;
 	} else if (strcmp(type, ".export-env") == 0) {
-		cond->type = COND_EXPORT_ENV;
+		cond_type = COND_EXPORT_ENV;
 	} else if (strcmp(type, ".export.env") == 0) {
-		cond->type = COND_EXPORT_ENV;
+		cond_type = COND_EXPORT_ENV;
 	} else if (strcmp(type, ".export-literal") == 0) {
-		cond->type = COND_EXPORT_LITERAL;
+		cond_type = COND_EXPORT_LITERAL;
 	} else if (strcmp(type, ".info") == 0) {
-		cond->type = COND_INFO;
+		cond_type = COND_INFO;
 	} else if (strcmp(type, ".undef") == 0) {
-		cond->type = COND_UNDEF;
+		cond_type = COND_UNDEF;
 	} else if (strcmp(type, ".unexport") == 0) {
-		cond->type = COND_UNEXPORT;
+		cond_type = COND_UNEXPORT;
 	} else if (strcmp(type, ".for") == 0) {
-		cond->type = COND_FOR;
+		cond_type = COND_FOR;
 	} else if (strcmp(type, ".endfor") == 0) {
-		cond->type = COND_ENDFOR;
+		cond_type = COND_ENDFOR;
 	} else if (strcmp(type, ".unexport-env") == 0) {
-		cond->type = COND_UNEXPORT_ENV;
+		cond_type = COND_UNEXPORT_ENV;
 	} else if (strcmp(type, ".warning") == 0) {
-		cond->type = COND_WARNING;
+		cond_type = COND_WARNING;
 	} else if (strcmp(type, ".if") == 0) {
-		cond->type = COND_IF;
+		cond_type = COND_IF;
 	} else if (strcmp(type, ".ifdef") == 0) {
-		cond->type = COND_IFDEF;
+		cond_type = COND_IFDEF;
 	} else if (strcmp(type, ".ifndef") == 0) {
-		cond->type = COND_IFNDEF;
+		cond_type = COND_IFNDEF;
 	} else if (strcmp(type, ".ifmake") == 0) {
-		cond->type = COND_IFMAKE;
+		cond_type = COND_IFMAKE;
 	} else if (strcmp(type, ".ifnmake") == 0) {
-		cond->type = COND_IFNMAKE;
+		cond_type = COND_IFNMAKE;
 	} else if (strcmp(type, ".else") == 0) {
-		cond->type = COND_ELSE;
+		cond_type = COND_ELSE;
 	} else if (strcmp(type, ".elif") == 0) {
-		cond->type = COND_ELIF;
+		cond_type = COND_ELIF;
 	} else if (strcmp(type, ".elifdef") == 0) {
-		cond->type = COND_ELIFDEF;
+		cond_type = COND_ELIFDEF;
 	} else if (strcmp(type, ".elifndef") == 0) {
-		cond->type = COND_ELIFNDEF;
+		cond_type = COND_ELIFNDEF;
 	} else if (strcmp(type, ".elifmake") == 0) {
-		cond->type = COND_ELIFMAKE;
+		cond_type = COND_ELIFMAKE;
 	} else if (strcmp(type, ".endif") == 0) {
-		cond->type = COND_ENDIF;
+		cond_type = COND_ENDIF;
 	} else if (strcmp(type, ".sinclude") == 0) {
-		cond->type = COND_SINCLUDE;
+		cond_type = COND_SINCLUDE;
 	} else {
-		errx(1, "unknown conditional: %s", type);
+		free(type);
+		return NULL;
 	}
 	free(type);
+
+	struct Conditional *cond = xmalloc(sizeof(struct Conditional));
+	cond->type = cond_type;
 
 	return cond;
 }

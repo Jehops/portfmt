@@ -51,23 +51,41 @@ struct Token *
 token_new(enum TokenType type, struct Range *lines, const char *data,
 	  char *varname, char *condname, char *targetname)
 {
-	struct Token *t = xmalloc(sizeof(struct Token));
+	if (((type == VARIABLE_END || type == VARIABLE_START ||
+	      type == VARIABLE_TOKEN) && varname == NULL) ||
+	    ((type == CONDITIONAL_END || type == CONDITIONAL_START ||
+	      type == CONDITIONAL_TOKEN) && condname  == NULL) ||
+	    ((type == TARGET_COMMAND_END || type == TARGET_COMMAND_START ||
+	      type == TARGET_COMMAND_TOKEN || type == TARGET_END ||
+	      type == TARGET_START) && targetname == NULL)) {
+		return NULL;
+	}
 
+	struct Target *target = NULL;
+	if (targetname && (target = target_new(targetname)) == NULL) {
+		return NULL;
+	}
+
+	struct Conditional *cond = NULL;
+	if (condname && (cond = conditional_new(condname)) == NULL) {
+		return NULL;
+	}
+
+	struct Variable *var = NULL;
+	if (varname && (var = variable_new(varname)) == NULL) {
+		return NULL;
+	}
+
+	struct Token *t = xmalloc(sizeof(struct Token));
 	t->type = type;
 	t->lines = *lines;
 
 	if (data) {
 		t->data = xstrdup(data);
 	}
-	if (targetname) {
-		t->target = target_new(targetname);
-	}
-	if (condname) {
-		t->cond = conditional_new(condname);
-	}
-	if (varname) {
-		t->var = variable_new(varname);
-	}
+	t->cond = cond;
+	t->target = target;
+	t->var = var;
 
 	return t;
 }

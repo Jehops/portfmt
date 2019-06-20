@@ -30,7 +30,6 @@
 
 #include <sys/types.h>
 #include <assert.h>
-#include <err.h>
 #include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,32 +46,40 @@ struct Variable {
 };
 
 struct Variable *
-variable_new(const char *buf) {
-	struct Variable *var = xmalloc(sizeof(struct Variable));
+variable_new(const char *buf)
+{
+	struct Variable *var = NULL;
 
 	struct Regexp *re = regexp_new(regex(RE_MODIFIER), buf);
 	if (regexp_exec(re) != 0) {
-		errx(1, "Variable with no modifier");
+		return NULL;
 	}
 
 	char *tmp = str_substr_dup(buf, 0, regexp_start(re, 0));
-	var->name = str_trim(tmp);
+	char *var_name = str_trim(tmp);
 	free(tmp);
 
+	enum VariableModifier var_modifier;
 	char *modifier = regexp_substr(re, 0);
 	if (strcmp(modifier, "+=") == 0) {
-		var->modifier = MODIFIER_APPEND;
+		var_modifier = MODIFIER_APPEND;
 	} else if (strcmp(modifier, "=") == 0) {
-		var->modifier = MODIFIER_ASSIGN;
+		var_modifier = MODIFIER_ASSIGN;
 	} else if (strcmp(modifier, ":=") == 0) {
-		var->modifier = MODIFIER_EXPAND;
+		var_modifier = MODIFIER_EXPAND;
 	} else if (strcmp(modifier, "?=") == 0) {
-		var->modifier = MODIFIER_OPTIONAL;
+		var_modifier = MODIFIER_OPTIONAL;
 	} else if (strcmp(modifier, "!=") == 0) {
-		var->modifier = MODIFIER_SHELL;
+		var_modifier = MODIFIER_SHELL;
 	} else {
-		errx(1, "Unknown variable modifier: %s", modifier);
+		goto cleanup;
 	}
+
+	var = xmalloc(sizeof(struct Variable));
+	var->modifier = var_modifier;
+	var->name = var_name;
+
+cleanup:
 	free(modifier);
 	regexp_free(re);
 
@@ -154,8 +161,6 @@ variable_tostring(struct Variable *var)
 	case MODIFIER_SHELL:
 		mod = "!=";
 		break;
-	default:
-		errx(1, "Unknown variable modifier: %d", var->modifier);
 	}
 
 	char *s;

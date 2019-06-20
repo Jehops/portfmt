@@ -29,7 +29,6 @@
 #include "config.h"
 
 #include <assert.h>
-#include <err.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -47,7 +46,7 @@ target_new(char *buf) {
 
 	char *after_target = memchr(buf, ':', strlen(buf));
 	if (after_target == NULL || after_target < buf) {
-		errx(1, "invalid target: %s", buf);
+		return NULL;
 	}
 
 	char *tmp = xmalloc(strlen(buf));
