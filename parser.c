@@ -134,6 +134,13 @@ consume_conditional(const char *buf)
 size_t
 consume_target(const char *buf)
 {
+	// Variable assignments are prioritized and can be ambigious
+	// due to :=, so check for it first.  Targets can also not
+	// start with a tab which implies a conditional.
+	if (consume_var(buf) > 0 || *buf == '\t') {
+		return 0;
+	}
+
 	size_t pos = 0;
 	struct Regexp *re = regexp_new(regex(RE_TARGET), buf);
 	if (regexp_exec(re) == 0) {
@@ -297,6 +304,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, const char *data
 void
 parser_enqueue_output(struct Parser *parser, const char *s)
 {
+	assert(s != NULL);
 	array_append(parser->result, xstrdup(s));
 }
 
@@ -493,8 +501,10 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 
 	char *start = variable_tostring(token_variable(o));
 	size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
+	char *tabs = repeat('\t', ntabs);
 	xstrlcpy(sep, start, sepsz);
-	xstrlcat(sep, repeat('\t', ntabs), sepsz);
+	xstrlcat(sep, tabs, sepsz);
+	free(tabs);
 	free(start);
 
 	const char *end = " \\\n";
@@ -514,7 +524,9 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		case VARIABLE_TOKEN:
 			if (i == 0) {
 				size_t ntabs = ceil(MAX(16, token_goalcol(o)) / 8.0);
-				xstrlcpy(sep, repeat('\t', ntabs), sepsz);
+				char *tabs = repeat('\t', ntabs);
+				xstrlcpy(sep, tabs, sepsz);
+				free(tabs);
 			}
 			break;
 		case CONDITIONAL_TOKEN:
@@ -522,7 +534,7 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 			sep[1] = 0;
 			break;
 		case TARGET_COMMAND_TOKEN:
-			xstrlcpy(sep, repeat('\t', 2), sepsz);
+			xstrlcpy(sep, "\t\t", sepsz);
 			break;
 		default:
 			xasprintf(&parser->error, "unhandled token type: %i", token_type(o));
@@ -1170,7 +1182,9 @@ parser_read_from_fd(struct Parser *parser, int fd)
 	size_t linecap = 0;
 	char *line = NULL;
 	while ((linelen = getline(&line, &linecap, fp)) > 0) {
-		line[linelen - 1] = 0;
+		if (linelen > 0 && line[linelen - 1] == '\n') {
+			line[linelen - 1] = 0;
+		}
 		parser_read(parser, line);
 	}
 

@@ -44,8 +44,7 @@
 char *
 repeat(char c, size_t n)
 {
-	static char buf[128];
-	assert (n < sizeof(buf));
+	char *buf = xmalloc(n + 1);
 	if (n > 0) {
 		for (size_t i = 0; i < n; i++) {
 			buf[i] = c;
