@@ -30,7 +30,9 @@
 
 #include <sys/types.h>
 #include <assert.h>
-#include <err.h>
+#if HAVE_ERR
+# include <err.h>
+#endif
 #include <stdlib.h>
 
 #include "array.h"
