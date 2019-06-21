@@ -141,7 +141,7 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 		return 0;
 	} else if (*argc == 1) {
 		if (settings->behavior & PARSER_OUTPUT_INPLACE) {
-			*fp_in = fopen(*argv[0], "rw");
+			*fp_in = fopen(*argv[0], "r+");
 			*fp_out = *fp_in;
 			if (*fp_in == NULL) {
 				return 0;
