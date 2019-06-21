@@ -1,3 +1,4 @@
+.ccls-cache
 *.core
 *.o
 config.h
@@ -6,6 +7,7 @@ config.log
 config.log.old
 libportfmt.*
 Makefile.configure
+portclippy
 portedit
 portfmt
 TODO
