@@ -45,6 +45,7 @@
 enum PorteditCommand {
 	PORTEDIT_BUMP_REVISION,
 	PORTEDIT_GET_VARIABLE,
+	PORTEDIT_MERGE,
 	PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES,
 };
 
@@ -59,7 +60,9 @@ static void usage(void);
 void
 usage()
 {
-	fprintf(stderr, "usage: portedit bump-revision|get [-aditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit bump-revision [-aditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "       portedit get [-aditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "       portedit merge [-aditu] [-w wrapcol] Makefile\n");
 	exit(EX_USAGE);
 }
 
@@ -94,6 +97,10 @@ main(int argc, char *argv[])
 		edit.argc = 1;
 		edit.argv = argv;
 		settings.behavior |= PARSER_OUTPUT_RAWLINES;
+	} else if (strcmp(command, "merge") == 0) {
+		edit.cmd = PORTEDIT_MERGE;
+		edit.argc = 0;
+		edit.argv = argv;
 	} else if (strcmp(command, "__private__list-unknown-variables") == 0 && argc > 0) {
 		edit.cmd = PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES;
 		edit.argc = 0;
@@ -105,6 +112,9 @@ main(int argc, char *argv[])
 	argc -= edit.argc;
 	argv += edit.argc;
 
+	if (edit.cmd == PORTEDIT_MERGE && argc == 0) {
+		usage();
+	}
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
 	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out)) {
@@ -117,7 +127,12 @@ main(int argc, char *argv[])
 	if (!can_use_colors(fp_out)) {
 		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
 	}
-	enter_sandbox(fp_in, fp_out);
+
+	if (edit.cmd == PORTEDIT_MERGE) {
+		// TODO
+	} else {
+		enter_sandbox(fp_in, fp_out);
+	}
 
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, fp_in);
@@ -137,7 +152,23 @@ main(int argc, char *argv[])
 	case PORTEDIT_GET_VARIABLE:
 		error = parser_edit(parser, edit_output_variable_value, edit.argv[0]);
 		break;
-	case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
+	case PORTEDIT_MERGE: {
+		struct Parser *subparser = parser_new(&settings);
+		error = parser_read_from_file(subparser, stdin);
+		if (error != PARSER_ERROR_OK) {
+			errx(1, "parser_read_from_file: %s", parser_error_tostring(parser));
+		}
+		error = parser_read_finish(subparser);
+		if (error != PARSER_ERROR_OK) {
+			errx(1, "parser_read_finish: %s", parser_error_tostring(parser));
+		}
+		error = parser_edit(parser, edit_merge, subparser);
+		if (error != PARSER_ERROR_OK) {
+			errx(1, "parser_edit: %s", parser_error_tostring(parser));
+		}
+		parser_free(subparser);
+		break;
+	} case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
 		error = parser_edit(parser, edit_output_unknown_variables, NULL);
 		break;
 	default:
