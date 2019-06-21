@@ -373,6 +373,7 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 					if (parser->error != PARSER_ERROR_OK) {
 						return parser->error;
 					}
+					dollar = 0;
 					continue;
 				} else if (c == '$') {
 					dollar++;
