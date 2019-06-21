@@ -317,7 +317,11 @@ parser_error_tostring(struct Parser *parser)
 		}
 		break;
 	case PARSER_ERROR_IO:
-		xasprintf(&buf, "line %s: IO error", lines);
+		if (parser->error_supplement) {
+			xasprintf(&buf, "line %s: IO error: %s", lines, parser->error_supplement);
+		} else {
+			xasprintf(&buf, "line %s: IO error", lines);
+		}
 		break;
 	case PARSER_ERROR_UNHANDLED_TOKEN_TYPE:
 		xasprintf(&buf, "line %s: unhandled token type", lines);
@@ -1249,6 +1253,10 @@ parser_read_from_fd(struct Parser *parser, int fd)
 	FILE *fp = fdopen(fd, "r");
 	if (fp == NULL) {
 		parser->error = PARSER_ERROR_IO;
+		if (parser->error_supplement) {
+			free(parser->error_supplement);
+		}
+		xasprintf(&parser->error_supplement, "fdopen: %s", strerror(errno));
 		return parser->error;
 	}
 
@@ -1261,13 +1269,13 @@ parser_read_from_fd(struct Parser *parser, int fd)
 		}
 		enum ParserError error = parser_read_line(parser, line);
 		if (error != PARSER_ERROR_OK) {
-			fclose(fp);
+			fdclose(fp, NULL);
 			free(line);
 			return error;
 		}
 	}
 
-	fclose(fp);
+	fdclose(fp, NULL);
 	free(line);
 
 	return PARSER_ERROR_OK;
@@ -1431,10 +1439,18 @@ parser_output_write(struct Parser *parser, int fd)
 	if (parser->settings.behavior & PARSER_OUTPUT_INPLACE) {
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			parser->error = PARSER_ERROR_IO;
+			if (parser->error_supplement) {
+				free(parser->error_supplement);
+			}
+			xasprintf(&parser->error_supplement, "lseek: %s", strerror(errno));
 			return parser->error;
 		}
 		if (ftruncate(fd, 0) < 0) {
 			parser->error = PARSER_ERROR_IO;
+			if (parser->error_supplement) {
+				free(parser->error_supplement);
+			}
+			xasprintf(&parser->error_supplement, "ftruncate: %s", strerror(errno));
 			return parser->error;
 		}
 	}
@@ -1460,6 +1476,10 @@ parser_output_write(struct Parser *parser, int fd)
 		}
 		if (writev(fd, iov, j) < 0) {
 			parser->error = PARSER_ERROR_IO;
+			if (parser->error_supplement) {
+				free(parser->error_supplement);
+			}
+			xasprintf(&parser->error_supplement, "writev: %s", strerror(errno));
 			free(iov);
 			return parser->error;
 		}
