@@ -78,15 +78,18 @@ main(int argc, char *argv[])
 	enter_sandbox(fd_in, fd_out);
 
 	struct Parser *parser = parser_new(&settings);
-	parser_read_from_fd(parser, fd_in);
-	parser_read_finish(parser);
-	if (parser_error(parser)) {
-		errx(1, "failed to read file: %s", parser_error(parser));
+	enum ParserError error = parser_read_from_fd(parser, fd_in);
+	if (error != PARSER_ERROR_OK) {
+		errx(1, "parser_read_from_fd: %s", parser_error_tostring(parser));
+	}
+	error = parser_read_finish(parser);
+	if (error != PARSER_ERROR_OK) {
+		errx(1, "parser_read_finish: %s", parser_error_tostring(parser));
 	}
 
-	parser_output_write(parser, fd_out);
-	if (parser_error(parser)) {
-		errx(1, "failed to write file: %s", parser_error(parser));
+	error = parser_output_write(parser, fd_out);
+	if (error != PARSER_ERROR_OK) {
+		errx(1, "parser_output_write: %s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
 

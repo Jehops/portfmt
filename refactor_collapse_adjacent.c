@@ -37,7 +37,7 @@
 #include "variable.h"
 
 struct Array *
-refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, const void *userdata)
+refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	struct Array *tokens = array_new(sizeof(struct Array *));
 	struct Variable *last_var = NULL;

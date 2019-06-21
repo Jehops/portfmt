@@ -45,7 +45,7 @@
 
 static struct Variable *has_variable(struct Array *, const char *);
 static char *lookup_variable(struct Array *, const char *);
-static struct Array *edit_set_variable(struct Parser *, struct Array *, const void *);
+static struct Array *edit_set_variable(struct Parser *, struct Array *, enum ParserError *error, const void *);
 
 struct EditSetVariableHelperParams {
 	struct Parser *parser;
@@ -60,7 +60,7 @@ struct EditSetVariableParams {
 };
 
 static struct Array *
-edit_set_variable_helper(struct Parser *subparser, struct Array *subtokens, const void *userdata)
+edit_set_variable_helper(struct Parser *subparser, struct Array *subtokens, enum ParserError *error, const void *userdata)
 {
 	struct EditSetVariableHelperParams *params = (struct EditSetVariableHelperParams *)userdata;
 	for (size_t j = 0; j < array_len(subtokens); j++) {
@@ -75,7 +75,7 @@ edit_set_variable_helper(struct Parser *subparser, struct Array *subtokens, cons
 }
 
 static struct Array *
-edit_set_variable(struct Parser *parser, struct Array *ptokens, const void *userdata)
+edit_set_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	struct EditSetVariableParams *params = (struct EditSetVariableParams *)userdata;
 
@@ -88,7 +88,10 @@ edit_set_variable(struct Parser *parser, struct Array *ptokens, const void *user
 	} else {
 		xasprintf(&tmp, "%s=\t\\\n%s", params->name, params->value);
 	}
-	struct Parser *subparser = parser_parse_string(parser, tmp);
+	struct ParserSettings settings = parser_settings(parser);
+	struct Parser *subparser = parser_new(&settings);
+	parser_read_from_buffer(subparser, tmp, strlen(tmp));
+	parser_read_finish(subparser);
 	free(tmp);
 
 	struct Array *tokens = array_new(sizeof(char *));
@@ -104,7 +107,12 @@ edit_set_variable(struct Parser *parser, struct Array *ptokens, const void *user
 					} else if (!set) {
 						parser_mark_for_gc(parser, t);
 						struct EditSetVariableHelperParams params = { parser, tokens, 0 };
-						parser_edit(subparser, edit_set_variable_helper, &params);
+						*error = parser_edit(subparser, edit_set_variable_helper, &params);
+						if (*error != PARSER_ERROR_OK) {
+							array_free(tokens);
+							tokens = NULL;
+							goto cleanup;
+						}
 						set = 1;
 					}
 				} else {
@@ -124,16 +132,23 @@ edit_set_variable(struct Parser *parser, struct Array *ptokens, const void *user
 			if (!set && token_type(t) == VARIABLE_END &&
 			    strcmp(variable_name(token_variable(t)), params->after) == 0) {
 				struct EditSetVariableHelperParams params = { parser, tokens, 1 };
-				parser_edit(subparser, edit_set_variable_helper, &params);
+				*error = parser_edit(subparser, edit_set_variable_helper, &params);
+				if (*error != PARSER_ERROR_OK) {
+					array_free(tokens);
+					tokens = NULL;
+					goto cleanup;
+				}
 				set = 1;
 			}
 		}
 	} else {
-		errx(1, "cannot append: %s not currently set", params->name);
+		*error = PARSER_ERROR_EDIT_FAILED;
 		array_free(tokens);
-		return NULL;
+		tokens = NULL;
+		goto cleanup;
 	}
 
+cleanup:
 	parser_free(subparser);
 	return tokens;
 }
@@ -203,7 +218,7 @@ has_variable(struct Array *tokens, const char *var)
 }
 
 struct Array *
-edit_bump_revision(struct Parser *parser, struct Array *ptokens, const void *userdata)
+edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	const char *after = "PORTVERSION";
 	if (has_variable(ptokens, "DISTVERSION")) {
@@ -234,11 +249,11 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, const void *use
 		char *rev;
 		xasprintf(&rev, "%d", revision);
 		struct EditSetVariableParams params = { "PORTREVISION", rev, after };
-		parser_edit(parser, edit_set_variable, &params);
+		*error = parser_edit(parser, edit_set_variable, &params);
 		free(rev);
 	} else {
 		struct EditSetVariableParams params = { "PORTREVISION", "1", after };
-		parser_edit(parser, edit_set_variable, &params);
+		*error = parser_edit(parser, edit_set_variable, &params);
 	}
 
 	return NULL;

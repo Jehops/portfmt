@@ -42,6 +42,16 @@ enum ParserBehavior {
 	PARSER_UNSORTED_VARIABLES = 2048,
 };
 
+enum ParserError {
+	PARSER_ERROR_OK = 0,
+	PARSER_ERROR_BUFFER_TOO_SMALL,
+	PARSER_ERROR_EDIT_FAILED,
+	PARSER_ERROR_EXPECTED_CHAR,
+	PARSER_ERROR_IO,
+	PARSER_ERROR_UNHANDLED_TOKEN_TYPE,
+	PARSER_ERROR_UNSPECIFIED,
+};
+
 struct ParserSettings {
 	enum ParserBehavior behavior;
 	int target_command_format_threshold;
@@ -53,28 +63,27 @@ struct Array;
 struct Parser;
 struct Token;
 
-typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, const void *);
+typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, enum ParserError *, const void *);
 
 struct Parser *parser_new(struct ParserSettings *);
-struct Parser *parser_parse_string(struct Parser *, const char *);
 void parser_init_settings(struct ParserSettings *);
-void parser_read(struct Parser *, char *);
-void parser_read_from_fd(struct Parser *, int);
-void parser_read_finish(struct Parser *);
-const char *parser_error(struct Parser *);
+enum ParserError parser_read_from_buffer(struct Parser *, const char *, size_t);
+enum ParserError parser_read_from_fd(struct Parser *, int);
+enum ParserError parser_read_finish(struct Parser *);
+char *parser_error_tostring(struct Parser *);
 void parser_free(struct Parser *);
-void parser_output_write(struct Parser *, int);
+enum ParserError parser_output_write(struct Parser *, int);
 
-void parser_edit(struct Parser *, ParserEditFn, const void *);
+enum ParserError parser_edit(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
 void parser_mark_for_gc(struct Parser *, struct Token *);
-void parser_mark_edited(struct Parser *, struct Token*);
+void parser_mark_edited(struct Parser *, struct Token *);
 struct ParserSettings parser_settings(struct Parser *);
 
-struct Array *refactor_collapse_adjacent_variables(struct Parser *, struct Array *, const void *);
-struct Array *refactor_sanitize_append_modifier(struct Parser *, struct Array *, const void *);
-struct Array *refactor_sanitize_eol_comments(struct Parser *, struct Array *, const void *);
-struct Array *edit_bump_revision(struct Parser *, struct Array *, const void *);
-struct Array *edit_output_variable_value(struct Parser *, struct Array *, const void *);
-struct Array *edit_output_unknown_variables(struct Parser *, struct Array *, const void *);
-struct Array *lint_order(struct Parser *, struct Array *, const void *);
+struct Array *refactor_collapse_adjacent_variables(struct Parser *, struct Array *, enum ParserError *error, const void *);
+struct Array *refactor_sanitize_append_modifier(struct Parser *, struct Array *, enum ParserError *error, const void *);
+struct Array *refactor_sanitize_eol_comments(struct Parser *, struct Array *, enum ParserError *error, const void *);
+struct Array *edit_bump_revision(struct Parser *, struct Array *, enum ParserError *error, const void *);
+struct Array *edit_output_variable_value(struct Parser *, struct Array *, enum ParserError *error, const void *);
+struct Array *edit_output_unknown_variables(struct Parser *, struct Array *, enum ParserError *error, const void *);
+struct Array *lint_order(struct Parser *, struct Array *, enum ParserError *error, const void *);

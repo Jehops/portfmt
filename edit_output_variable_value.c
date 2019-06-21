@@ -37,7 +37,7 @@
 #include "variable.h"
 
 struct Array *
-edit_output_variable_value(struct Parser *parser, struct Array *tokens, const void *userdata)
+edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserError *error, const void *userdata)
 {
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		return NULL;

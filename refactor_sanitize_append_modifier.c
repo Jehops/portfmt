@@ -38,7 +38,7 @@
 #include "variable.h"
 
 struct Array *
-refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, const void *userdata)
+refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	/* Sanitize += before bsd.options.mk */
 	ssize_t start = -1;

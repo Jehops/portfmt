@@ -39,7 +39,7 @@
 #include "variable.h"
 
 struct Array *
-refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, const void *userdata)
+refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	/* Try to push end of line comments out of the way above
 	 * the variable as a way to preserve them.  They clash badly

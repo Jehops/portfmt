@@ -99,7 +99,7 @@ variable_list(struct Array *tokens)
 }
 
 struct Array *
-lint_order(struct Parser *parser, struct Array *tokens, const void *userdata)
+lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error, const void *userdata)
 {
 	int *status = (int*)userdata;
 	struct ParserSettings settings = parser_settings(parser);
