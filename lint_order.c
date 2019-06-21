@@ -71,7 +71,11 @@ variable_list(struct Array *tokens)
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
-		array_append_unique(vars, variable_name(token_variable(t)), str_compare);
+		char *var = variable_name(token_variable(t));
+		// Ignore port local variables that start with an _
+		if (var[0] != '_') {
+			array_append_unique(vars, var, str_compare);
+		}
 	}
 
 	enum BlockType block = BLOCK_UNKNOWN;
@@ -125,7 +129,11 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
-		array_append_unique(vars, variable_name(token_variable(t)), str_compare);
+		char *var = variable_name(token_variable(t));
+		// Ignore port local variables that start with an _
+		if (var[0] != '_') {
+			array_append_unique(vars, var, str_compare);
+		}
 	}
 
 	array_sort(vars, compare_order);
