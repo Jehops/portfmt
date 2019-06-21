@@ -49,7 +49,7 @@ done
 
 cd "${ROOT}/tests"
 find reject -name '*.in' | while read t; do
-	out=$(portfmt ${t} 2>&1)
+	out=$(${PORTFMT} ${t} 2>&1)
 	if [ $? -ne 1 ]; then
 		cat <<EOF
 ${t} not rejected:
