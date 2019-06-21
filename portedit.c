@@ -105,22 +105,22 @@ main(int argc, char *argv[])
 	argc -= edit.argc;
 	argv += edit.argc;
 
-	int fd_in = STDIN_FILENO;
-	int fd_out = STDOUT_FILENO;
-	if (!open_file(&argc, &argv, &settings, &fd_in, &fd_out)) {
-		if (fd_in < 0) {
-			err(1, "open");
+	FILE *fp_in = stdin;
+	FILE *fp_out = stdout;
+	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out)) {
+		if (fp_in < 0) {
+			err(1, "fopen");
 		} else {
 			usage();
 		}
 	}
-	if (!can_use_colors(fd_out)) {
+	if (!can_use_colors(fp_out)) {
 		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
 	}
-	enter_sandbox(fd_in, fd_out);
+	enter_sandbox(fp_in, fp_out);
 
 	struct Parser *parser = parser_new(&settings);
-	enum ParserError error = parser_read_from_fd(parser, fd_in);
+	enum ParserError error = parser_read_from_file(parser, fp_in);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "parser_read_from_fd: %s", parser_error_tostring(parser));
 	}
@@ -149,14 +149,16 @@ main(int argc, char *argv[])
 		errx(1, "parser_edit: %s", parser_error_tostring(parser));
 	}
 
-	error = parser_output_write(parser, fd_out);
+	error = parser_output_write_to_file(parser, fp_out);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "parser_output_write: %s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
 
-	close(fd_out);
-	close(fd_in);
+	fclose(fp_out);
+	if (fp_out != fp_in) {
+		fclose(fp_in);
+	}
 
 	return status;
 }

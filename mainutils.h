@@ -29,7 +29,7 @@
 
 struct ParserSettings;
 
-int can_use_colors(int);
-void enter_sandbox(int, int);
-int open_file(int *, char ***, struct ParserSettings *, int *, int *);
+int can_use_colors(FILE *);
+void enter_sandbox(FILE *, FILE *);
+int open_file(int *, char ***, struct ParserSettings *, FILE **, FILE **);
 int read_common_args(int *, char ***, struct ParserSettings *);
