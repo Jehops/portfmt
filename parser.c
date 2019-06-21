@@ -391,7 +391,7 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 				i = consume_token(parser, line, i, '(', ')', 0);
 				dollar = 0;
 			} else if (isalnum(c) || c == '@' || c == '<' || c == '>' || c == '/' ||
-				   c == '?' || c == '*' || c == '^') {
+				   c == '?' || c == '*' || c == '^' || c == '-' || c == '_') {
 				dollar = 0;
 			} else if (c == ' ' || c == '\\') {
 				/* '$ ' or '$\' are ignored by make for some reason instead of making
