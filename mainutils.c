@@ -38,15 +38,16 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include "mainutils.h"
 #include "parser.h"
 
 int
-can_use_colors(int fd_out)
+can_use_colors(FILE *fp)
 {
-	if (getenv("CLICOLOR_FORCE") == NULL && isatty(fd_out) == 0) {
+	if (getenv("CLICOLOR_FORCE") == NULL && isatty(fileno(fp)) == 0) {
 		return 0;
 	}
 
@@ -59,9 +60,12 @@ can_use_colors(int fd_out)
 }
 
 void
-enter_sandbox(int fd_in, int fd_out)
+enter_sandbox(FILE *in, FILE *out)
 {
 #if HAVE_CAPSICUM
+	int fd_in = fileno(in);
+	int fd_out = fileno(out);
+
 	if (fd_in == fd_out) {
 		close(STDIN_FILENO);
 		close(STDOUT_FILENO);
@@ -131,20 +135,20 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings)
 }
 
 int
-open_file(int *argc, char ***argv, struct ParserSettings *settings, int *fd_in, int *fd_out)
+open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in, FILE **fp_out)
 {
 	if (*argc > 1 || ((settings->behavior & PARSER_OUTPUT_INPLACE) && *argc == 0)) {
 		return 0;
 	} else if (*argc == 1) {
 		if (settings->behavior & PARSER_OUTPUT_INPLACE) {
-			*fd_in = open(*argv[0], O_RDWR);
-			*fd_out = *fd_in;
-			if (*fd_in < 0) {
+			*fp_in = fopen(*argv[0], "rw");
+			*fp_out = *fp_in;
+			if (*fp_in == NULL) {
 				return 0;
 			}
 		} else  {
-			*fd_in = open(*argv[0], O_RDONLY);
-			if (*fd_in < 0) {
+			*fp_in = fopen(*argv[0], "r");
+			if (*fp_in == NULL) {
 				return 0;
 			}
 		}

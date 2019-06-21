@@ -68,11 +68,11 @@ typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, enum Pars
 struct Parser *parser_new(struct ParserSettings *);
 void parser_init_settings(struct ParserSettings *);
 enum ParserError parser_read_from_buffer(struct Parser *, const char *, size_t);
-enum ParserError parser_read_from_fd(struct Parser *, int);
+enum ParserError parser_read_from_file(struct Parser *, FILE *);
 enum ParserError parser_read_finish(struct Parser *);
 char *parser_error_tostring(struct Parser *);
 void parser_free(struct Parser *);
-enum ParserError parser_output_write(struct Parser *, int);
+enum ParserError parser_output_write_to_file(struct Parser *, FILE *);
 
 enum ParserError parser_edit(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);

@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include <regex.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "array.h"

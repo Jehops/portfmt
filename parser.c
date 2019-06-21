@@ -1244,19 +1244,9 @@ parser_read_line(struct Parser *parser, char *line)
 }
 
 enum ParserError
-parser_read_from_fd(struct Parser *parser, int fd)
+parser_read_from_file(struct Parser *parser, FILE *fp)
 {
 	if (parser->error != PARSER_ERROR_OK) {
-		return parser->error;
-	}
-
-	FILE *fp = fdopen(fd, "r");
-	if (fp == NULL) {
-		parser->error = PARSER_ERROR_IO;
-		if (parser->error_supplement) {
-			free(parser->error_supplement);
-		}
-		xasprintf(&parser->error_supplement, "fdopen: %s", strerror(errno));
 		return parser->error;
 	}
 
@@ -1269,13 +1259,11 @@ parser_read_from_fd(struct Parser *parser, int fd)
 		}
 		enum ParserError error = parser_read_line(parser, line);
 		if (error != PARSER_ERROR_OK) {
-			fdclose(fp, NULL);
 			free(line);
 			return error;
 		}
 	}
 
-	fdclose(fp, NULL);
 	free(line);
 
 	return PARSER_ERROR_OK;
@@ -1429,13 +1417,14 @@ parser_read_finish(struct Parser *parser)
 }
 
 enum ParserError
-parser_output_write(struct Parser *parser, int fd)
+parser_output_write_to_file(struct Parser *parser, FILE *fp)
 {
 	parser_output_prepare(parser);
 	if (parser->error != PARSER_ERROR_OK) {
 		return parser->error;
 	}
 
+	int fd = fileno(fp);
 	if (parser->settings.behavior & PARSER_OUTPUT_INPLACE) {
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			parser->error = PARSER_ERROR_IO;
