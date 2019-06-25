@@ -170,11 +170,17 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 		char *buf;
 		xasprintf(&buf, "# %s", blocktype_tostring(BLOCK_UNKNOWN));
 		array_append(target, buf);
-		array_append(target, xstrdup("# NOTE:"));
+		array_append(target, xstrdup("# WARNING:"));
 		array_append(target, xstrdup("# Portclippy did not recognize the following variables."));
-		array_append(target, xstrdup("# They could be port-local variables only, misspellings of"));
+		array_append(target, xstrdup("# They could be local variables only, misspellings of"));
 		array_append(target, xstrdup("# framework variables, or Portclippy needs to be made aware"));
 		array_append(target, xstrdup("# of them.  Please double check them."));
+		array_append(target, xstrdup("#"));
+		array_append(target, xstrdup("# Prefix them with an _ to tell Portclippy to ignore them."));
+		array_append(target, xstrdup("# This is also an important signal for other contributors"));
+		array_append(target, xstrdup("# who are working on your port.  It removes any doubt of"));
+		array_append(target, xstrdup("# whether they are framework variables or not and whether"));
+		array_append(target, xstrdup("# they are safe to remove/rename or not."));
 	}
 	for (size_t i = 0; i < array_len(unknowns); i++) {
 		char *var = array_get(unknowns, i);
