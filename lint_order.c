@@ -37,7 +37,6 @@
 #include <string.h>
 
 #include "array.h"
-#include "conditional.h"
 #include "diff.h"
 #include "parser.h"
 #include "rules.h"
@@ -60,14 +59,8 @@ variable_list(struct Array *tokens)
 	struct Array *vars = array_new(sizeof(char *));
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		if (token_type(t) == CONDITIONAL_TOKEN) {
-			if (conditional_type(token_conditional(t)) == COND_INCLUDE &&
-			    (strcmp(token_data(t), "<bsd.port.options.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.pre.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.post.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.mk>") == 0)) {
-				break;
-			}
+		if (is_include_bsd_port_mk(t)) {
+			break;
 		}
 		if (token_type(t) != VARIABLE_START) {
 			continue;
@@ -118,14 +111,8 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	struct Array *vars = array_new(sizeof(char *));
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		if (token_type(t) == CONDITIONAL_TOKEN) {
-			if (conditional_type(token_conditional(t)) == COND_INCLUDE &&
-			    (strcmp(token_data(t), "<bsd.port.options.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.pre.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.post.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.mk>") == 0)) {
-				break;
-			}
+		if (is_include_bsd_port_mk(t)) {
+			break;
 		}
 		if (token_type(t) != VARIABLE_START) {
 			continue;

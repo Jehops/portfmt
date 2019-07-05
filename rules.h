@@ -99,6 +99,7 @@ int compare_tokens(const void *, const void *);
 int ignore_wrap_col(struct Variable *);
 int indent_goalcol(struct Variable *);
 int is_comment(struct Token *);
+int is_include_bsd_port_mk(struct Token *);
 int leave_unsorted(struct Variable *);
 regex_t *regex(enum RegularExpression);
 int matches(enum RegularExpression, const char *);

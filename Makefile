@@ -49,7 +49,7 @@ conditional.o: config.h conditional.c conditional.h regexp.h
 diff.o: config.h diff.h
 mainutils.o: config.h mainutils.c mainutils.h parser.h
 regexp.o: config.h
-rules.o: config.h rules.c regexp.h rules.h token.h util.h variable.h
+rules.o: config.h conditional.h rules.c regexp.h rules.h token.h util.h variable.h
 parser.o: config.h array.h conditional.h regexp.h parser.c parser.h rules.h target.h token.h util.h variable.h
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h
@@ -58,9 +58,9 @@ edit_bump_revision.o: config.h array.h parser.h rules.h token.h util.h variable.
 edit_merge.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_merge.c
 edit_output_variable_value.o: config.h array.h parser.h token.h variable.h edit_output_variable_value.c
 edit_output_unknown_variables.o: config.h array.h parser.h rules.h token.h variable.h edit_output_variable_value.c
-lint_order.o: config.h array.h conditional.h diff.h parser.h rules.h token.h util.h variable.h lint_order.c
+lint_order.o: config.h array.h diff.h parser.h rules.h token.h util.h variable.h lint_order.c
 refactor_collapse_adjacent.o: config.h array.h parser.h token.h util.h variable.h refactor_collapse_adjacent.c
-refactor_sanitize_append_modifier.o: config.h array.h conditional.h parser.h token.h variable.h refactor_sanitize_append_modifier.c
+refactor_sanitize_append_modifier.o: config.h array.h parser.h rules.h token.h variable.h refactor_sanitize_append_modifier.c
 refactor_sanitize_eol_comments.o: config.h array.h parser.h rules.h token.h util.h variable.h refactor_sanitize_eol_comments.c
 variable.o: config.h regexp.h rules.h util.h variable.c variable.h
 

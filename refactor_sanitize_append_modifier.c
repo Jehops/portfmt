@@ -29,12 +29,13 @@
 #include "config.h"
 
 #include <sys/types.h>
+#include <regex.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "array.h"
-#include "conditional.h"
 #include "parser.h"
+#include "rules.h"
 #include "token.h"
 #include "variable.h"
 
@@ -70,11 +71,7 @@ refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, 
 			start = -1;
 			break;
 		} case CONDITIONAL_TOKEN:
-			if (conditional_type(token_conditional(t)) == COND_INCLUDE &&
-			    (strcmp(token_data(t), "<bsd.port.options.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.pre.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.post.mk>") == 0 ||
-			     strcmp(token_data(t), "<bsd.port.mk>") == 0)) {
+			if (is_include_bsd_port_mk(t)) {
 				goto end;
 			}
 		default:
