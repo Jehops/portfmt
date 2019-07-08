@@ -46,6 +46,7 @@
 #include "util.h"
 #include "variable.h"
 
+static int case_sensitive_sort(struct Variable *);
 static int compare_rel(const char *[], size_t, const char *, const char *);
 static int compare_license_perms(struct Variable *, const char *, const char *, int *);
 static int compare_plist_files(struct Variable *, const char *, const char *, int *);
@@ -465,6 +466,12 @@ static const char *use_pyqt_rel[] = {
 	"widgets_run",
 	"xml_run",
 	"xmlpatterns_run",
+};
+
+static const char *case_sensitive_sort_[] = {
+	"PORTDATA",
+	"PORTDOCS",
+	"PORTEXAMPLES",
 };
 
 // Sanitize whitespace but do *not* sort tokens; more complicated
@@ -2171,6 +2178,18 @@ is_include_bsd_port_mk(struct Token *t)
 }
 
 int
+case_sensitive_sort(struct Variable *var)
+{
+	for (size_t i = 0; i < nitems(case_sensitive_sort_); i++) {
+		if (strcmp(variable_name(var), case_sensitive_sort_[i]) == 0) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int
 leave_unsorted(struct Variable *var)
 {
 	for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
@@ -2316,7 +2335,11 @@ compare_tokens(const void *ap, const void *bp)
 		return result;
 	}
 
-	return strcasecmp(token_data(a), token_data(b));
+	if (case_sensitive_sort(var)) {
+		return strcmp(token_data(a), token_data(b));
+	} else {
+		return strcasecmp(token_data(a), token_data(b));
+	}
 }
 
 int
