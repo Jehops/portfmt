@@ -1,6 +1,5 @@
 #!/bin/sh
 set -u
-status=0
 ROOT="${PWD}"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
@@ -11,54 +10,55 @@ export ROOT
 
 export LD_LIBRARY_PATH="${ROOT}"
 
-cd "${ROOT}/tests/format"
+tests_failed=0
+tests_run=0
+
+cd "${ROOT}/tests/format" || exit 1
 for test in *.in; do
 	t=${test%*.in}
-	${PORTFMT} -t < ${t}.in > ${t}.actual
-	out=$(diff -L ${t}.expected -L ${t}.actual -u ${t}.expected ${t}.actual)
-	if [ $? -ne 0 ]; then
-		echo "format/${t}#1"
-		echo "${out}"
+	echo "format/${t}#1"
+	${PORTFMT} -t <"${t}.in" >"${t}.actual"
+	tests_run=$((tests_run + 1))
+	if ! diff -L "${t}.expected" -L "${t}.actual" -u "${t}.expected" "${t}.actual"; then
 		echo
-		status=1
+		tests_failed=$((tests_failed + 1))
 		continue
 	fi
-	${PORTFMT} -t < ${t}.expected > ${t}.actual2
-	out=$(diff -L ${t}.expected -L ${t}.actual -u ${t}.expected ${t}.actual2)
-	if [ $? -ne 0 ]; then
-		echo "format/${t}#2"
-		echo "${out}"
+	echo "format/${t}#2"
+	${PORTFMT} -t <"${t}.expected" >"${t}.actual2"
+	tests_run=$((tests_run + 1))
+	if ! diff -L "${t}.expected" -L "${t}.actual" -u "${t}.expected" "${t}.actual2"; then
 		echo
-		status=1
+		tests_failed=$((tests_failed + 1))
 	fi
 done
-rm -f *.actual *.actual2
+rm -f ./*.actual ./*.actual2
 
-cd "${ROOT}/tests"
-find edit -name '*.sh' | while read -r test; do
+cd "${ROOT}/tests/edit" || exit 1
+for test in bump-revision/*.sh merge/*.sh; do
 	t=${test%*.sh}
-	out=$(cd $(dirname "${test}") && sh $(basename "${test}"))
-	if [ $? -ne 0 ]; then
-		echo "${t}"
-		echo "${out}"
+	echo "${t}"
+	tests_run=$((tests_run + 1))
+	cd "${ROOT}/tests/edit/$(dirname "${test}")" || exit 1
+	if ! sh "$(basename "${test}")"; then
+		tests_failed=$((tests_failed + 1))
+	fi
+done
+
+cd "${ROOT}/tests" || exit 1
+for t in reject/*.in; do
+	echo "${t%*.in}"
+	tests_run=$((tests_run + 1))
+	if ${PORTFMT} "${t}" 2>&1; then
+		echo "${t} not rejected!"
 		echo
-		status=1
-		continue
+		tests_failed=$((tests_failed + 1))
+	else
+		echo "error ok"
 	fi
 done
 
-cd "${ROOT}/tests"
-find reject -name '*.in' | while read t; do
-	out=$(${PORTFMT} ${t} 2>&1)
-	if [ $? -ne 1 ]; then
-		cat <<EOF
-${t} not rejected:
-${out}
-
-EOF
-		exit 1
-	fi
-done
-
-
-exit ${status}
+printf "fail: %s ok: %s/%s\n" "${tests_failed}" "$((tests_run - tests_failed))" "${tests_run}"
+if [ "${tests_failed}" -gt 0 ]; then
+	exit 1
+fi
