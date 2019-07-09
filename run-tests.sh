@@ -34,12 +34,12 @@ for test in *.in; do
 done
 rm -f *.actual *.actual2
 
-cd "${ROOT}/tests/edit"
-for test in *.sh; do
+cd "${ROOT}/tests"
+find edit -name '*.sh' | while read -r test; do
 	t=${test%*.sh}
-	out=$(sh ${test})
+	out=$(cd $(dirname "${test}") && sh $(basename "${test}"))
 	if [ $? -ne 0 ]; then
-		echo "edit/${t}"
+		echo "${t}"
 		echo "${out}"
 		echo
 		status=1
