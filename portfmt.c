@@ -66,7 +66,7 @@ main(int argc, char *argv[])
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
 	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out)) {
-		if (fp_in < 0) {
+		if (fp_in == NULL) {
 			err(1, "fopen");
 		} else {
 			usage();
