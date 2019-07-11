@@ -50,6 +50,7 @@ struct MergeParameter {
 	struct Array *values;
 };
 
+static void append_new_variable(struct Parser *, struct Array *, struct Variable *, struct Range *);
 static struct Variable *has_variable(struct Array *, struct Variable *);
 static struct Array *extract_tokens(struct Parser *, struct Array *, enum ParserError *, const void *);
 static struct Array *insert_variable(struct Parser *, struct Array *, enum ParserError *, const void *);
@@ -122,26 +123,63 @@ assign_values(struct Parser *parser, struct Array *tokens, const struct MergePar
 	}
 }
 
+void
+append_new_variable(struct Parser *parser, struct Array *tokens, struct Variable *var, struct Range *lines) 
+{
+	struct Token *t = token_new2(VARIABLE_START, lines, NULL, var, NULL, NULL);
+	array_append(tokens, t);
+	parser_mark_edited(parser, t);
+	t = token_new2(VARIABLE_END, lines, NULL, var, NULL, NULL);
+	array_append(tokens, t);
+	parser_mark_edited(parser, t);
+}
+
 struct Array *
 insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	struct Variable *var = (struct Variable *)userdata;
 
 	ssize_t insert_after = -1;
+	for (size_t i = 0; i < array_len(ptokens); i++) {
+		struct Token *t = array_get(ptokens, i);
+		if (token_type(t) != VARIABLE_END) {
+			continue;
+		}
+
+		char *a = variable_name(token_variable(t));
+		char *b = variable_name(var);
+		int cmp = compare_order(&a, &b);
+		assert(cmp != 0);
+		if (cmp < 0) {
+			insert_after = i;
+		} else {
+			break;
+		}
+	}
 
 	if (insert_after == -1) {
-		struct Range lines = { 0, 1 };
-		struct Token *t = token_new2(VARIABLE_START, &lines, NULL, var, NULL, NULL);
-		array_append(ptokens, t);
-		parser_mark_edited(parser, t);
-		t = token_new2(VARIABLE_END, &lines, NULL, var, NULL, NULL);
-		array_append(ptokens, t);
-		parser_mark_edited(parser, t);
+		struct Range lines = {0, 1};
+		append_new_variable(parser, ptokens, var, &lines);
 		return NULL;
 	}
 
-	*error = PARSER_ERROR_EDIT_FAILED;
-	return NULL;
+	assert(insert_after > 0);
+
+	struct Array *tokens = array_new(sizeof(struct Token *));
+	int insert_next = 0;
+	for (size_t i = 0; i < array_len(ptokens); i++) {
+		struct Token *t = array_get(ptokens, i);
+		if (insert_next && token_type(t) != COMMENT) {
+			insert_next = 0;
+			append_new_variable(parser, tokens, var, token_lines(t));
+		} else if (token_type(t) == VARIABLE_END && ((size_t)insert_after) == i) {
+			insert_next = 1;
+		}
+
+		array_append(tokens, t);
+	}
+
+	return tokens;
 }
 
 struct Array *
@@ -221,6 +259,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 				if (*error != PARSER_ERROR_OK) {
 					goto cleanup;
 				}
+				parser_edit(parser, extract_tokens, &ptokens);
 			}
 			switch (variable_modifier(var)) {
 			case MODIFIER_APPEND:
