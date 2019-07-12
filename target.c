@@ -41,13 +41,14 @@ struct Target {
 };
 
 struct Target *
-target_new(char *buf) {
-	struct Target *target = xmalloc(sizeof(struct Target));
-
+target_new(char *buf)
+{
 	char *after_target = memchr(buf, ':', strlen(buf));
 	if (after_target == NULL || after_target < buf) {
 		return NULL;
 	}
+
+	struct Target *target = xmalloc(sizeof(struct Target));
 
 	char *tmp = xmalloc(strlen(buf) + 1);
 	strncpy(tmp, buf, after_target - buf);
