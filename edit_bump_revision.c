@@ -101,10 +101,12 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 			rev++;
 		} else {
 			*error = PARSER_ERROR_EXPECTED_INT;
+			if (comment) {
+				free(comment);
+			}
 			return NULL;
 		}
 		xasprintf(&revision, "PORTREVISION=%d %s", rev, comment);
-		free(comment);
 	} else {
 		revision = xstrdup("PORTREVISION=1");
 	}
@@ -113,15 +115,20 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 	struct Parser *subparser = parser_new(&settings);
 	*error = parser_read_from_buffer(subparser, revision, strlen(revision));
 	if (*error != PARSER_ERROR_OK) {
-		return NULL;
+		goto cleanup;
 	}
 	*error = parser_read_finish(subparser);
 	if (*error != PARSER_ERROR_OK) {
-		return NULL;
+		goto cleanup;
 	}
 	*error = parser_edit(parser, edit_merge, subparser);
 	if (*error != PARSER_ERROR_OK) {
-		return NULL;
+		goto cleanup;
+	}
+
+cleanup:
+	if (comment) {
+		free(comment);
 	}
 	free(revision);
 	parser_free(subparser);
