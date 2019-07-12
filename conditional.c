@@ -49,6 +49,7 @@ conditional_new(char *s)
 
 	struct Regexp *re = regexp_new(regex(RE_CONDITIONAL), s);
 	if (regexp_exec(re) != 0) {
+		regexp_free(re);
 		return NULL;
 	}
 
