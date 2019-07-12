@@ -300,7 +300,11 @@ parser_error_tostring(struct Parser *parser)
 		xasprintf(&buf, "line %s: no error", lines);
 		break;
 	case PARSER_ERROR_BUFFER_TOO_SMALL:
-		xasprintf(&buf, "line %s: buffer too small", lines);
+		if (parser->error_supplement) {
+			xasprintf(&buf, "line %s: buffer too small: %s", lines, parser->error_supplement);
+		} else {
+			xasprintf(&buf, "line %s: buffer too small", lines);
+		}
 		break;
 	case PARSER_ERROR_EDIT_FAILED:
 		if (parser->error_supplement) { 
@@ -311,9 +315,16 @@ parser_error_tostring(struct Parser *parser)
 		break;
 	case PARSER_ERROR_EXPECTED_CHAR:
 		if (parser->error_supplement) { 
-			xasprintf(&buf, "line %s: expected '%s'", lines, parser->error_supplement);
+			xasprintf(&buf, "line %s: expected char: %s", lines, parser->error_supplement);
 		} else {
 			xasprintf(&buf, "line %s: expected char", lines);
+		}
+		break;
+	case PARSER_ERROR_EXPECTED_INT:
+		if (parser->error_supplement) {
+			xasprintf(&buf, "line %s: expected integer: %s", lines, parser->error_supplement);
+		} else {
+			xasprintf(&buf, "line %s: expected integer", lines);
 		}
 		break;
 	case PARSER_ERROR_IO:
@@ -331,10 +342,18 @@ parser_error_tostring(struct Parser *parser)
 		}
 		break;
 	case PARSER_ERROR_UNHANDLED_TOKEN_TYPE:
-		xasprintf(&buf, "line %s: unhandled token type", lines);
+		if (parser->error_supplement) {
+			xasprintf(&buf, "line %s: unhandled token type: %s", lines, parser->error_supplement);
+		} else {
+			xasprintf(&buf, "line %s: unhandled token type", lines);
+		}
 		break;
 	case PARSER_ERROR_UNSPECIFIED:
-		xasprintf(&buf, "line %s: parse error", lines);
+		if (parser->error_supplement) {
+			xasprintf(&buf, "line %s: parse error: %s", lines, parser->error_supplement);
+		} else {
+			xasprintf(&buf, "line %s: parse error", lines);
+		}
 		break;
 	}
 

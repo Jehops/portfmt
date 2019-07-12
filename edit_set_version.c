@@ -63,8 +63,6 @@ has_variable(struct Array *tokens, const char *var)
 struct Array *
 edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
-	int perr = PARSER_ERROR_OK;
-
 	const char *ver = "DISTVERSION";
 	if (has_variable(ptokens, "PORTVERSION")) {
 		ver = "PORTVERSION";
@@ -74,19 +72,16 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 	xasprintf(&buf, "%s=%s", ver, userdata);
 	struct ParserSettings settings = parser_settings(parser);
 	struct Parser *subparser = parser_new(&settings);
-	perr = parser_read_from_buffer(subparser, buf, strlen(buf));
-	if (perr != PARSER_ERROR_OK) {
-		*error = PARSER_ERROR_EDIT_FAILED;
+	*error = parser_read_from_buffer(subparser, buf, strlen(buf));
+	if (*error != PARSER_ERROR_OK) {
 		return NULL;
 	}
-	perr = parser_read_finish(subparser);
-	if (perr != PARSER_ERROR_OK) {
-		*error = PARSER_ERROR_EDIT_FAILED;
+	*error = parser_read_finish(subparser);
+	if (*error != PARSER_ERROR_OK) {
 		return NULL;
 	}
-	perr = parser_edit(parser, edit_merge, subparser);
-	if (perr != PARSER_ERROR_OK) {
-		*error = PARSER_ERROR_EDIT_FAILED;
+	*error = parser_edit(parser, edit_merge, subparser);
+	if (*error != PARSER_ERROR_OK) {
 		return NULL;
 	}
 	parser_free(subparser);

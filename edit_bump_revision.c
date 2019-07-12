@@ -91,8 +91,6 @@ found:
 struct Array *
 edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
-	int perr = PARSER_ERROR_OK;
-
 	char *revision;
 	char *comment = NULL;
 	char *current_revision = lookup_variable(ptokens, "PORTREVISION", &comment);
@@ -102,7 +100,7 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 		if (errstr == NULL) {
 			rev++;
 		} else {
-			*error = PARSER_ERROR_EDIT_FAILED;
+			*error = PARSER_ERROR_EXPECTED_INT;
 			return NULL;
 		}
 		xasprintf(&revision, "PORTREVISION=%d %s", rev, comment);
@@ -113,19 +111,16 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 
 	struct ParserSettings settings = parser_settings(parser);
 	struct Parser *subparser = parser_new(&settings);
-	perr = parser_read_from_buffer(subparser, revision, strlen(revision));
-	if (perr != PARSER_ERROR_OK) {
-		*error = PARSER_ERROR_EDIT_FAILED;
+	*error = parser_read_from_buffer(subparser, revision, strlen(revision));
+	if (*error != PARSER_ERROR_OK) {
 		return NULL;
 	}
-	perr = parser_read_finish(subparser);
-	if (perr != PARSER_ERROR_OK) {
-		*error = PARSER_ERROR_EDIT_FAILED;
+	*error = parser_read_finish(subparser);
+	if (*error != PARSER_ERROR_OK) {
 		return NULL;
 	}
-	perr = parser_edit(parser, edit_merge, subparser);
-	if (perr != PARSER_ERROR_OK) {
-		*error = PARSER_ERROR_EDIT_FAILED;
+	*error = parser_edit(parser, edit_merge, subparser);
+	if (*error != PARSER_ERROR_OK) {
 		return NULL;
 	}
 	free(revision);
