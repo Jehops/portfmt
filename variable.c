@@ -52,6 +52,7 @@ variable_new(const char *buf)
 
 	struct Regexp *re = regexp_new(regex(RE_MODIFIER), buf);
 	if (regexp_exec(re) != 0) {
+		regexp_free(re);
 		return NULL;
 	}
 
