@@ -923,10 +923,10 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 		for (char *prefixp = prefix; *prefixp != 0; prefixp++) {
 			*prefixp = toupper(*prefixp);
 		}
-		struct Array *values = array_new(sizeof(char *));
 		size_t bufsz = strlen(token_data(t)) + 1;
 		char *buf = xmalloc(bufsz);
 		if (opt_use) {
+			struct Array *values = array_new(sizeof(char *));
 			char *var;
 			xasprintf(&var, "USE_%s", prefix);
 			xstrlcpy(buf, prefix, bufsz);
