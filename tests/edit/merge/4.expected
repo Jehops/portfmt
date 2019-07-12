@@ -1,0 +1,5 @@
+PORTNAME=
+
+CARGO_CRATES=
+# enable all output serialization formats
+CARGO_FEATURES=	all

@@ -50,7 +50,9 @@ struct MergeParameter {
 	struct Array *values;
 };
 
+static void append_empty_line(struct Parser *, struct Array *, struct Range *);
 static void append_new_variable(struct Parser *, struct Array *, struct Variable *, struct Range *);
+static struct Token *find_next_variable(struct Array *, size_t);
 static struct Variable *has_variable(struct Array *, struct Variable *);
 static struct Array *extract_tokens(struct Parser *, struct Array *, enum ParserError *, const void *);
 static struct Array *insert_variable(struct Parser *, struct Array *, enum ParserError *, const void *);
@@ -124,6 +126,14 @@ assign_values(struct Parser *parser, struct Array *tokens, const struct MergePar
 }
 
 void
+append_empty_line(struct Parser *parser, struct Array *tokens, struct Range *lines)
+{
+	struct Token *t = token_new(COMMENT, lines, "", NULL, NULL, NULL);
+	array_append(tokens, t);
+	parser_mark_edited(parser, t);
+}
+
+void
 append_new_variable(struct Parser *parser, struct Array *tokens, struct Variable *var, struct Range *lines) 
 {
 	struct Token *t = token_new2(VARIABLE_START, lines, NULL, var, NULL, NULL);
@@ -134,13 +144,29 @@ append_new_variable(struct Parser *parser, struct Array *tokens, struct Variable
 	parser_mark_edited(parser, t);
 }
 
+struct Token *
+find_next_variable(struct Array *tokens, size_t start)
+{
+	for (size_t i = start; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		if (token_type(t) == VARIABLE_START) {
+			return t;
+		}
+	}
+
+	return NULL;
+}
+
 struct Array *
 insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	struct Variable *var = (struct Variable *)userdata;
+	enum BlockType varblock = variable_order_block(variable_name(var));
+	ssize_t ptokenslen = array_len(ptokens);
 
 	ssize_t insert_after = -1;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
+	enum BlockType block_before = BLOCK_UNKNOWN;
+	for (ssize_t i = 0; i < ptokenslen; i++) {
 		struct Token *t = array_get(ptokens, i);
 		if (token_type(t) != VARIABLE_END) {
 			continue;
@@ -151,6 +177,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 		int cmp = compare_order(&a, &b);
 		assert(cmp != 0);
 		if (cmp < 0) {
+			block_before = variable_order_block(a);
 			insert_after = i;
 		} else {
 			break;
@@ -164,16 +191,33 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 	}
 
 	assert(insert_after > 0);
+	assert(insert_after < ptokenslen);
 
 	struct Array *tokens = array_new(sizeof(struct Token *));
-	int insert_next = 0;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
+	int insert_flag = 0;
+	for (ssize_t i = 0; i < ptokenslen; i++) {
 		struct Token *t = array_get(ptokens, i);
-		if (insert_next && token_type(t) != COMMENT) {
-			insert_next = 0;
-			append_new_variable(parser, tokens, var, token_lines(t));
-		} else if (token_type(t) == VARIABLE_END && ((size_t)insert_after) == i) {
-			insert_next = 1;
+		if (insert_flag) {
+			insert_flag = 0;
+			if (block_before != varblock) {
+				append_empty_line(parser, tokens, token_lines(t));
+				append_new_variable(parser, tokens, var, token_lines(t));
+				if (token_type(t) == COMMENT && strcmp(token_data(t), "") == 0) {
+					struct Token *next = find_next_variable(ptokens, i);
+					if (next) {
+						enum BlockType block_next = variable_order_block(variable_name(token_variable(next)));
+						if (block_next == varblock) {
+							continue;
+						}
+					} else {
+						continue;
+					}
+				}
+			} else {
+				append_new_variable(parser, tokens, var, token_lines(t));
+			}
+		} else if (token_type(t) == VARIABLE_END && insert_after == i) {
+			insert_flag = 1;
 		}
 
 		array_append(tokens, t);
@@ -259,7 +303,6 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 				if (*error != PARSER_ERROR_OK) {
 					goto cleanup;
 				}
-				parser_edit(parser, extract_tokens, &ptokens);
 			}
 			switch (variable_modifier(var)) {
 			case MODIFIER_APPEND:
