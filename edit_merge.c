@@ -66,10 +66,15 @@ has_variable(struct Array *tokens, struct Variable *var)
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (token_type(t) == VARIABLE_START &&
-		    (variable_modifier(token_variable(t)) == MODIFIER_APPEND ||
-		     variable_modifier(token_variable(t)) == MODIFIER_ASSIGN) &&
 		    variable_cmp(token_variable(t), var) == 0) {
-			return token_variable(t);
+			switch (variable_modifier(token_variable(t))) {
+			case MODIFIER_APPEND:
+			case MODIFIER_ASSIGN:
+			case MODIFIER_OPTIONAL:
+				return token_variable(t);
+			default:
+				break;
+			}
 		}
 	}
 	return NULL;
@@ -240,7 +245,7 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 		case VARIABLE_START:
 			if (variable_cmp(params->var, token_variable(t)) == 0) {
 				found = 1;
-				if (mod == MODIFIER_ASSIGN) {
+				if (mod == MODIFIER_ASSIGN || mod == MODIFIER_OPTIONAL) {
 					assign_values(parser, tokens, params);
 				} else if (mod == MODIFIER_APPEND) {
 					array_append(tokens, t);
@@ -307,6 +312,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			switch (variable_modifier(var)) {
 			case MODIFIER_APPEND:
 			case MODIFIER_ASSIGN:
+			case MODIFIER_OPTIONAL:
 				merge = 1;
 				break;
 			default:

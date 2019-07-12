@@ -44,120 +44,13 @@
 #include "util.h"
 #include "variable.h"
 
-static struct Variable *has_variable(struct Array *, const char *);
-static char *lookup_variable(struct Array *, const char *);
-static struct Array *edit_set_variable(struct Parser *, struct Array *, enum ParserError *error, const void *);
-
-struct EditSetVariableHelperParams {
-	struct Parser *parser;
-	struct Array *tokens;
-	int always;
-};
-
-struct EditSetVariableParams {
-	const char *name;
-	const char *value;
-	const char *after;
-};
-
-static struct Array *
-edit_set_variable_helper(struct Parser *subparser, struct Array *subtokens, enum ParserError *error, const void *userdata)
-{
-	struct EditSetVariableHelperParams *params = (struct EditSetVariableHelperParams *)userdata;
-	for (size_t j = 0; j < array_len(subtokens); j++) {
-		struct Token *vt = array_get(subtokens, j);
-		if (params->always || token_type(vt) == VARIABLE_TOKEN) {
-			struct Token *et = token_clone(vt, NULL);
-			parser_mark_edited(params->parser, et);
-			array_append(params->tokens, et);
-		}
-	}
-	return subtokens;
-}
-
-static struct Array *
-edit_set_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
-{
-	struct EditSetVariableParams *params = (struct EditSetVariableParams *)userdata;
-
-	char *tmp;
-	struct Variable *var = NULL;
-	if ((var = has_variable(ptokens, params->name)) != NULL) {
-		char *varmod = variable_tostring(var);
-		xasprintf(&tmp, "%s\t\\\n%s", varmod, params->value);
-		free(varmod);
-	} else {
-		xasprintf(&tmp, "%s=\t\\\n%s", params->name, params->value);
-	}
-	struct ParserSettings settings = parser_settings(parser);
-	struct Parser *subparser = parser_new(&settings);
-	parser_read_from_buffer(subparser, tmp, strlen(tmp));
-	parser_read_finish(subparser);
-	free(tmp);
-
-	struct Array *tokens = array_new(sizeof(char *));
-	if (has_variable(ptokens, params->name)) {
-		int set = 0;
-		for (size_t i = 0; i < array_len(ptokens); i++) {
-			struct Token *t = array_get(ptokens, i);
-			switch (token_type(t)) {
-			case VARIABLE_TOKEN:
-				if (variable_cmp(token_variable(t), var) == 0) {
-					if (is_comment(t)) {
-						array_append(tokens, t);
-					} else if (!set) {
-						parser_mark_for_gc(parser, t);
-						struct EditSetVariableHelperParams params = { parser, tokens, 0 };
-						*error = parser_edit(subparser, edit_set_variable_helper, &params);
-						if (*error != PARSER_ERROR_OK) {
-							array_free(tokens);
-							tokens = NULL;
-							goto cleanup;
-						}
-						set = 1;
-					}
-				} else {
-					array_append(tokens, t);
-				}
-				break;
-			default:
-				array_append(tokens, t);
-				break;
-			}
-		}
-	} else if (params->after != NULL) {
-		int set = 0;
-		for (size_t i = 0; i < array_len(ptokens); i++) {
-			struct Token *t = array_get(ptokens, i);
-			array_append(tokens, t);
-			if (!set && token_type(t) == VARIABLE_END &&
-			    strcmp(variable_name(token_variable(t)), params->after) == 0) {
-				struct EditSetVariableHelperParams params = { parser, tokens, 1 };
-				*error = parser_edit(subparser, edit_set_variable_helper, &params);
-				if (*error != PARSER_ERROR_OK) {
-					array_free(tokens);
-					tokens = NULL;
-					goto cleanup;
-				}
-				set = 1;
-			}
-		}
-	} else {
-		*error = PARSER_ERROR_EDIT_FAILED;
-		array_free(tokens);
-		tokens = NULL;
-		goto cleanup;
-	}
-
-cleanup:
-	parser_free(subparser);
-	return tokens;
-}
+static char *lookup_variable(struct Array *, const char *, char **comment, struct Variable **);
 
 static char *
-lookup_variable(struct Array *ptokens, const char *name)
+lookup_variable(struct Array *ptokens, const char *name, char **comment, struct Variable **var)
 {
 	struct Array *tokens = array_new(sizeof(char *));
+	struct Array *comments = array_new(sizeof(char *));
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {
@@ -166,13 +59,16 @@ lookup_variable(struct Array *ptokens, const char *name)
 			break;
 		case VARIABLE_TOKEN:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				if (!is_comment(t)) {
+				if (is_comment(t)) {
+					array_append(comments, token_data(t));
+				} else {
 					array_append(tokens, token_data(t));
 				}
 			}
 			break;
 		case VARIABLE_END:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
+				*var = token_variable(t);
 				goto found;
 			}
 			break;
@@ -181,81 +77,63 @@ lookup_variable(struct Array *ptokens, const char *name)
 		}
 	}
 
+	array_free(comments);
 	array_free(tokens);
 	return NULL;
 
-	size_t sz;
 found:
-	sz = array_len(tokens) + 1;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		char *s = array_get(tokens, i);
-		sz += strlen(s);
-	}
-
-	char *buf = xmalloc(sz);
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		char *s = array_get(tokens, i);
-		xstrlcat(buf, s, sz);
-		if (i != array_len(tokens) - 1) {
-			xstrlcat(buf, " ", sz);
-		}
-	}
-
+	*comment = array_join(comments, " ");
+	char *buf = array_join(tokens, " ");
+	array_free(comments);
 	array_free(tokens);
 	return buf;
-}
-
-static struct Variable *
-has_variable(struct Array *tokens, const char *var)
-{
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-		if (token_type(t) == VARIABLE_START &&
-		    strcmp(variable_name(token_variable(t)), var) == 0) {
-			return token_variable(t);
-		}
-	}
-	return NULL;
 }
 
 struct Array *
 edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
-	const char *after = "PORTVERSION";
-	if (has_variable(ptokens, "DISTVERSION")) {
-		after = "DISTVERSION";
-	}
-	if (has_variable(ptokens, "DISTVERSIONSUFFIX")) {
-		after = "DISTVERSIONSUFFIX";
-	}
-	if (has_variable(ptokens, "PORTVERSION") &&
-	    !has_variable(ptokens, "DISTVERSION")) {
-		if (has_variable(ptokens, "DISTVERSIONPREFIX")) {
-			after = "DISTVERSIONPREFIX";
-		}
-		if (has_variable(ptokens, "DISTVERSIONSUFFIX")) {
-			after = "DISTVERSIONSUFFIX";
-		}
-	}
+	int perr = PARSER_ERROR_OK;
 
-	char *current_revision = lookup_variable(ptokens, "PORTREVISION");
+	char *revision;
+	char *comment = NULL;
+	struct Variable *var;
+	char *current_revision = lookup_variable(ptokens, "PORTREVISION", &comment, &var);
 	if (current_revision) {
 		const char *errstr = NULL;
-		int revision = strtonum(current_revision, 0, INT_MAX, &errstr);
+		int rev = strtonum(current_revision, 0, INT_MAX, &errstr);
 		if (errstr == NULL) {
-			revision++;
+			rev++;
 		} else {
-			errx(1, "unable to parse PORTREVISION: %s: %s", current_revision, errstr);
+			*error = PARSER_ERROR_EDIT_FAILED;
+			return NULL;
 		}
-		char *rev;
-		xasprintf(&rev, "%d", revision);
-		struct EditSetVariableParams params = { "PORTREVISION", rev, after };
-		*error = parser_edit(parser, edit_set_variable, &params);
-		free(rev);
+		char *buf = variable_tostring(var);
+		xasprintf(&revision, "%s%d %s", buf, rev, comment);
+		free(buf);
+		free(comment);
 	} else {
-		struct EditSetVariableParams params = { "PORTREVISION", "1", after };
-		*error = parser_edit(parser, edit_set_variable, &params);
+		revision = xstrdup("PORTREVISION=1");
 	}
+
+	struct ParserSettings settings = parser_settings(parser);
+	struct Parser *subparser = parser_new(&settings);
+	perr = parser_read_from_buffer(subparser, revision, strlen(revision));
+	if (perr != PARSER_ERROR_OK) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		return NULL;
+	}
+	perr = parser_read_finish(subparser);
+	if (perr != PARSER_ERROR_OK) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		return NULL;
+	}
+	perr = parser_edit(parser, edit_merge, subparser);
+	if (perr != PARSER_ERROR_OK) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		return NULL;
+	}
+	free(revision);
+	parser_free(subparser);
 
 	return NULL;
 }

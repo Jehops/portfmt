@@ -37,6 +37,7 @@ int array_append_unique(struct Array *, void *, ArrayCompareFn);
 int array_diff(struct Array *, struct Array *, struct diff *, ArrayCompareFn);
 void array_free(struct Array *);
 void *array_get(struct Array *, size_t);
+char *array_join(struct Array *, const char *);
 ssize_t array_find(struct Array *, void *, ArrayCompareFn);
 size_t array_len(struct Array *);
 void array_set(struct Array *, size_t, void *);
