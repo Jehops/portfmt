@@ -49,7 +49,7 @@ target_new(char *buf) {
 		return NULL;
 	}
 
-	char *tmp = xmalloc(strlen(buf));
+	char *tmp = xmalloc(strlen(buf) + 1);
 	strncpy(tmp, buf, after_target - buf);
 	target->name = str_trim(tmp);
 	free(tmp);
