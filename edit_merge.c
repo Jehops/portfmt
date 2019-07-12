@@ -302,6 +302,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 				if (*error != PARSER_ERROR_OK) {
 					goto cleanup;
 				}
+				parser_edit(parser, extract_tokens, &ptokens);
 			}
 			switch (variable_modifier(var)) {
 			case MODIFIER_APPEND:
@@ -322,6 +323,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 				if (*error != PARSER_ERROR_OK) {
 					goto cleanup;
 				}
+				parser_edit(parser, extract_tokens, &ptokens);
 			}
 			break;
 		case VARIABLE_END:
