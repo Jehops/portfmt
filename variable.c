@@ -82,6 +82,9 @@ variable_new(const char *buf)
 cleanup:
 	free(modifier);
 	regexp_free(re);
+	if (var == NULL) {
+		free(var_name);
+	}
 
 	return var;
 }
