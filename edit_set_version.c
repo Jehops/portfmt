@@ -74,16 +74,18 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 	struct Parser *subparser = parser_new(&settings);
 	*error = parser_read_from_buffer(subparser, buf, strlen(buf));
 	if (*error != PARSER_ERROR_OK) {
-		return NULL;
+		goto cleanup;
 	}
 	*error = parser_read_finish(subparser);
 	if (*error != PARSER_ERROR_OK) {
-		return NULL;
+		goto cleanup;
 	}
 	*error = parser_edit(parser, edit_merge, subparser);
 	if (*error != PARSER_ERROR_OK) {
-		return NULL;
+		goto cleanup;
 	}
+
+cleanup:
 	parser_free(subparser);
 	free(buf);
 
