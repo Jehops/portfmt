@@ -40,11 +40,11 @@
 struct Array *
 refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
-	struct Array *tokens = array_new(sizeof(struct Array *));
+	struct Array *tokens = array_new(sizeof(struct Token *));
 	struct Variable *last_var = NULL;
 	struct Token *last_end = NULL;
 	struct Token *last_token = NULL;
-	struct Array *ignored_tokens = array_new(sizeof(struct Array *));
+	struct Array *ignored_tokens = array_new(sizeof(struct Token *));
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {
