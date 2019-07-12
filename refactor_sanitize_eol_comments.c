@@ -49,7 +49,7 @@ refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enu
 	 * is just as good.
 	 */
 
-	struct Array *tokens = array_new(sizeof(struct Array *));
+	struct Array *tokens = array_new(sizeof(struct Token *));
 	struct Token *last_token = NULL;
 	ssize_t last_token_index = -1;
 	ssize_t placeholder_index = -1;
@@ -85,7 +85,7 @@ refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enu
 		}
 	}
 
-	ptokens = array_new(sizeof(struct Array *));
+	ptokens = array_new(sizeof(struct Token *));
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (t != NULL) {
