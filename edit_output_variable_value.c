@@ -49,13 +49,16 @@ edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum Par
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		switch (token_type(t)) {
-		case VARIABLE_TOKEN:
+		case VARIABLE_START:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
 				found = 1;
-				if (token_data(t)) {
-					parser_enqueue_output(parser, token_data(t));
-					parser_enqueue_output(parser, "\n");
-				}
+			}
+			break;
+		case VARIABLE_TOKEN:
+			if (found && token_data(t) &&
+			    strcmp(variable_name(token_variable(t)), name) == 0) {
+				parser_enqueue_output(parser, token_data(t));
+				parser_enqueue_output(parser, "\n");
 			}
 			break;
 		default:

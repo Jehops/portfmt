@@ -35,12 +35,12 @@ done
 rm -f ./*.actual ./*.actual2
 
 cd "${ROOT}/tests/edit" || exit 1
-for test in bump-revision/*.sh merge/*.sh; do
+for test in bump-revision/*.sh get/*.sh merge/*.sh; do
 	t=${test%*.sh}
 	echo "${t}"
 	tests_run=$((tests_run + 1))
 	cd "${ROOT}/tests/edit/$(dirname "${test}")" || exit 1
-	if ! sh "$(basename "${test}")"; then
+	if ! sh -eu "$(basename "${test}")"; then
 		tests_failed=$((tests_failed + 1))
 	fi
 done
