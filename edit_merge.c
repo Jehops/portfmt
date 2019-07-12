@@ -58,7 +58,7 @@ static struct Array *extract_tokens(struct Parser *, struct Array *, enum Parser
 static struct Array *insert_variable(struct Parser *, struct Array *, enum ParserError *, const void *);
 static struct Array *merge_existent(struct Parser *, struct Array *, enum ParserError *, const void *);
 static void append_values(struct Parser *, struct Array *, enum VariableModifier, const struct MergeParameter *);
-static void assign_values(struct Parser *, struct Array *, const struct MergeParameter *);
+static void assign_values(struct Parser *, struct Array *, enum VariableModifier, const struct MergeParameter *);
 
 static struct Variable *
 has_variable(struct Array *tokens, struct Variable *var)
@@ -67,14 +67,7 @@ has_variable(struct Array *tokens, struct Variable *var)
 		struct Token *t = array_get(tokens, i);
 		if (token_type(t) == VARIABLE_START &&
 		    variable_cmp(token_variable(t), var) == 0) {
-			switch (variable_modifier(token_variable(t))) {
-			case MODIFIER_APPEND:
-			case MODIFIER_ASSIGN:
-			case MODIFIER_OPTIONAL:
-				return token_variable(t);
-			default:
-				break;
-			}
+			return token_variable(t);
 		}
 	}
 	return NULL;
@@ -110,7 +103,7 @@ append_values(struct Parser *parser, struct Array *tokens, enum VariableModifier
 }
 
 void
-assign_values(struct Parser *parser, struct Array *tokens, const struct MergeParameter *params)
+assign_values(struct Parser *parser, struct Array *tokens, enum VariableModifier mod, const struct MergeParameter *params)
 {
 	for (size_t j = 0; j < array_len(params->values); j++) {
 		struct Token *v = array_get(params->values, j);
@@ -120,6 +113,7 @@ assign_values(struct Parser *parser, struct Array *tokens, const struct MergePar
 		case VARIABLE_END:
 			if (variable_cmp(params->var, token_variable(v)) == 0) {
 				struct Token *edited = token_clone(v, NULL);
+				variable_set_modifier(token_variable(edited), mod);
 				array_append(tokens, edited);
 				parser_mark_edited(parser, edited);
 			}
@@ -245,8 +239,8 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 		case VARIABLE_START:
 			if (variable_cmp(params->var, token_variable(t)) == 0) {
 				found = 1;
-				if (mod == MODIFIER_ASSIGN || mod == MODIFIER_OPTIONAL) {
-					assign_values(parser, tokens, params);
+				if (mod == MODIFIER_ASSIGN) {
+					assign_values(parser, tokens, variable_modifier(token_variable(t)), params);
 				} else if (mod == MODIFIER_APPEND) {
 					array_append(tokens, t);
 					parser_mark_edited(parser, t);
@@ -312,7 +306,6 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			switch (variable_modifier(var)) {
 			case MODIFIER_APPEND:
 			case MODIFIER_ASSIGN:
-			case MODIFIER_OPTIONAL:
 				merge = 1;
 				break;
 			default:

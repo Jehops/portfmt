@@ -44,10 +44,10 @@
 #include "util.h"
 #include "variable.h"
 
-static char *lookup_variable(struct Array *, const char *, char **comment, struct Variable **);
+static char *lookup_variable(struct Array *, const char *, char **comment);
 
 static char *
-lookup_variable(struct Array *ptokens, const char *name, char **comment, struct Variable **var)
+lookup_variable(struct Array *ptokens, const char *name, char **comment)
 {
 	struct Array *tokens = array_new(sizeof(char *));
 	struct Array *comments = array_new(sizeof(char *));
@@ -68,7 +68,6 @@ lookup_variable(struct Array *ptokens, const char *name, char **comment, struct 
 			break;
 		case VARIABLE_END:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				*var = token_variable(t);
 				goto found;
 			}
 			break;
@@ -96,8 +95,7 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 
 	char *revision;
 	char *comment = NULL;
-	struct Variable *var;
-	char *current_revision = lookup_variable(ptokens, "PORTREVISION", &comment, &var);
+	char *current_revision = lookup_variable(ptokens, "PORTREVISION", &comment);
 	if (current_revision) {
 		const char *errstr = NULL;
 		int rev = strtonum(current_revision, 0, INT_MAX, &errstr);
@@ -107,9 +105,7 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 			*error = PARSER_ERROR_EDIT_FAILED;
 			return NULL;
 		}
-		char *buf = variable_tostring(var);
-		xasprintf(&revision, "%s%d %s", buf, rev, comment);
-		free(buf);
+		xasprintf(&revision, "PORTREVISION=%d %s", rev, comment);
 		free(comment);
 	} else {
 		revision = xstrdup("PORTREVISION=1");
