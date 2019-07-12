@@ -2810,6 +2810,9 @@ matches(enum RegularExpression re, const char *s)
 char *
 sub(enum RegularExpression re, const char *replacement, const char *s)
 {
+	assert(replacement != NULL);
+	assert(s != NULL);
+
 	size_t len = strlen(replacement) + strlen(s) + 1;
 	char *buf = xmalloc(len);
 	buf[0] = 0;
@@ -2817,9 +2820,7 @@ sub(enum RegularExpression re, const char *replacement, const char *s)
 	regmatch_t pmatch[1];
 	if (regexec(&regular_expressions[re].re, s, 1, pmatch, 0) == 0) {
 		strncpy(buf, s, pmatch[0].rm_so);
-		if (replacement) {
-			xstrlcat(buf, replacement, len);
-		}
+		xstrlcat(buf, replacement, len);
 		strncat(buf, s + pmatch[0].rm_eo, strlen(s) - pmatch[0].rm_eo);
 	} else {
 		xstrlcat(buf, s, len);
