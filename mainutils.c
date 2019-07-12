@@ -60,25 +60,11 @@ can_use_colors(FILE *fp)
 }
 
 void
-enter_sandbox(FILE *in, FILE *out)
+enter_sandbox()
 {
 #if HAVE_CAPSICUM
-	int fd_in = fileno(in);
-	int fd_out = fileno(out);
-
-	if (fd_in == fd_out) {
-		close(STDIN_FILENO);
-		close(STDOUT_FILENO);
-		if (caph_limit_stream(fd_in, CAPH_READ | CAPH_WRITE | CAPH_FTRUNCATE) < 0) {
-			err(1, "caph_limit_stream");
-		}
-		if (caph_limit_stderr() < 0) {
-			err(1, "caph_limit_stderr");
-		}
-	} else {
-		if (caph_limit_stdio() < 0) {
-			err(1, "caph_limit_stdio");
-		}
+	if (caph_limit_stderr() < 0) {
+		err(1, "caph_limit_stderr");
 	}
 
 	if (caph_enter() < 0) {
@@ -135,23 +121,53 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings)
 }
 
 int
-open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in, FILE **fp_out)
+open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in, FILE **fp_out, int keep_stdin_open)
 {
+#if HAVE_CAPSICUM
+	closefrom(STDERR_FILENO + 1);
+#endif
+
 	if (*argc > 1 || ((settings->behavior & PARSER_OUTPUT_INPLACE) && *argc == 0)) {
 		return 0;
 	} else if (*argc == 1) {
 		if (settings->behavior & PARSER_OUTPUT_INPLACE) {
+			if (!keep_stdin_open) {
+				close(STDIN_FILENO);
+			}
+			close(STDOUT_FILENO);
 			*fp_in = fopen(*argv[0], "r+");
 			*fp_out = *fp_in;
 			if (*fp_in == NULL) {
 				return 0;
 			}
+#if HAVE_CAPSICUM
+			if (caph_limit_stream(fileno(*fp_in), CAPH_READ | CAPH_WRITE | CAPH_FTRUNCATE) < 0) {
+				return 0;
+			}
+#endif
 		} else  {
+			if (!keep_stdin_open) {
+				close(STDIN_FILENO);
+			}
 			*fp_in = fopen(*argv[0], "r");
 			if (*fp_in == NULL) {
 				return 0;
 			}
+#if HAVE_CAPSICUM
+			if (caph_limit_stream(fileno(*fp_in), CAPH_READ) < 0) {
+				return 0;
+			}
+			if (caph_limit_stdio() < 0) {
+				return 0;
+			}
+#endif
 		}
+	} else {
+#if HAVE_CAPSICUM
+		if (caph_limit_stdio() < 0) {
+			return 0;
+		}
+#endif
 	}
 
 	*argc -= 1;

@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out)) {
+	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out, 0)) {
 		if (fp_in == NULL) {
 			err(1, "fopen");
 		} else {
@@ -75,7 +75,8 @@ main(int argc, char *argv[])
 	if (!can_use_colors(fp_out)) {
 		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
 	}
-	enter_sandbox(fp_in, fp_out);
+
+	enter_sandbox();
 
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, fp_in);
