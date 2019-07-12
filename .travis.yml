@@ -4,22 +4,18 @@ matrix:
   - os: osx
     script: ./configure && make && mkdir -p ~/lib && cp libportfmt.dylib ~/lib/ && make test
   - os: linux
-
-env:
-  global:
-   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-   #   via the "travis encrypt" command using the project repo's public key
-   - secure: "Jr2EGd056rnLp1hV3pnuzGmk7VGueBeN1SBCo27l2c03QPp90HwuAYLFsY70oqqOdZmyjCRsRBPh+SRjM0somaseCyNKAzUoDZ7lSXQft1eEE55bMaHZFy8jOC8oaEjeDTedNi324xnn/XciZJ2HkWYDCSaNoCvexRDuMDRVxVB5iWvUJHBgEzZQDOb8baO+A2/rPzcUfgQwGb2RyuPxEmuuefZe+uQSSr2qRo+ylB6P70V/47qB6foOkfAJNy96IJO0VVGSZeWebId4/3V4mJ5xjNYADOHzsy9f1TTDCc7OnEj5X0wjYsfn/IMEL0ROz7MvrUElIPlPBV2osG6unQcWuVCs3tozQpD1XvlhbyqAH9nqWaq7gr07l926NTlwTKAhveEMaPQot3pTtAthjtc4nuGT5jcV2xTtKbWFYTmteMTiDl0oggQrtfJ5XYF4cn1ZztLnqRBUO9n9uq6YRGHXOxuOvvsTKAQalnfZbTYYSiPomu1cK8YvqFfHK4s8M7xEtU/ztxm7ZGfukzzztSekC5YjNKJAVGOaTc7hJVtDfvXr8EHfoYAmPEchHtdp2ZCBC3XugvsT9A9QNtTmzx+oATQfUOFl41Fb2WvLhh+NmvPUt+5BZXyYed5gCAMc4pUz45GgIKmDl4yJeFg0rdtP7io6mpYhRUsvsMVDxFA="
-
-before_install:
-  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
-
-addons:
-  coverity_scan:
-    project:
-      name: "t6/portfmt"
-      description: "<Your project description here>"
-    notification_email: github@tobik.me
-    build_command_prepend: "./configure"
-    build_command: "make"
-    branch_pattern: coverity_scan
+    before_install: echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+    addons:
+      coverity_scan:
+        project:
+          name: "t6/portfmt"
+          description: "<Your project description here>"
+        notification_email: github@tobik.me
+        build_command_prepend: "./configure"
+        build_command: "make"
+        branch_pattern: coverity_scan
+    env:
+      global:
+       # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+       #   via the "travis encrypt" command using the project repo's public key
+       - secure: "Jr2EGd056rnLp1hV3pnuzGmk7VGueBeN1SBCo27l2c03QPp90HwuAYLFsY70oqqOdZmyjCRsRBPh+SRjM0somaseCyNKAzUoDZ7lSXQft1eEE55bMaHZFy8jOC8oaEjeDTedNi324xnn/XciZJ2HkWYDCSaNoCvexRDuMDRVxVB5iWvUJHBgEzZQDOb8baO+A2/rPzcUfgQwGb2RyuPxEmuuefZe+uQSSr2qRo+ylB6P70V/47qB6foOkfAJNy96IJO0VVGSZeWebId4/3V4mJ5xjNYADOHzsy9f1TTDCc7OnEj5X0wjYsfn/IMEL0ROz7MvrUElIPlPBV2osG6unQcWuVCs3tozQpD1XvlhbyqAH9nqWaq7gr07l926NTlwTKAhveEMaPQot3pTtAthjtc4nuGT5jcV2xTtKbWFYTmteMTiDl0oggQrtfJ5XYF4cn1ZztLnqRBUO9n9uq6YRGHXOxuOvvsTKAQalnfZbTYYSiPomu1cK8YvqFfHK4s8M7xEtU/ztxm7ZGfukzzztSekC5YjNKJAVGOaTc7hJVtDfvXr8EHfoYAmPEchHtdp2ZCBC3XugvsT9A9QNtTmzx+oATQfUOFl41Fb2WvLhh+NmvPUt+5BZXyYed5gCAMc4pUz45GgIKmDl4yJeFg0rdtP7io6mpYhRUsvsMVDxFA="
