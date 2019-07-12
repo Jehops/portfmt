@@ -46,6 +46,7 @@ enum PorteditCommand {
 	PORTEDIT_BUMP_REVISION,
 	PORTEDIT_GET_VARIABLE,
 	PORTEDIT_MERGE,
+	PORTEDIT_SET_VERSION,
 	PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES,
 };
 
@@ -63,6 +64,7 @@ usage()
 	fprintf(stderr, "usage: portedit bump-revision [-aditu] [-w wrapcol] [Makefile]\n");
 	fprintf(stderr, "       portedit get [-aditu] [-w wrapcol] [Makefile]\n");
 	fprintf(stderr, "       portedit merge [-aditu] [-w wrapcol] Makefile\n");
+	fprintf(stderr, "       portedit set-version [-aditu] [-w wrapcol] Makefile\n");
 	exit(EX_USAGE);
 }
 
@@ -100,6 +102,10 @@ main(int argc, char *argv[])
 	} else if (strcmp(command, "merge") == 0) {
 		edit.cmd = PORTEDIT_MERGE;
 		edit.argc = 0;
+		edit.argv = argv;
+	} else if (strcmp(command, "set-version") == 0 && argc > 0) {
+		edit.cmd = PORTEDIT_SET_VERSION;
+		edit.argc = 1;
 		edit.argv = argv;
 	} else if (strcmp(command, "__private__list-unknown-variables") == 0 && argc > 0) {
 		edit.cmd = PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES;
@@ -168,7 +174,10 @@ main(int argc, char *argv[])
 		}
 		parser_free(subparser);
 		break;
-	} case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
+	} case PORTEDIT_SET_VERSION:
+		error = parser_edit(parser, edit_set_version, edit.argv[0]);
+		break;
+	case PORTEDIT_PRIVATE_LIST_UNKNOWN_VARIABLES:
 		error = parser_edit(parser, edit_output_unknown_variables, NULL);
 		break;
 	default:

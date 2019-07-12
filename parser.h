@@ -88,4 +88,5 @@ struct Array *edit_bump_revision(struct Parser *, struct Array *, enum ParserErr
 struct Array *edit_merge(struct Parser *, struct Array *, enum ParserError *error, const void *);
 struct Array *edit_output_variable_value(struct Parser *, struct Array *, enum ParserError *error, const void *);
 struct Array *edit_output_unknown_variables(struct Parser *, struct Array *, enum ParserError *error, const void *);
+struct Array *edit_set_version(struct Parser *, struct Array *, enum ParserError *error, const void *);
 struct Array *lint_order(struct Parser *, struct Array *, enum ParserError *error, const void *);
