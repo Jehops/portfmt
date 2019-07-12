@@ -323,6 +323,13 @@ parser_error_tostring(struct Parser *parser)
 			xasprintf(&buf, "line %s: IO error", lines);
 		}
 		break;
+	case PARSER_ERROR_NOT_FOUND:
+		if (parser->error_supplement) {
+			xasprintf(&buf, "line %s: not found: %s", lines, parser->error_supplement);
+		} else {
+			xasprintf(&buf, "line %s: not found", lines);
+		}
+		break;
 	case PARSER_ERROR_UNHANDLED_TOKEN_TYPE:
 		xasprintf(&buf, "line %s: unhandled token type", lines);
 		break;

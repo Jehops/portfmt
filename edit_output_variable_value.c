@@ -63,6 +63,10 @@ edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum Par
 		}
 	}
 
+	if (!found) {
+		*error = PARSER_ERROR_NOT_FOUND;
+	}
+
 	return NULL;
 }
 
