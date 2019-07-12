@@ -292,22 +292,24 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 
 	struct Variable *var = NULL;
 	int merge = 0;
+	struct Array *mergetokens = array_new(sizeof(struct Token *));
 	for (size_t i = 0; i < array_len(subtokens); i++) {
 		struct Token *t = array_get(subtokens, i);
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			var = token_variable(t);
-			if (!has_variable(ptokens, var)) {
-				*error = parser_edit(parser, insert_variable, var);
-				if (*error != PARSER_ERROR_OK) {
-					goto cleanup;
-				}
-				parser_edit(parser, extract_tokens, &ptokens);
-			}
 			switch (variable_modifier(var)) {
 			case MODIFIER_APPEND:
 			case MODIFIER_ASSIGN:
+				if (!has_variable(ptokens, var)) {
+					*error = parser_edit(parser, insert_variable, var);
+					if (*error != PARSER_ERROR_OK) {
+						goto cleanup;
+					}
+					parser_edit(parser, extract_tokens, &ptokens);
+				}
 				merge = 1;
+				array_append(mergetokens, t);
 				break;
 			default:
 				merge = 0;
@@ -316,19 +318,24 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			break;
 		case VARIABLE_TOKEN:
 			if (merge) {
+				array_append(mergetokens, t);
+			}
+			break;
+		case VARIABLE_END:
+			if (merge) {
+				array_append(mergetokens, t);
 				struct MergeParameter params;
 				params.var = var;
-				params.values = subtokens;
+				params.values = mergetokens;
 				*error = parser_edit(parser, merge_existent, &params);
 				if (*error != PARSER_ERROR_OK) {
 					goto cleanup;
 				}
 				parser_edit(parser, extract_tokens, &ptokens);
 			}
-			break;
-		case VARIABLE_END:
 			var = NULL;
 			merge = 0;
+			array_truncate(mergetokens);
 			break;
 		default:
 			break;
@@ -336,5 +343,6 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 	}
 
 cleanup:
+	array_free(mergetokens);
 	return NULL;
 }
