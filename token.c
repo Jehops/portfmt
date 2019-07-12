@@ -68,11 +68,20 @@ token_new(enum TokenType type, struct Range *lines, const char *data,
 
 	struct Conditional *cond = NULL;
 	if (condname && (cond = conditional_new(condname)) == NULL) {
+		if (target) {
+			target_free(target);
+		}
 		return NULL;
 	}
 
 	struct Variable *var = NULL;
 	if (varname && (var = variable_new(varname)) == NULL) {
+		if (target) {
+			target_free(target);
+		}
+		if (cond) {
+			conditional_free(cond);
+		}
 		return NULL;
 	}
 
