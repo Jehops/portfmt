@@ -327,6 +327,13 @@ parser_error_tostring(struct Parser *parser)
 			xasprintf(&buf, "line %s: expected integer", lines);
 		}
 		break;
+	case PARSER_ERROR_INVALID_REGEXP:
+		if (parser->error_supplement) {
+			xasprintf(&buf, "invalid regexp: %s", parser->error_supplement);
+		} else {
+			xasprintf(&buf, "invalid regexp");
+		}
+		break;
 	case PARSER_ERROR_IO:
 		if (parser->error_supplement) {
 			xasprintf(&buf, "line %s: IO error: %s", lines, parser->error_supplement);

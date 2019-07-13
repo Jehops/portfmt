@@ -1,0 +1,6 @@
+sndio
+1.5.0
+yes
+--prefix=${PREFIX}
+--mandir=${PREFIX}/man
+yes

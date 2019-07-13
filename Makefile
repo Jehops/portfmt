@@ -57,7 +57,7 @@ util.o: config.h util.c util.h
 edit_bump_revision.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_bump_revision.c
 edit_merge.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_merge.c
 edit_output_variable_value.o: config.h array.h parser.h token.h variable.h edit_output_variable_value.c
-edit_output_unknown_variables.o: config.h array.h parser.h rules.h token.h variable.h edit_output_variable_value.c
+edit_output_unknown_variables.o: config.h array.h parser.h regexp.h rules.h token.h variable.h edit_output_variable_value.c
 edit_set_version.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_set_version.c
 lint_order.o: config.h array.h diff.h parser.h rules.h token.h util.h variable.h lint_order.c
 refactor_collapse_adjacent.o: config.h array.h parser.h token.h util.h variable.h refactor_collapse_adjacent.c

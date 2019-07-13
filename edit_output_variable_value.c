@@ -28,12 +28,14 @@
 
 #include "config.h"
 
+#include <regex.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "array.h"
 #include "parser.h"
+#include "regexp.h"
 #include "token.h"
 #include "variable.h"
 
@@ -44,19 +46,26 @@ edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum Par
 		return NULL;
 	}
 
-	const char *name = (const char *)userdata;
+	regex_t re;
+	if (regcomp(&re, userdata, REG_EXTENDED) != 0) {
+		*error = PARSER_ERROR_INVALID_REGEXP;
+		return NULL;
+	}
+
+	struct Regexp *regexp = regexp_new(&re);
 	int found = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
+
 		switch (token_type(t)) {
 		case VARIABLE_START:
-			if (strcmp(variable_name(token_variable(t)), name) == 0) {
+			if (regexp_exec(regexp, variable_name(token_variable(t))) == 0) {
 				found = 1;
 			}
 			break;
 		case VARIABLE_TOKEN:
 			if (found && token_data(t) &&
-			    strcmp(variable_name(token_variable(t)), name) == 0) {
+			    regexp_exec(regexp, variable_name(token_variable(t))) == 0) {
 				parser_enqueue_output(parser, token_data(t));
 				parser_enqueue_output(parser, "\n");
 			}
@@ -69,6 +78,8 @@ edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum Par
 	if (!found) {
 		*error = PARSER_ERROR_NOT_FOUND;
 	}
+
+	regexp_free(regexp);
 
 	return NULL;
 }
