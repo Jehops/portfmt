@@ -173,7 +173,7 @@ main(int argc, char *argv[])
 		if (error != PARSER_ERROR_OK) {
 			errx(1, "parser_read_finish: %s", parser_error_tostring(parser));
 		}
-		error = parser_edit(parser, edit_merge, &(struct EditMergeParams){subparser, 0});
+		error = parser_edit(parser, edit_merge, &(struct EditMergeParams){subparser, 1});
 		if (error != PARSER_ERROR_OK) {
 			errx(1, "parser_edit: %s", parser_error_tostring(parser));
 		}
