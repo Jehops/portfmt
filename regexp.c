@@ -47,11 +47,10 @@ struct Regexp {
 };
 
 struct Regexp *
-regexp_new(regex_t *regex, const char *buf)
+regexp_new(regex_t *regex)
 {
 	struct Regexp *regexp = xmalloc(sizeof(struct Regexp));
 	regexp->regex = regex;
-	regexp->buf = buf;
 	regexp->nmatch = 8;
 	regexp->match = reallocarray(NULL, regexp->nmatch, sizeof(regmatch_t));
 	if (regexp->match == NULL) {
@@ -105,6 +104,8 @@ regexp_start(struct Regexp *regexp, size_t group)
 char *
 regexp_substr(struct Regexp *regexp, size_t group)
 {
+	assert(regexp->buf != NULL);
+
 	if (group >= regexp->nmatch) {
 		return NULL;
 	}
@@ -112,8 +113,9 @@ regexp_substr(struct Regexp *regexp, size_t group)
 }
 
 int
-regexp_exec(struct Regexp *regexp)
+regexp_exec(struct Regexp *regexp, const char *buf)
 {
+	regexp->buf = buf;
 	regexp->exec++;
 	return regexec(regexp->regex, regexp->buf, regexp->nmatch, regexp->match, 0);
 }

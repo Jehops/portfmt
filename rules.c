@@ -2493,15 +2493,15 @@ compare_order(const void *ap, const void *bp)
 		int ascore = -1;
 		int bscore = -1;
 
-		struct Regexp *are = regexp_new(regex(RE_FLAVORS_HELPER), a);
-		if (regexp_exec(are) != 0) {
+		struct Regexp *are = regexp_new(regex(RE_FLAVORS_HELPER));
+		if (regexp_exec(are, a) != 0) {
 			abort();
 		}
 		char *aprefix = regexp_substr(are, 1);
 		char *ahelper = regexp_substr(are, 2);
 
-		struct Regexp *bre = regexp_new(regex(RE_FLAVORS_HELPER), b);
-		if (regexp_exec(bre) != 0) {
+		struct Regexp *bre = regexp_new(regex(RE_FLAVORS_HELPER));
+		if (regexp_exec(bre, b) != 0) {
 			abort();
 		}
 		char *bprefix = regexp_substr(bre, 1);
@@ -2542,15 +2542,15 @@ compare_order(const void *ap, const void *bp)
 		int ascore = -1;
 		int bscore = -1;
 
-		struct Regexp *are = regexp_new(regex(RE_OPTIONS_HELPER), a);
-		if (regexp_exec(are) != 0) {
+		struct Regexp *are = regexp_new(regex(RE_OPTIONS_HELPER));
+		if (regexp_exec(are, a) != 0) {
 			abort();
 		}
 		char *aprefix = regexp_substr(are, 1);
 		char *ahelper = regexp_substr(are, 2);
 
-		struct Regexp *bre = regexp_new(regex(RE_OPTIONS_HELPER), b);
-		if (regexp_exec(bre) != 0) {
+		struct Regexp *bre = regexp_new(regex(RE_OPTIONS_HELPER));
+		if (regexp_exec(bre, b) != 0) {
 			abort();
 		}
 		char *bprefix = regexp_substr(bre, 1);

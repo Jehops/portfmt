@@ -29,10 +29,10 @@
 
 struct Regexp;
 
-struct Regexp *regexp_new(regex_t *, const char *);
+struct Regexp *regexp_new(regex_t *);
 void regexp_free(struct Regexp *);
 size_t regexp_end(struct Regexp *, size_t);
 size_t regexp_length(struct Regexp *, size_t);
 size_t regexp_start(struct Regexp *, size_t);
 char *regexp_substr(struct Regexp *, size_t);
-int regexp_exec(struct Regexp *);
+int regexp_exec(struct Regexp *, const char *buf);

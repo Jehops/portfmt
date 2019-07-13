@@ -120,8 +120,8 @@ size_t
 consume_conditional(const char *buf)
 {
 	size_t pos = 0;
-	struct Regexp *re = regexp_new(regex(RE_CONDITIONAL), buf);
-	if (regexp_exec(re) == 0) {
+	struct Regexp *re = regexp_new(regex(RE_CONDITIONAL));
+	if (regexp_exec(re, buf) == 0) {
 		pos = regexp_length(re, 0);
 	}
 	regexp_free(re);
@@ -144,8 +144,8 @@ consume_target(const char *buf)
 	}
 
 	size_t pos = 0;
-	struct Regexp *re = regexp_new(regex(RE_TARGET), buf);
-	if (regexp_exec(re) == 0) {
+	struct Regexp *re = regexp_new(regex(RE_TARGET));
+	if (regexp_exec(re, buf) == 0) {
 		pos = regexp_length(re, 0);
 	}
 	regexp_free(re);
@@ -203,8 +203,8 @@ size_t
 consume_var(const char *buf)
 {
 	size_t pos = 0;
-	struct Regexp *re = regexp_new(regex(RE_VAR), buf);
-	if (regexp_exec(re) == 0) {
+	struct Regexp *re = regexp_new(regex(RE_VAR));
+	if (regexp_exec(re, buf) == 0) {
 		pos = regexp_length(re, 0);
 	}
 	regexp_free(re);

@@ -50,8 +50,8 @@ variable_new(const char *buf)
 {
 	struct Variable *var = NULL;
 
-	struct Regexp *re = regexp_new(regex(RE_MODIFIER), buf);
-	if (regexp_exec(re) != 0) {
+	struct Regexp *re = regexp_new(regex(RE_MODIFIER));
+	if (regexp_exec(re, buf) != 0) {
 		regexp_free(re);
 		return NULL;
 	}
