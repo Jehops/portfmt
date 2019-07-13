@@ -52,8 +52,25 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 		ver = "PORTVERSION";
 	}
 
+	char *revision;
+	int rev = 0;
+	if (parser_lookup_variable_str(parser, "PORTREVISION", &revision, NULL)) {
+		const char *errstr = NULL;
+		rev = strtonum(revision, 0, INT_MAX, &errstr);
+		free(revision);
+		if (errstr != NULL) {
+			*error = PARSER_ERROR_EXPECTED_INT;
+			return NULL;
+		}
+	}
+
 	char *buf;
-	xasprintf(&buf, "%s=%s", ver, userdata);
+	if (rev > 0) {
+		// Remove PORTREVISION
+		xasprintf(&buf, "%s=%s\nPORTREVISION!=", ver, userdata);
+	} else {
+		xasprintf(&buf, "%s=%s", ver, userdata);
+	}
 
 	struct ParserSettings settings = parser_settings(parser);
 	struct Parser *subparser = parser_new(&settings);
@@ -65,7 +82,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
-	*error = parser_edit(parser, edit_merge, &(struct EditMergeParams){subparser, 0});
+	*error = parser_edit(parser, edit_merge, &(struct EditMergeParams){subparser, 1});
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
