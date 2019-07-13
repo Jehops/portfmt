@@ -35,7 +35,7 @@ done
 rm -f ./*.actual ./*.actual2
 
 cd "${ROOT}/tests/edit" || exit 1
-for test in bump-revision/*.sh get/*.sh merge/*.sh; do
+for test in bump-epoch/*.sh bump-revision/*.sh get/*.sh merge/*.sh; do
 	t=${test%*.sh}
 	echo "${t}"
 	tests_run=$((tests_run + 1))

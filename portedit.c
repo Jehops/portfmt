@@ -43,6 +43,7 @@
 #include "parser.h"
 
 enum PorteditCommand {
+	PORTEDIT_BUMP_EPOCH,
 	PORTEDIT_BUMP_REVISION,
 	PORTEDIT_GET_VARIABLE,
 	PORTEDIT_MERGE,
@@ -61,7 +62,8 @@ static void usage(void);
 void
 usage()
 {
-	fprintf(stderr, "usage: portedit bump-revision [-aditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit bump-epoch [-aditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "       portedit bump-revision [-aditu] [-w wrapcol] [Makefile]\n");
 	fprintf(stderr, "       portedit get [-aditu] [-w wrapcol] [Makefile]\n");
 	fprintf(stderr, "       portedit merge [-aditu] [-w wrapcol] Makefile\n");
 	fprintf(stderr, "       portedit set-version [-aditu] [-w wrapcol] Makefile\n");
@@ -90,7 +92,11 @@ main(int argc, char *argv[])
 		usage();
 	}
 
-	if (strcmp(command, "bump-revision") == 0) {
+	if (strcmp(command, "bump-epoch") == 0) {
+		edit.cmd = PORTEDIT_BUMP_EPOCH;
+		edit.argc = 0;
+		edit.argv = argv;
+	} else if (strcmp(command, "bump-revision") == 0) {
 		edit.cmd = PORTEDIT_BUMP_REVISION;
 		edit.argc = 0;
 		edit.argv = argv;
@@ -148,6 +154,9 @@ main(int argc, char *argv[])
 
 	int status = 0;
 	switch (edit.cmd) {
+	case PORTEDIT_BUMP_EPOCH:
+		error = parser_edit(parser, edit_bump_revision, "PORTEPOCH");
+		break;
 	case PORTEDIT_BUMP_REVISION:
 		error = parser_edit(parser, edit_bump_revision, NULL);
 		break;

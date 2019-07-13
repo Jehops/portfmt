@@ -91,9 +91,13 @@ found:
 struct Array *
 edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
+	const char *variable = userdata;
+	if (variable == NULL) {
+		variable = "PORTREVISION";
+	}
 	char *revision;
 	char *comment = NULL;
-	char *current_revision = lookup_variable(ptokens, "PORTREVISION", &comment);
+	char *current_revision = lookup_variable(ptokens, variable, &comment);
 	if (current_revision) {
 		const char *errstr = NULL;
 		int rev = strtonum(current_revision, 0, INT_MAX, &errstr);
@@ -106,9 +110,9 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 			}
 			return NULL;
 		}
-		xasprintf(&revision, "PORTREVISION=%d %s", rev, comment);
+		xasprintf(&revision, "%s=%d %s", variable, rev, comment);
 	} else {
-		revision = xstrdup("PORTREVISION=1");
+		xasprintf(&revision, "%s=1", variable);
 	}
 
 	struct ParserSettings settings = parser_settings(parser);
