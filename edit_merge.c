@@ -271,10 +271,10 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 struct Array *
 edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
-	struct Parser *subparser = (struct Parser*)userdata;
+	const struct EditMergeParams *params = userdata;
 
 	struct Array *subtokens = NULL;
-	parser_edit(subparser, extract_tokens, &subtokens);
+	parser_edit(params->subparser, extract_tokens, &subtokens);
 
 	struct Variable *var = NULL;
 	int merge = 0;

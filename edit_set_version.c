@@ -44,32 +44,17 @@
 #include "util.h"
 #include "variable.h"
 
-static int has_variable(struct Array *, const char *);
-
-int
-has_variable(struct Array *tokens, const char *var)
-{
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-		if (token_type(t) == VARIABLE_START &&
-		    strcmp(variable_name(token_variable(t)), var) == 0) {
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
 struct Array *
 edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	const char *ver = "DISTVERSION";
-	if (has_variable(ptokens, "PORTVERSION")) {
+	if (parser_lookup_variable(parser, "PORTVERSION", NULL, NULL)) {
 		ver = "PORTVERSION";
 	}
 
 	char *buf;
 	xasprintf(&buf, "%s=%s", ver, userdata);
+
 	struct ParserSettings settings = parser_settings(parser);
 	struct Parser *subparser = parser_new(&settings);
 	*error = parser_read_from_buffer(subparser, buf, strlen(buf));
@@ -80,7 +65,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
-	*error = parser_edit(parser, edit_merge, subparser);
+	*error = parser_edit(parser, edit_merge, &(struct EditMergeParams){subparser, 0});
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}

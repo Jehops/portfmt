@@ -62,9 +62,15 @@ struct ParserSettings {
 	size_t wrapcol;
 };
 
+
 struct Array;
 struct Parser;
 struct Token;
+
+struct EditMergeParams {
+	struct Parser *subparser;
+	int shell_is_delete;
+};
 
 typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, enum ParserError *, const void *);
 
