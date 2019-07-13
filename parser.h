@@ -79,6 +79,8 @@ enum ParserError parser_output_write_to_file(struct Parser *, FILE *);
 
 enum ParserError parser_edit(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
+int parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
+int parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
 struct ParserSettings parser_settings(struct Parser *);

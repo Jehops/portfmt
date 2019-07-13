@@ -44,48 +44,32 @@
 #include "util.h"
 #include "variable.h"
 
-static char *lookup_variable(struct Array *, const char *, char **comment);
+static char *get_revision(struct Parser *, const char *, enum ParserError *);
 
 static char *
-lookup_variable(struct Array *ptokens, const char *name, char **comment)
+get_revision(struct Parser *parser, const char *variable, enum ParserError *error)
 {
-	struct Array *tokens = array_new(sizeof(char *));
-	struct Array *comments = array_new(sizeof(char *));
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			array_truncate(tokens);
-			break;
-		case VARIABLE_TOKEN:
-			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				if (is_comment(t)) {
-					array_append(comments, token_data(t));
-				} else {
-					array_append(tokens, token_data(t));
-				}
-			}
-			break;
-		case VARIABLE_END:
-			if (strcmp(variable_name(token_variable(t)), name) == 0) {
-				goto found;
-			}
-			break;
-		default:
-			break;
+	char *revision;
+	char *comment;
+	char *current_revision;
+	if (parser_lookup_variable_str(parser, variable, &current_revision, &comment)) {
+		const char *errstr = NULL;
+		int rev = strtonum(current_revision, 0, INT_MAX, &errstr);
+		free(current_revision);
+		if (errstr == NULL) {
+			rev++;
+		} else {
+			*error = PARSER_ERROR_EXPECTED_INT;
+			free(comment);
+			return NULL;
 		}
+		xasprintf(&revision, "%s=%d %s", variable, rev, comment);
+		free(comment);
+	} else {
+		xasprintf(&revision, "%s=1", variable);
 	}
 
-	array_free(comments);
-	array_free(tokens);
-	return NULL;
-
-found:
-	*comment = array_join(comments, " ");
-	char *buf = array_join(tokens, " ");
-	array_free(comments);
-	array_free(tokens);
-	return buf;
+	return revision;
 }
 
 struct Array *
@@ -95,24 +79,10 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 	if (variable == NULL) {
 		variable = "PORTREVISION";
 	}
-	char *revision;
-	char *comment = NULL;
-	char *current_revision = lookup_variable(ptokens, variable, &comment);
-	if (current_revision) {
-		const char *errstr = NULL;
-		int rev = strtonum(current_revision, 0, INT_MAX, &errstr);
-		if (errstr == NULL) {
-			rev++;
-		} else {
-			*error = PARSER_ERROR_EXPECTED_INT;
-			if (comment) {
-				free(comment);
-			}
-			return NULL;
-		}
-		xasprintf(&revision, "%s=%d %s", variable, rev, comment);
-	} else {
-		xasprintf(&revision, "%s=1", variable);
+
+	char *revision = get_revision(parser, variable, error);
+	if (revision == NULL) {
+		return NULL;
 	}
 
 	struct ParserSettings settings = parser_settings(parser);
@@ -131,9 +101,6 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 	}
 
 cleanup:
-	if (comment) {
-		free(comment);
-	}
 	free(revision);
 	parser_free(subparser);
 

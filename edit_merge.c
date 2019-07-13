@@ -53,25 +53,11 @@ struct MergeParameter {
 static void append_empty_line(struct Parser *, struct Array *, struct Range *);
 static void append_new_variable(struct Parser *, struct Array *, struct Variable *, struct Range *);
 static struct Token *find_next_variable(struct Array *, size_t);
-static struct Variable *has_variable(struct Array *, struct Variable *);
 static struct Array *extract_tokens(struct Parser *, struct Array *, enum ParserError *, const void *);
 static struct Array *insert_variable(struct Parser *, struct Array *, enum ParserError *, const void *);
 static struct Array *merge_existent(struct Parser *, struct Array *, enum ParserError *, const void *);
 static void append_values(struct Parser *, struct Array *, enum VariableModifier, const struct MergeParameter *);
 static void assign_values(struct Parser *, struct Array *, enum VariableModifier, const struct MergeParameter *);
-
-static struct Variable *
-has_variable(struct Array *tokens, struct Variable *var)
-{
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-		if (token_type(t) == VARIABLE_START &&
-		    variable_cmp(token_variable(t), var) == 0) {
-			return token_variable(t);
-		}
-	}
-	return NULL;
-}
 
 struct Array *
 extract_tokens(struct Parser *subparser, struct Array *subtokens, enum ParserError *error, const void *userdata)
@@ -301,7 +287,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			switch (variable_modifier(var)) {
 			case MODIFIER_APPEND:
 			case MODIFIER_ASSIGN:
-				if (!has_variable(ptokens, var)) {
+				if (!parser_lookup_variable(parser, variable_name(var), NULL, NULL)) {
 					*error = parser_edit(parser, insert_variable, var);
 					if (*error != PARSER_ERROR_OK) {
 						goto cleanup;

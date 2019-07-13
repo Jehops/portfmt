@@ -1579,3 +1579,83 @@ struct ParserSettings parser_settings(struct Parser *parser)
 {
 	return parser->settings;
 }
+
+int
+parser_lookup_variable(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment)
+{
+	struct Array *tokens = array_new(sizeof(char *));
+	struct Array *comments = array_new(sizeof(char *));
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		switch (token_type(t)) {
+		case VARIABLE_START:
+			array_truncate(tokens);
+			break;
+		case VARIABLE_TOKEN:
+			if (strcmp(variable_name(token_variable(t)), name) == 0) {
+				if (is_comment(t)) {
+					array_append(comments, token_data(t));
+				} else {
+					array_append(tokens, token_data(t));
+				}
+			}
+			break;
+		case VARIABLE_END:
+			if (strcmp(variable_name(token_variable(t)), name) == 0) {
+				goto found;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	array_free(comments);
+	array_free(tokens);
+
+	if (comment) {
+		*comment = NULL;
+	}
+	if (retval) {
+		*retval = NULL;
+	}
+
+	return 0;
+
+found:
+	if (comment) {
+		*comment = comments;
+	} else {
+		array_free(comments);
+	}
+	if (retval) {
+		*retval = tokens;
+	} else {
+		array_free(tokens);
+	}
+
+	return 1;
+}
+
+int
+parser_lookup_variable_str(struct Parser *parser, const char *name, char **retval, char **comment)
+{
+	struct Array *comments;
+	struct Array *tokens;
+	if (!parser_lookup_variable(parser, name, &tokens, &comments)) {
+		return 0;
+	}
+
+	if (comment) {
+		*comment = array_join(comments, " ");
+	}
+
+	if (retval) {
+		*retval = array_join(tokens, " ");
+	}
+
+	array_free(comments);
+	array_free(tokens);
+
+	return 1;
+}
