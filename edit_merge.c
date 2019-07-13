@@ -230,6 +230,8 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 				} else if (mod == MODIFIER_APPEND) {
 					array_append(tokens, t);
 					parser_mark_edited(parser, t);
+				} else if (mod == MODIFIER_SHELL) {
+					parser_mark_for_gc(parser, t);
 				}
 			} else {
 				array_append(tokens, t);
@@ -239,6 +241,8 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 			if (found) {
 				if (mod == MODIFIER_ASSIGN) {
 					// nada
+				} else if (mod == MODIFIER_SHELL) {
+					parser_mark_for_gc(parser, t);
 				} else if (mod == MODIFIER_APPEND) {
 					array_append(tokens, t);
 					parser_mark_edited(parser, t);
@@ -254,6 +258,8 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 					append_values(parser, tokens, variable_modifier(token_variable(t)), params);
 					array_append(tokens, t);
 					parser_mark_edited(parser, t);
+				} else if (mod == MODIFIER_SHELL) {
+					parser_mark_for_gc(parser, t);
 				}
 			} else {
 				array_append(tokens, t);
@@ -285,6 +291,11 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 		case VARIABLE_START:
 			var = token_variable(t);
 			switch (variable_modifier(var)) {
+			case MODIFIER_SHELL:
+				if (!params->shell_is_delete) {
+					break;
+				}
+				/* fallthrough */
 			case MODIFIER_APPEND:
 			case MODIFIER_ASSIGN:
 				if (!parser_lookup_variable(parser, variable_name(var), NULL, NULL)) {
