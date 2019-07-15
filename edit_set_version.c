@@ -63,6 +63,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 			free(revision);
 			if (errstr != NULL) {
 				*error = PARSER_ERROR_EXPECTED_INT;
+				free(version);
 				return NULL;
 			}
 		}
