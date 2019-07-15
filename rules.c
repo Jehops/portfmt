@@ -134,6 +134,7 @@ static const char *print_as_newlines_[] = {
 	"SUBDIR",
 	"TEST_ARGS",
 	"TEST_DEPENDS",
+	"USE_CABAL",
 	"VARS",
 };
 
