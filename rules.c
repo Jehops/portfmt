@@ -94,6 +94,7 @@ static struct {
 };
 
 static const char *print_as_newlines_[] = {
+	"_IPXE_BUILDCFG",
 	"BUILD_DEPENDS",
 	"CARGO_CRATES",
 	"CARGO_ENV",
@@ -115,6 +116,7 @@ static const char *print_as_newlines_[] = {
 	"GLIB_SCHEMAS",
 	"GN_ARGS",
 	"GO_ENV",
+	"IPXE_BUILDCFG",
 	"LIB_DEPENDS",
 	"MAKE_ARGS",
 	"MAKE_ENV",
