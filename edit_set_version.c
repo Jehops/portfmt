@@ -52,16 +52,21 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 		ver = "PORTVERSION";
 	}
 
-	char *revision;
+	char *version;
 	int rev = 0;
-	if (parser_lookup_variable_str(parser, "PORTREVISION", &revision, NULL)) {
-		const char *errstr = NULL;
-		rev = strtonum(revision, 0, INT_MAX, &errstr);
-		free(revision);
-		if (errstr != NULL) {
-			*error = PARSER_ERROR_EXPECTED_INT;
-			return NULL;
+	if (parser_lookup_variable_str(parser, ver, &version, NULL)) {
+		char *revision;
+		if (strcmp(version, userdata) != 0 &&
+		    parser_lookup_variable_str(parser, "PORTREVISION", &revision, NULL)) {
+			const char *errstr = NULL;
+			rev = strtonum(revision, 0, INT_MAX, &errstr);
+			free(revision);
+			if (errstr != NULL) {
+				*error = PARSER_ERROR_EXPECTED_INT;
+				return NULL;
+			}
 		}
+		free(version);
 	}
 
 	char *buf;
