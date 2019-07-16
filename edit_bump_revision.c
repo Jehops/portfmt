@@ -95,7 +95,7 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
-	*error = parser_edit(parser, edit_merge, &(struct EditMergeParams){subparser, 0});
+	*error = parser_merge(parser, subparser, PARSER_MERGE_DEFAULT);
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}

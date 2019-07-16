@@ -50,6 +50,11 @@ struct MergeParameter {
 	struct Array *values;
 };
 
+struct EditMergeParams {
+	struct Parser *subparser;
+	enum ParserMergeBehavior behavior;
+};
+
 static void append_empty_line(struct Parser *, struct Array *, struct Range *);
 static void append_new_variable(struct Parser *, struct Array *, struct Variable *, struct Range *);
 static struct Token *find_next_variable(struct Array *, size_t);
@@ -278,6 +283,10 @@ struct Array *
 edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
 	const struct EditMergeParams *params = userdata;
+	if (params == NULL) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		return NULL;
+	}
 
 	struct Array *subtokens = NULL;
 	parser_edit(params->subparser, extract_tokens, &subtokens);
@@ -292,7 +301,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			var = token_variable(t);
 			switch (variable_modifier(var)) {
 			case MODIFIER_SHELL:
-				if (!params->shell_is_delete) {
+				if (!(params->behavior & PARSER_MERGE_SHELL_IS_DELETE)) {
 					break;
 				}
 				/* fallthrough */

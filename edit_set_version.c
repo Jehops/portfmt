@@ -88,7 +88,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
-	*error = parser_edit(parser, edit_merge, &(struct EditMergeParams){subparser, 1});
+	*error = parser_merge(parser, subparser, PARSER_MERGE_SHELL_IS_DELETE);
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}

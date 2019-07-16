@@ -78,6 +78,11 @@ struct Parser {
 	int read_finished;
 };
 
+struct EditMergeParams {
+	struct Parser *subparser;
+	enum ParserMergeBehavior settings;
+};
+
 #define INBUF_SIZE 131072
 
 static size_t consume_comment(const char *);
@@ -1658,4 +1663,11 @@ parser_lookup_variable_str(struct Parser *parser, const char *name, char **retva
 	array_free(tokens);
 
 	return 1;
+}
+
+enum ParserError
+parser_merge(struct Parser *parser, struct Parser *subparser, enum ParserMergeBehavior settings)
+{
+	struct EditMergeParams params = { subparser, settings };
+	return parser_edit(parser, edit_merge, &params);
 }

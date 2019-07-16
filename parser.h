@@ -42,6 +42,11 @@ enum ParserBehavior {
 	PARSER_UNSORTED_VARIABLES = 2048,
 };
 
+enum ParserMergeBehavior{
+	PARSER_MERGE_DEFAULT = 0,
+	PARSER_MERGE_SHELL_IS_DELETE = 2,
+};
+
 enum ParserError {
 	PARSER_ERROR_OK = 0,
 	PARSER_ERROR_BUFFER_TOO_SMALL,
@@ -62,15 +67,9 @@ struct ParserSettings {
 	size_t wrapcol;
 };
 
-
 struct Array;
 struct Parser;
 struct Token;
-
-struct EditMergeParams {
-	struct Parser *subparser;
-	int shell_is_delete;
-};
 
 typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, enum ParserError *, const void *);
 
@@ -89,6 +88,7 @@ int parser_lookup_variable(struct Parser *, const char *, struct Array **, struc
 int parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
+enum ParserError parser_merge(struct Parser *, struct Parser *, enum ParserMergeBehavior);
 struct ParserSettings parser_settings(struct Parser *);
 
 struct Array *refactor_collapse_adjacent_variables(struct Parser *, struct Array *, enum ParserError *error, const void *);
