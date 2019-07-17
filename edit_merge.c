@@ -57,7 +57,7 @@ struct EditMergeParams {
 
 static void append_empty_line(struct Parser *, struct Array *, struct Range *);
 static void append_new_variable(struct Parser *, struct Array *, struct Variable *, struct Range *);
-static struct Token *find_next_variable(struct Array *, size_t);
+static struct Token *find_next_token(struct Array *, size_t, int);
 static struct Array *extract_tokens(struct Parser *, struct Array *, enum ParserError *, const void *);
 static struct Array *insert_variable(struct Parser *, struct Array *, enum ParserError *, const void *);
 static struct Array *merge_existent(struct Parser *, struct Array *, enum ParserError *, const void *);
@@ -135,11 +135,11 @@ append_new_variable(struct Parser *parser, struct Array *tokens, struct Variable
 }
 
 struct Token *
-find_next_variable(struct Array *tokens, size_t start)
+find_next_token(struct Array *tokens, size_t start, int type)
 {
 	for (size_t i = start; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		if (token_type(t) == VARIABLE_START) {
+		if (type & token_type(t)) {
 			return t;
 		}
 	}
@@ -192,8 +192,12 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 			if (block_before != varblock) {
 				append_empty_line(parser, tokens, token_lines(t));
 				append_new_variable(parser, tokens, var, token_lines(t));
+				struct Token *next = find_next_token(ptokens, i, CONDITIONAL_START | TARGET_START | VARIABLE_START);
+				if (next && token_type(next) != VARIABLE_START) {
+					append_empty_line(parser, tokens, token_lines(t));
+				}
 				if (token_type(t) == COMMENT && strcmp(token_data(t), "") == 0) {
-					struct Token *next = find_next_variable(ptokens, i);
+					next = find_next_token(ptokens, i, VARIABLE_START);
 					if (next) {
 						enum BlockType block_next = variable_order_block(variable_name(token_variable(next)));
 						if (block_next == varblock) {
@@ -202,6 +206,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 					} else {
 						continue;
 					}
+
 				}
 			} else {
 				append_new_variable(parser, tokens, var, token_lines(t));
