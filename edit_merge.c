@@ -191,17 +191,21 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 			array_append(tokens, t);
 		}
 		if (!added) {
-			struct Range lines = { 0, 1 };
-			append_new_variable(parser, tokens, var, &lines);
+			struct Range *lines = &(struct Range){ 0, 1 };
+			if (array_len(ptokens) > 0) {
+				lines = token_lines(array_get(ptokens, array_len(ptokens) - 1));
+			}
+			append_new_variable(parser, tokens, var, lines);
 		}
 		return tokens;
 	}
 
-	assert(insert_after > 0);
+	assert(insert_after > -1);
 	assert(insert_after < ptokenslen);
 
 	struct Array *tokens = array_new(sizeof(struct Token *));
 	int insert_flag = 0;
+	int added = 0;
 	for (ssize_t i = 0; i < ptokenslen; i++) {
 		struct Token *t = array_get(ptokens, i);
 		if (insert_flag) {
@@ -209,6 +213,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 			if (block_before != varblock) {
 				append_empty_line(parser, tokens, token_lines(t));
 				append_new_variable(parser, tokens, var, token_lines(t));
+				added = 1;
 				struct Token *next = find_next_token(ptokens, i, CONDITIONAL_START | TARGET_START | VARIABLE_START);
 				if (next && token_type(next) != VARIABLE_START) {
 					append_empty_line(parser, tokens, token_lines(t));
@@ -227,12 +232,24 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 				}
 			} else {
 				append_new_variable(parser, tokens, var, token_lines(t));
+				added = 1;
 			}
 		} else if (token_type(t) == VARIABLE_END && insert_after == i) {
 			insert_flag = 1;
 		}
 
 		array_append(tokens, t);
+	}
+
+	if (!added) {
+		struct Range *lines = &(struct Range){ 0, 1 };
+		if (array_len(ptokens) > 0) {
+			lines = token_lines(array_get(ptokens, array_len(ptokens) - 1));
+		}
+		if (block_before != varblock) {
+			append_empty_line(parser, tokens, lines);
+		}
+		append_new_variable(parser, tokens, var, lines);
 	}
 
 	return tokens;
