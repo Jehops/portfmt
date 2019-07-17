@@ -1,0 +1,3 @@
+PLIST_FILES=	bin/cloak
+
+.include <bsd.port.mk>
