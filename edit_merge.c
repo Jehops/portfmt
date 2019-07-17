@@ -175,9 +175,26 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 	}
 
 	if (insert_after == -1) {
-		struct Range lines = {0, 1};
-		append_new_variable(parser, ptokens, var, &lines);
-		return NULL;
+		// No variable found where we could insert our new
+		// var.  Insert it before any conditional or target
+		// if there are any.
+		struct Array *tokens = array_new(sizeof(struct Token *));
+		int added = 0;
+		for (ssize_t i = 0; i < ptokenslen; i++) {
+			struct Token *t = array_get(ptokens, i);
+			if (!added && (token_type(t) == CONDITIONAL_START ||
+				       token_type(t) == TARGET_START)) {
+				append_new_variable(parser, tokens, var, token_lines(t));
+				append_empty_line(parser, tokens, token_lines(t));
+				added = 1;
+			}
+			array_append(tokens, t);
+		}
+		if (!added) {
+			struct Range lines = { 0, 1 };
+			append_new_variable(parser, tokens, var, &lines);
+		}
+		return tokens;
 	}
 
 	assert(insert_after > 0);
