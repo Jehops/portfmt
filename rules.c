@@ -828,6 +828,7 @@ static const char *leave_unsorted_[] = {
 
 // Don't indent with the rest of the variables in a paragraph
 static const char *skip_goalcol_[] = {
+	"CARGO_CRATES",
 	"CMAKE_BUILD_TYPE",
 	"CMAKE_INSTALL_PREFIX",
 	"CMAKE_SOURCE_PATH",
@@ -926,6 +927,7 @@ static const char *skip_goalcol_[] = {
 	"RUBY_NO_BUILD_DEPENDS",
 	"RUBY_NO_RUN_DEPENDS",
 	"RUBY_REQUIRE",
+	"USE_CABAL",
 	"USE_GENERIC_PKGMESSAGE",
 	"USE_LINUX_RPM_BAD_PERMS",
 	"USE_OCAML_CAMLP4",
