@@ -94,7 +94,6 @@ static int is_empty_line(const char *);
 static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
 static enum ParserError parser_output_dump_tokens(struct Parser *);
-static enum ParserError parser_output_edited(struct Parser *);
 static enum ParserError parser_output_prepare(struct Parser *);
 static void parser_output_print_rawlines(struct Parser *, struct Range *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
@@ -794,8 +793,10 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	if (!(parser->settings.behavior & PARSER_FORMAT_TARGET_COMMANDS) ||
 	    complexity > parser->settings.target_command_format_threshold) {
 		struct Token *t = array_get(tokens, 0);
-		parser_output_print_rawlines(parser, token_lines(t));
-		goto cleanup;
+		if (array_find(parser->edited, t, NULL) == -1) {
+			parser_output_print_rawlines(parser, token_lines(t));
+			goto cleanup;
+		}
 	}
 
 	parser_enqueue_output(parser, startlv1);
@@ -845,77 +846,10 @@ parser_output_prepare(struct Parser *parser)
 	} else if (parser->settings.behavior & PARSER_OUTPUT_RAWLINES) {
 		/* no-op */
 	} else if (parser->settings.behavior & PARSER_OUTPUT_EDITED) {
-		parser_output_edited(parser);
+		parser_output_reformatted(parser);
 	} else if (parser->settings.behavior & PARSER_OUTPUT_REFORMAT) {
 		parser_output_reformatted(parser);
 	}
-
-	return parser->error;
-}
-
-enum ParserError
-parser_output_edited(struct Parser *parser)
-{
-	parser_find_goalcols(parser);
-	if (parser->error != PARSER_ERROR_OK) {
-		return parser->error;
-	}
-
-	struct Array *variable_arr = array_new(sizeof(struct Token *));
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *o = array_get(parser->tokens, i);
-		switch (token_type(o)) {
-		case CONDITIONAL_END:
-			parser_output_print_rawlines(parser, token_lines(o));
-			break;
-		case CONDITIONAL_START:
-		case CONDITIONAL_TOKEN:
-			break;
-		case VARIABLE_END:
-			if (array_len(variable_arr) == 0) {
-				char *var = variable_tostring(token_variable(o));
-				parser_enqueue_output(parser, var);
-				free(var);
-				parser_enqueue_output(parser, "\n");
-				array_truncate(variable_arr);
-			} else {
-				variable_arr = parser_output_reformatted_helper(parser, variable_arr);
-			}
-			break;
-		case VARIABLE_START:
-			array_truncate(variable_arr);
-			break;
-		case VARIABLE_TOKEN:
-			array_append(variable_arr, o);
-			break;
-		case TARGET_COMMAND_END:
-			parser_output_print_rawlines(parser, token_lines(o));
-			break;
-		case TARGET_COMMAND_START:
-		case TARGET_COMMAND_TOKEN:
-		case TARGET_END:
-			break;
-		case COMMENT:
-			variable_arr = parser_output_reformatted_helper(parser, variable_arr);
-			if (array_find(parser->edited, o, NULL) == -1) {
-				parser_output_print_rawlines(parser, token_lines(o));
-			} else {
-				parser_enqueue_output(parser, token_data(o));
-				parser_enqueue_output(parser, "\n");
-			}
-			break;
-		case TARGET_START:
-			variable_arr = parser_output_reformatted_helper(parser, variable_arr);
-			parser_output_print_rawlines(parser, token_lines(o));
-			break;
-		default:
-			parser->error = PARSER_ERROR_UNHANDLED_TOKEN_TYPE;
-			goto cleanup;
-		}
-	}
-	variable_arr = parser_output_reformatted_helper(parser, variable_arr);
-cleanup:
-	array_free(variable_arr);
 
 	return parser->error;
 }
@@ -1045,6 +979,42 @@ cleanup:
 	return arr;
 }
 
+static void
+parser_output_edited_insert_empty(struct Parser *parser, struct Token *prev)
+{
+	switch (token_type(prev)) {
+	case CONDITIONAL_END: {
+		enum ConditionalType type = conditional_type(token_conditional(prev));
+		switch (type) {
+		case COND_ENDFOR:
+		case COND_ENDIF:
+		case COND_ERROR:
+		case COND_EXPORT_ENV:
+		case COND_EXPORT_LITERAL:
+		case COND_EXPORT:
+		case COND_INCLUDE_POSIX:
+		case COND_INCLUDE:
+		case COND_SINCLUDE:
+		case COND_UNDEF:
+		case COND_UNEXPORT_ENV:
+		case COND_UNEXPORT:
+		case COND_WARNING:
+			parser_enqueue_output(parser, "\n");
+			break;
+		default:
+			break;
+		}
+		break;
+	} case COMMENT:
+	case TARGET_COMMAND_END:
+	case TARGET_END:
+		break;
+	default:
+		parser_enqueue_output(parser, "\n");
+		break;
+	}
+}
+
 enum ParserError
 parser_output_reformatted(struct Parser *parser)
 {
@@ -1055,14 +1025,28 @@ parser_output_reformatted(struct Parser *parser)
 
 	struct Array *target_arr = array_new(sizeof(struct Token *));
 	struct Array *variable_arr = array_new(sizeof(struct Token *));
+	struct Token *prev = NULL;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
+		int edited = array_find(parser->edited, o, NULL) != -1;
 		switch (token_type(o)) {
 		case CONDITIONAL_END:
-			parser_output_print_rawlines(parser, token_lines(o));
+			if (edited) {
+				parser_enqueue_output(parser, "\n");
+			} else {
+				parser_output_print_rawlines(parser, token_lines(o));
+			}
 			break;
 		case CONDITIONAL_START:
+			if (edited && prev) {
+				parser_output_edited_insert_empty(parser, prev);
+			}
+			break;
 		case CONDITIONAL_TOKEN:
+			if (edited) {
+				parser_enqueue_output(parser, token_data(o));
+				parser_enqueue_output(parser, " ");
+			}
 			break;
 		case VARIABLE_END:
 			if (array_len(variable_arr) == 0) {
@@ -1095,16 +1079,24 @@ parser_output_reformatted(struct Parser *parser)
 			break;
 		case COMMENT:
 			variable_arr = parser_output_reformatted_helper(parser, variable_arr);
-			if (array_find(parser->edited, o, NULL) == -1) {
-				parser_output_print_rawlines(parser, token_lines(o));
-			} else {
+			if (edited) {
 				parser_enqueue_output(parser, token_data(o));
 				parser_enqueue_output(parser, "\n");
+			} else {
+				parser_output_print_rawlines(parser, token_lines(o));
 			}
 			break;
 		case TARGET_START:
 			variable_arr = parser_output_reformatted_helper(parser, variable_arr);
-			parser_output_print_rawlines(parser, token_lines(o));
+			if (edited) {
+				if (prev) {
+					parser_output_edited_insert_empty(parser, prev);
+				}
+				parser_enqueue_output(parser, token_data(o));
+				parser_enqueue_output(parser, "\n");
+			} else {
+				parser_output_print_rawlines(parser, token_lines(o));
+			}
 			break;
 		default:
 			parser->error = PARSER_ERROR_UNHANDLED_TOKEN_TYPE;
@@ -1113,6 +1105,7 @@ parser_output_reformatted(struct Parser *parser)
 		if (parser->error != PARSER_ERROR_OK) {
 			goto cleanup;
 		}
+		prev = o;
 	}
 	if (array_len(target_arr) > 0) {
 		print_token_array(parser, target_arr);
