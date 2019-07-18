@@ -47,6 +47,7 @@
 
 struct MergeParameter {
 	struct Variable *var;
+	struct Array *comments;
 	struct Array *values;
 };
 
@@ -59,6 +60,7 @@ static void append_empty_line(struct Parser *, struct Array *, struct Range *);
 static void append_new_variable(struct Parser *, struct Array *, struct Variable *, struct Range *);
 static struct Token *find_next_token(struct Array *, size_t, int);
 static struct Array *extract_tokens(struct Parser *, struct Array *, enum ParserError *, const void *);
+static void append_comments(struct Parser *, struct Array *, struct Array *);
 static struct Array *insert_variable(struct Parser *, struct Array *, enum ParserError *, const void *);
 static struct Array *merge_existent(struct Parser *, struct Array *, enum ParserError *, const void *);
 static void append_values(struct Parser *, struct Array *, enum VariableModifier, const struct MergeParameter *);
@@ -114,6 +116,18 @@ assign_values(struct Parser *parser, struct Array *tokens, enum VariableModifier
 		}
 	}
 }
+
+void
+append_comments(struct Parser *parser, struct Array *tokens, struct Array *comments)
+{
+	for (size_t i = 0; i < array_len(comments); i++) {
+		struct Token *c = token_clone(array_get(comments, i), NULL);
+		array_append(tokens, c);
+		parser_mark_edited(parser, c);
+	}
+	array_truncate(comments);
+}
+
 
 void
 append_empty_line(struct Parser *parser, struct Array *tokens, struct Range *lines)
@@ -270,8 +284,10 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 			if (variable_cmp(params->var, token_variable(t)) == 0) {
 				found = 1;
 				if (mod == MODIFIER_ASSIGN) {
+					append_comments(parser, tokens, params->comments);
 					assign_values(parser, tokens, variable_modifier(token_variable(t)), params);
 				} else if (mod == MODIFIER_APPEND) {
+					append_comments(parser, tokens, params->comments);
 					array_append(tokens, t);
 					parser_mark_edited(parser, t);
 				} else if (mod == MODIFIER_SHELL) {
@@ -315,6 +331,8 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 		}
 	}
 
+	append_comments(parser, tokens, params->comments);
+
 	return tokens;
 }
 
@@ -333,6 +351,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 	struct Variable *var = NULL;
 	int merge = 0;
 	struct Array *mergetokens = array_new(sizeof(struct Token *));
+	struct Array *comments = array_new(sizeof(struct Token *));
 	for (size_t i = 0; i < array_len(subtokens); i++) {
 		struct Token *t = array_get(subtokens, i);
 		switch (token_type(t)) {
@@ -371,16 +390,24 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 				array_append(mergetokens, t);
 				struct MergeParameter params;
 				params.var = var;
+				params.comments = comments;
 				params.values = mergetokens;
 				*error = parser_edit(parser, merge_existent, &params);
 				if (*error != PARSER_ERROR_OK) {
 					goto cleanup;
 				}
 				parser_edit(parser, extract_tokens, &ptokens);
+				array_truncate(comments);
 			}
 			var = NULL;
 			merge = 0;
 			array_truncate(mergetokens);
+			break;
+		case COMMENT:
+			if ((params->behavior & PARSER_MERGE_COMMENTS) &&
+			    (array_len(comments) > 0 || strcmp(token_data(t), "") != 0)) {
+				array_append(comments, t);
+			}
 			break;
 		default:
 			break;
@@ -388,6 +415,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 	}
 
 cleanup:
+	array_free(comments);
 	array_free(mergetokens);
 	return NULL;
 }

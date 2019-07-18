@@ -44,7 +44,8 @@ enum ParserBehavior {
 
 enum ParserMergeBehavior{
 	PARSER_MERGE_DEFAULT = 0,
-	PARSER_MERGE_SHELL_IS_DELETE = 2,
+	PARSER_MERGE_COMMENTS = 2,
+	PARSER_MERGE_SHELL_IS_DELETE = 4,
 };
 
 enum ParserError {
