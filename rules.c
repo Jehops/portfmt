@@ -2859,7 +2859,6 @@ rules_init()
 	}
 
 	for (size_t i = 0; i < nitems(regular_expressions); i++) {
-		char *buf = NULL;
 		const char *pattern;
 		pattern = regular_expressions[i].pattern;
 
@@ -2870,10 +2869,6 @@ rules_init()
 			char *errbuf = xmalloc(errbuflen);
 			regerror(error, &regular_expressions[i].re, errbuf, errbuflen);
 			errx(1, "regcomp: %zu: %s", i, errbuf);
-		}
-
-		if (buf) {
-			free(buf);
 		}
 	}
 
