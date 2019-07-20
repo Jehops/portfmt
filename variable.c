@@ -48,44 +48,43 @@ struct Variable {
 struct Variable *
 variable_new(const char *buf)
 {
-	struct Variable *var = NULL;
+	size_t len = strlen(buf);
 
-	struct Regexp *re = regexp_new(regex(RE_MODIFIER));
-	if (regexp_exec(re, buf) != 0) {
-		regexp_free(re);
+	if (len < 2) {
+		return NULL;
+	}
+	if (buf[len - 1] != '=') {
 		return NULL;
 	}
 
-	char *tmp = str_substr_dup(buf, 0, regexp_start(re, 0));
-	char *var_name = str_trim(tmp);
+	enum VariableModifier mod = MODIFIER_ASSIGN;
+	size_t i = 2;
+	switch (buf[len - 2]) {
+	case ':':
+		mod = MODIFIER_EXPAND;
+		break;
+	case '!':
+		mod = MODIFIER_SHELL;
+		break;
+	case '?':
+		mod = MODIFIER_OPTIONAL;
+		break;
+	case '+':
+		mod = MODIFIER_APPEND;
+		break;
+	default:
+		i = 1;
+		break;
+	}
+
+	char *tmp = str_substr_dup(buf, 0, strlen(buf) - i);
+	char *name = str_trim(tmp);
+	assert(strcmp(name, "") != 0);
 	free(tmp);
 
-	enum VariableModifier var_modifier;
-	char *modifier = regexp_substr(re, 0);
-	if (strcmp(modifier, "+=") == 0) {
-		var_modifier = MODIFIER_APPEND;
-	} else if (strcmp(modifier, "=") == 0) {
-		var_modifier = MODIFIER_ASSIGN;
-	} else if (strcmp(modifier, ":=") == 0) {
-		var_modifier = MODIFIER_EXPAND;
-	} else if (strcmp(modifier, "?=") == 0) {
-		var_modifier = MODIFIER_OPTIONAL;
-	} else if (strcmp(modifier, "!=") == 0) {
-		var_modifier = MODIFIER_SHELL;
-	} else {
-		goto cleanup;
-	}
-
-	var = xmalloc(sizeof(struct Variable));
-	var->modifier = var_modifier;
-	var->name = var_name;
-
-cleanup:
-	free(modifier);
-	regexp_free(re);
-	if (var == NULL) {
-		free(var_name);
-	}
+	struct Variable *var = xmalloc(sizeof(struct Variable));
+	var->modifier = mod;
+	var->name = name;
 
 	return var;
 }
