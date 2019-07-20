@@ -90,6 +90,7 @@ static size_t consume_conditional(const char *);
 static size_t consume_target(const char *);
 static size_t consume_token(struct Parser *, const char *, size_t, char, char, int);
 static size_t consume_var(const char *);
+static int is_empty_line(const char *);
 static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
 static enum ParserError parser_output_dump_tokens(struct Parser *);
@@ -214,6 +215,19 @@ consume_var(const char *buf)
 	}
 	regexp_free(re);
 	return pos;
+}
+
+int
+is_empty_line(const char *buf)
+{
+	for (const char *p = buf; *p != 0; p++) {
+		if (!isspace(*p)) {
+			return 0;
+		}
+		p++;
+	}
+
+	return 1;
 }
 
 char *
@@ -1324,7 +1338,7 @@ parser_read_internal(struct Parser *parser)
 	if (pos > 0) {
 		parser_append_token(parser, COMMENT, buf);
 		goto next;
-	} else if (matches(RE_EMPTY_LINE, buf)) {
+	} else if (is_empty_line(buf)) {
 		parser_append_token(parser, COMMENT, buf);
 		goto next;
 	}
