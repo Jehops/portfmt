@@ -224,7 +224,6 @@ is_empty_line(const char *buf)
 		if (!isspace(*p)) {
 			return 0;
 		}
-		p++;
 	}
 
 	return 1;
