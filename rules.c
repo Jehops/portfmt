@@ -52,8 +52,8 @@ static int compare_license_perms(struct Variable *, const char *, const char *, 
 static int compare_plist_files(struct Variable *, const char *, const char *, int *);
 static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
+static int is_options_helper(const char *, char **, char **);
 static char *flavors_helpers_pattern(void);
-static char *options_helpers_pattern(void);
 
 static struct {
 	const char *pattern;
@@ -79,7 +79,6 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_OPTIONS_GROUP]    = { "^_?OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_([-_[:upper:][:digit:]]+)",
 				  REG_EXTENDED, {} },
-	[RE_OPTIONS_HELPER]   = { "generated in compile_regular_expressions", REG_EXTENDED, {} },
 	[RE_OPT_USE_PREFIX]   = { "^([-_[:upper:][:lower:][:digit:]]+)\\+?=", REG_EXTENDED, {} },
 	[RE_OPT_USE]	      = { "^([-_[:upper:][:digit:]]+)_USE$",	      REG_EXTENDED, {} },
 	[RE_OPT_VARS]	      = { "^([-_[:upper:][:digit:]]+)_VARS$",	      REG_EXTENDED, {} },
@@ -2117,7 +2116,7 @@ ignore_wrap_col(struct Variable *var)
 		}
 	}
 
-	if (matches(RE_OPTIONS_HELPER, variable_name(var))) {
+	if (is_options_helper(variable_name(var), NULL, NULL)) {
 		for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
 			if (str_endswith(variable_name(var), ignore_wrap_col_[i])) {
 				return 1;
@@ -2206,7 +2205,7 @@ leave_unsorted(struct Variable *var)
 		return 1;
 	}
 
-	if (matches(RE_OPTIONS_HELPER, variable_name(var))) {
+	if (is_options_helper(variable_name(var), NULL, NULL)) {
 		for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
 			if (str_endswith(variable_name(var), leave_unsorted_[i])) {
 				return 1;
@@ -2250,7 +2249,7 @@ print_as_newlines(struct Variable *var)
 		}
 	}
 
-	if (matches(RE_OPTIONS_HELPER, variable_name(var))) {
+	if (is_options_helper(variable_name(var), NULL, NULL)) {
 		for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
 			if (str_endswith(variable_name(var), print_as_newlines_[i])) {
 				return 1;
@@ -2398,6 +2397,53 @@ compare_use_qt(struct Variable *var, const char *a, const char *b, int *result)
 	return 1;
 }
 
+int
+is_options_helper(const char *var, char **prefix, char **helper)
+{
+	const char *suffix = NULL;
+	if (str_endswith(var, "DESC")) {
+		suffix = "DESC";
+	} else {
+		for (size_t i = 0; i < nitems(variable_order_); i++) {
+			if (variable_order_[i].block != BLOCK_OPTHELPER) {
+				continue;
+			}
+			const char *helper = variable_order_[i].var;
+			if (str_endswith(var, helper)) {
+				suffix = helper;
+				break;
+			}
+		}
+	}
+	if (suffix == NULL) {
+		return 0;
+	}
+
+	// ^[-_[:upper:][:digit:]]+_
+	size_t len = strlen(var) - strlen(suffix);
+	if (len == 0) {
+		return 0;
+	}
+	if (var[len - 1] != '_') {
+		return 0;
+	}
+	for (size_t i = 0; i < len; i++) {
+		char c = var[i];
+		if (c != '-' && c != '_' && !isupper(c) && !isdigit(c)) {
+			return 0;
+		}
+	}
+
+	if (prefix) {
+		*prefix = xstrndup(var, len);
+	}
+	if (helper) {
+		*helper = xstrdup(suffix);
+	}
+
+	return 1;
+}
+
 enum BlockType
 variable_order_block(const char *var)
 {
@@ -2424,7 +2470,7 @@ variable_order_block(const char *var)
 		return BLOCK_FLAVORS_HELPER;
 	}
 
-	if (matches(RE_OPTIONS_HELPER, var)) {
+	if (is_options_helper(var, NULL, NULL)) {
 		if (str_endswith(var, "_DESC")) {
 			return BLOCK_OPTDESC;
 		} else {
@@ -2548,19 +2594,16 @@ compare_order(const void *ap, const void *bp)
 		int ascore = -1;
 		int bscore = -1;
 
-		struct Regexp *are = regexp_new(regex(RE_OPTIONS_HELPER));
-		if (regexp_exec(are, a) != 0) {
+		char *ahelper = NULL;
+		char *aprefix = NULL;
+		char *bhelper = NULL;
+		char *bprefix = NULL;
+		if (!is_options_helper(a, &aprefix, &ahelper) ||
+		    !is_options_helper(b, &bprefix, &bhelper)) {
 			abort();
 		}
-		char *aprefix = regexp_substr(are, 1);
-		char *ahelper = regexp_substr(are, 2);
-
-		struct Regexp *bre = regexp_new(regex(RE_OPTIONS_HELPER));
-		if (regexp_exec(bre, b) != 0) {
-			abort();
-		}
-		char *bprefix = regexp_substr(bre, 1);
-		char *bhelper = regexp_substr(bre, 2);
+		assert(ahelper != NULL && aprefix != NULL);
+		assert(bhelper != NULL && bprefix != NULL);
 
 		// Only compare if common prefix (helper for the same option)
 		if (strcmp(aprefix, bprefix) == 0) {
@@ -2581,8 +2624,6 @@ compare_order(const void *ap, const void *bp)
 		free(ahelper);
 		free(bprefix);
 		free(bhelper);
-		regexp_free(are);
-		regexp_free(bre);
 
 		if (ascore < bscore) {
 			return -1;
@@ -2756,37 +2797,6 @@ flavors_helpers_pattern()
 	return buf;
 }
 
-char *
-options_helpers_pattern()
-{
-	const char *re_start = "^([-_[:upper:][:digit:]]+)_(";
-	const char *re_end = "DESC)$";
-
-	size_t len = strlen(re_start);
-	for (size_t i = 0; i < nitems(variable_order_); i++) {
-		if (variable_order_[i].block != BLOCK_OPTHELPER) {
-			continue;
-		}
-		const char *helper = variable_order_[i].var;
-		len += strlen(helper) + strlen("|");
-	}
-	len += strlen(re_end) + 1;
-
-	char *buf = xmalloc(len);
-	xstrlcat(buf, re_start, len);
-	for (size_t i = 0; i < nitems(variable_order_); i++) {
-		if (variable_order_[i].block != BLOCK_OPTHELPER) {
-			continue;
-		}
-		const char *helper = variable_order_[i].var;
-		xstrlcat(buf, helper, len);
-		xstrlcat(buf, "|", len);
-	}
-	xstrlcat(buf, re_end, len);
-
-	return buf;
-}
-
 int
 target_command_should_wrap(char *word)
 {
@@ -2846,10 +2856,6 @@ rules_init()
 		char *buf = NULL;
 		const char *pattern;
 		switch (i) {
-		case RE_OPTIONS_HELPER:
-			buf = options_helpers_pattern();
-			pattern = buf;
-			break;
 		case RE_FLAVORS_HELPER:
 			buf = flavors_helpers_pattern();
 			pattern = buf;
