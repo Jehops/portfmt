@@ -908,10 +908,17 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 	struct Token *t = array_get(arr, 0);
 	assert(token_type(t) == VARIABLE_TOKEN);
 	int opt_use = 0;
-	if (matches(RE_OPT_USE, variable_name(token_variable(t)))) {
-		opt_use = 1;
-	} else if (matches(RE_OPT_VARS, variable_name(token_variable(t)))) {
-		opt_use = 0;
+	char *helper = NULL;
+	if (is_options_helper(variable_name(token_variable(t)), NULL, &helper)) {
+		if (strcmp(helper, "USE") == 0) {
+			opt_use = 1;
+		} else if (strcmp(helper, "VARS") == 0) {
+			opt_use = 0;
+		} else {
+			free(helper);
+			return arr;
+		}
+		free(helper);
 	} else {
 		return arr;
 	}

@@ -53,7 +53,6 @@ static int compare_plist_files(struct Variable *, const char *, const char *, in
 static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static int is_flavors_helper(const char *, char **, char **);
-static int is_options_helper(const char *, char **, char **);
 
 static struct {
 	const char *pattern;
@@ -79,8 +78,6 @@ static struct {
 	[RE_OPTIONS_GROUP]    = { "^_?OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_([-_[:upper:][:digit:]]+)",
 				  REG_EXTENDED, {} },
 	[RE_OPT_USE_PREFIX]   = { "^([-_[:upper:][:lower:][:digit:]]+)\\+?=", REG_EXTENDED, {} },
-	[RE_OPT_USE]	      = { "^([-_[:upper:][:digit:]]+)_USE$",	      REG_EXTENDED, {} },
-	[RE_OPT_VARS]	      = { "^([-_[:upper:][:digit:]]+)_VARS$",	      REG_EXTENDED, {} },
 	[RE_PLIST_FILES]      = { "^(([-_[:upper:][:digit:]]+)_PLIST_DIRS|"
 				  "([-_[:upper:][:digit:]]+)_PLIST_FILES|"
 				  "PLIST_FILES|PLIST_DIRS)",

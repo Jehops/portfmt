@@ -78,8 +78,6 @@ enum RegularExpression {
 	RE_LICENSE_PERMS,
 	RE_OPTIONS_GROUP,
 	RE_OPT_USE_PREFIX,
-	RE_OPT_USE,
-	RE_OPT_VARS,
 	RE_PLIST_FILES,
 	RE_PLIST_KEYWORDS,
 	RE_MODIFIER,
@@ -98,6 +96,7 @@ int ignore_wrap_col(struct Variable *);
 int indent_goalcol(struct Variable *);
 int is_comment(struct Token *);
 int is_include_bsd_port_mk(struct Token *);
+int is_options_helper(const char *, char **, char **);
 int leave_unsorted(struct Variable *);
 regex_t *regex(enum RegularExpression);
 int matches(enum RegularExpression, const char *);
