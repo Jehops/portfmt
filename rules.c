@@ -78,10 +78,6 @@ static struct {
 	[RE_OPTIONS_GROUP]    = { "^_?OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_([-_[:upper:][:digit:]]+)",
 				  REG_EXTENDED, {} },
 	[RE_OPT_USE_PREFIX]   = { "^([-_[:upper:][:lower:][:digit:]]+)\\+?=", REG_EXTENDED, {} },
-	[RE_PLIST_FILES]      = { "^(([-_[:upper:][:digit:]]+)_PLIST_DIRS|"
-				  "([-_[:upper:][:digit:]]+)_PLIST_FILES|"
-				  "PLIST_FILES|PLIST_DIRS)",
-				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 	[RE_MODIFIER]	      = { "[:!?+]?=$",				      REG_EXTENDED, {} },
 	[RE_TARGET] 	      = { "^[^:]+::?",				      REG_EXTENDED, {} },
@@ -2353,7 +2349,18 @@ compare_plist_files(struct Variable *var, const char *a, const char *b, int *res
 {
 	assert(result != NULL);
 
-	if (!matches(RE_PLIST_FILES, variable_name(var))) {
+	char *helper = NULL;
+	if (is_options_helper(variable_name(var), NULL, &helper)) {
+		if (strcmp(helper, "PLIST_FILES_OFF") != 0 &&
+		    strcmp(helper, "PLIST_FILES") != 0 &&
+		    strcmp(helper, "PLIST_DIRS_OFF") != 0 &&
+		    strcmp(helper, "PLIST_DIRS") != 0) {
+			free(helper);
+			return 0;
+		}
+		free(helper);
+	} else if (strcmp(variable_name(var), "PLIST_FILES") != 0 &&
+	    strcmp(variable_name(var), "PLIST_DIRS") != 0) {
 		return 0;
 	}
 
