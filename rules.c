@@ -1483,6 +1483,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_USES, "WX_PREMK" },
 	{ BLOCK_USES, "USE_XFCE" },
 	{ BLOCK_USES, "USE_XORG" },
+	{ BLOCK_USES, "XORG_CAT" },
 
 	{ BLOCK_SHEBANGFIX, "SHEBANG_FILES" },
 	{ BLOCK_SHEBANGFIX, "SHEBANG_GLOB" },
