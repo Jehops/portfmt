@@ -753,6 +753,7 @@ static const char *leave_unsorted_[] = {
 	"PASTE",
 	"PATCH_ARGS",
 	"PATCH_DIST_ARGS",
+	"PATCHFILES",
 	"PAX",
 	"PKG_ADD",
 	"PKG_BIN",
