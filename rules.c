@@ -88,12 +88,9 @@ static const char *print_as_newlines_[] = {
 	"CARGO_CRATES",
 	"CARGO_ENV",
 	"CMAKE_ARGS",
-	"CMAKE_BOOL",
 	"CO_ENV",
 	"CONFIGURE_ARGS",
 	"CONFIGURE_ENV",
-	"CONFIGURE_OFF",
-	"CONFIGURE_ON",
 	"D4P_ENV",
 	"DESKTOP_ENTRIES",
 	"DEV_ERROR",
@@ -115,6 +112,8 @@ static const char *print_as_newlines_[] = {
 	"MESON_ARGS",
 	"MOZ_OPTIONS",
 	"PATCH_DEPENDS",
+	"PATCH_SITES",
+	"PATCHFILES",
 	"PKG_DEPENDS",
 	"PKG_ENV",
 	"PLIST_FILES",
@@ -126,6 +125,61 @@ static const char *print_as_newlines_[] = {
 	"TEST_ARGS",
 	"TEST_DEPENDS",
 	"USE_CABAL",
+};
+
+static const char *print_as_newlines_opthelpers_[] = {
+	"BUILD_DEPENDS_OFF",
+	"BUILD_DEPENDS",
+	"CMAKE_BOOL_OFF",
+	"CMAKE_BOOL",
+	"CONFIGURE_ENV_OFF",
+	"CONFIGURE_ENV",
+	"CONFIGURE_OFF",
+	"CONFIGURE_ON",
+	"DESKTOP_ENTRIES_OFF",
+	"DESKTOP_ENTRIES",
+	"DISTFILES_OFF",
+	"DISTFILES",
+	"EXTRACT_DEPENDS_OFF",
+	"EXTRACT_DEPENDS",
+	"FETCH_DEPENDS_OFF",
+	"FETCH_DEPENDS",
+	"GH_TUPLE_OFF",
+	"GH_TUPLE",
+	"LIB_DEPENDS_OFF",
+	"LIB_DEPENDS",
+	"MAKE_ARGS_OFF",
+	"MAKE_ARGS",
+	"MAKE_ENV_OFF",
+	"MASTER_SITES_OFF",
+	"MASTER_SITES",
+	"PATCH_DEPENDS_OFF",
+	"PATCH_DEPENDS",
+	"PATCH_SITES_OFF",
+	"PATCH_SITES",
+	"PATCHFILES_OFF",
+	"PATCHFILES",
+	"PKG_DEPENDS_OFF",
+	"PKG_DEPENDS",
+	"PLIST_FILES_OFF",
+	"PLIST_FILES",
+	"PLIST_SUB_OFF",
+	"PLIST_SUB",
+	"RUN_DEPENDS_OFF",
+	"RUN_DEPENDS",
+	"SUB_FILES_OFF",
+	"SUB_FILES",
+	"SUB_LIST_OFF",
+	"SUB_LIST",
+	"TEST_ARGS_OFF",
+	"TEST_ARGS",
+	"TEST_DEPENDS_OFF",
+	"TEST_DEPENDS",
+	"USE_CABAL_OFF",
+	"USE_CABAL",
+	"USE_OFF",
+	"USE",
+	"VARS_OFF",
 	"VARS",
 };
 
@@ -607,7 +661,6 @@ static const char *leave_unsorted_[] = {
 	"DEBUG_MSG",
 	"DEPENDS-LIST",
 	"DEPRECATED",
-	"DESC",
 	"DESKTOP_ENTRIES",
 	"DIALOG",
 	"DIALOG4PORTS",
@@ -816,6 +869,22 @@ static const char *leave_unsorted_[] = {
 	"YACC",
 };
 
+static const char *leave_unsorted_opthelpers_[] = {
+	"DESC",
+	"DESKTOP_ENTRIES_OFF",
+	"DESKTOP_ENTRIES",
+	"EXTRA_PATCHES_OFF",
+	"EXTRA_PATCHES",
+	"GH_TUPLE_OFF",
+	"GH_TUPLE",
+	"MASTER_SITES_OFF",
+	"MASTER_SITES",
+	"PATCH_SITES_OFF",
+	"PATCH_SITES",
+	"PATCHFILES_OFF",
+	"PATCHFILES",
+};
+
 // Don't indent with the rest of the variables in a paragraph
 static const char *skip_goalcol_[] = {
 	"CARGO_CRATES",
@@ -1011,7 +1080,6 @@ static const char *ignore_wrap_col_[] = {
 	"BROKEN",
 	"CARGO_CARGO_RUN",
 	"COMMENT",
-	"DESC",
 	"DEV_ERROR",
 	"DEV_WARNING",
 	"DISTFILES",
@@ -1087,6 +1155,20 @@ static const char *ignore_wrap_col_[] = {
 	"NO_CDROM",
 	"NO_PACKAGE",
 	"RESTRICTED",
+};
+
+static const char *ignore_wrap_col_opthelpers_[] = {
+	"BROKEN_OFF",
+	"BROKEN",
+	"DESC",
+	"DISTFILES_OFF",
+	"DISTFILES",
+	"GH_TUPLE_OFF",
+	"GH_TUPLE",
+	"IGNORE_OFF",
+	"IGNORE",
+	"MASTER_SITES_OFF",
+	"MASTER_SITES",
 };
 
 struct VariableOrderEntry {
@@ -2102,19 +2184,30 @@ ignore_wrap_col(struct Variable *var)
 		return 1;
 	}
 
-	for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
-		if (strcmp(variable_name(var), ignore_wrap_col_[i]) == 0) {
-			return 1;
-		}
-	}
-
-	if (is_options_helper(variable_name(var), NULL, NULL)) {
-		for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
-			if (str_endswith(variable_name(var), ignore_wrap_col_[i])) {
+	char *helper;
+	if (is_options_helper(variable_name(var), NULL, &helper)) {
+		for (size_t i = 0; i < nitems(ignore_wrap_col_opthelpers_); i++) {
+			if (strcmp(helper, ignore_wrap_col_opthelpers_[i]) == 0) {
+				free(helper);
 				return 1;
 			}
 		}
+		free(helper);
 	}
+
+	char *varname;
+	if (is_flavors_helper(variable_name(var), NULL, &helper)) {
+		varname = helper;
+	} else {
+		varname = xstrdup(variable_name(var));
+	}
+	for (size_t i = 0; i < nitems(ignore_wrap_col_); i++) {
+		if (strcmp(varname, ignore_wrap_col_[i]) == 0) {
+			free(varname);
+			return 1;
+		}
+	}
+	free(varname);
 
 	return 0;
 }
@@ -2181,11 +2274,30 @@ case_sensitive_sort(struct Variable *var)
 int
 leave_unsorted(struct Variable *var)
 {
+	char *helper;
+	if (is_options_helper(variable_name(var), NULL, &helper)) {
+		for (size_t i = 0; i < nitems(leave_unsorted_opthelpers_); i++) {
+			if (strcmp(helper, leave_unsorted_opthelpers_[i]) == 0) {
+				free(helper);
+				return 1;
+			}
+		}
+		free(helper);
+	}
+
+	char *varname;
+	if (is_flavors_helper(variable_name(var), NULL, &helper)) {
+		varname = helper;
+	} else {
+		varname = xstrdup(variable_name(var));
+	}
 	for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
-		if (strcmp(variable_name(var), leave_unsorted_[i]) == 0) {
+		if (strcmp(varname, leave_unsorted_[i]) == 0) {
+			free(varname);
 			return 1;
 		}
 	}
+	free(varname);
 
 	if (variable_modifier(var) == MODIFIER_SHELL ||
 	    str_endswith(variable_name(var), "_CMD") ||
@@ -2197,13 +2309,6 @@ leave_unsorted(struct Variable *var)
 		return 1;
 	}
 
-	if (is_options_helper(variable_name(var), NULL, NULL)) {
-		for (size_t i = 0; i < nitems(leave_unsorted_); i++) {
-			if (str_endswith(variable_name(var), leave_unsorted_[i])) {
-				return 1;
-			}
-		}
-	}
 
 	return 0;
 }
@@ -2235,19 +2340,31 @@ preserve_eol_comment(struct Token *t)
 int
 print_as_newlines(struct Variable *var)
 {
+	char *helper;
+	if (is_options_helper(variable_name(var), NULL, &helper)) {
+		for (size_t i = 0; i < nitems(print_as_newlines_opthelpers_); i++) {
+			if (strcmp(helper, print_as_newlines_opthelpers_[i]) == 0) {
+				free(helper);
+				return 1;
+			}
+		}
+		free(helper);
+	}
+
+	char *varname;
+	if (is_flavors_helper(variable_name(var), NULL, &helper)) {
+		varname = helper;
+	} else {
+		varname = xstrdup(variable_name(var));
+	}
 	for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
-		if (strcmp(variable_name(var), print_as_newlines_[i]) == 0) {
+		if (strcmp(varname, print_as_newlines_[i]) == 0) {
+			free(varname);
 			return 1;
 		}
 	}
 
-	if (is_options_helper(variable_name(var), NULL, NULL)) {
-		for (size_t i = 0; i < nitems(print_as_newlines_); i++) {
-			if (str_endswith(variable_name(var), print_as_newlines_[i])) {
-				return 1;
-			}
-		}
-	}
+	free(varname);
 
 	return 0;
 }
