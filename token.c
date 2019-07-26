@@ -201,6 +201,40 @@ token_type(struct Token *token)
 	return token->type;
 }
 
+const char *
+token_type_tostring(enum TokenType type)
+{
+	switch (type) {
+	case COMMENT:
+		return "comment";
+	case CONDITIONAL_END:
+		return "conditional end";
+	case CONDITIONAL_TOKEN:
+		return "conditional token";
+	case CONDITIONAL_START:
+		return "conditional start";
+	case TARGET_COMMAND_END:
+		return "target command end";
+	case TARGET_COMMAND_START:
+		return "target command start";
+	case TARGET_COMMAND_TOKEN:
+		return "command token";
+	case TARGET_END:
+		return "target end";
+	case TARGET_START:
+		return "target start";
+	case VARIABLE_END:
+		return "variable end";
+	case VARIABLE_START:
+		return "variable start";
+	case VARIABLE_TOKEN:
+		return "variable token";
+	}
+
+	// Never reached
+	abort();
+}
+
 struct Variable *
 token_variable(struct Token *token)
 {

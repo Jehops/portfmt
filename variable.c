@@ -79,7 +79,11 @@ variable_new(const char *buf)
 
 	char *tmp = str_substr_dup(buf, 0, strlen(buf) - i);
 	char *name = str_trim(tmp);
-	assert(strcmp(name, "") != 0);
+	if (strcmp(name, "") == 0) {
+		free(name);
+		free(tmp);
+		return NULL;
+	}
 	free(tmp);
 
 	struct Variable *var = xmalloc(sizeof(struct Variable));

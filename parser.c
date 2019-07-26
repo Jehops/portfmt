@@ -345,6 +345,13 @@ parser_error_tostring(struct Parser *parser)
 			xasprintf(&buf, "line %s: expected integer", lines);
 		}
 		break;
+	case PARSER_ERROR_EXPECTED_TOKEN:
+		if (parser->error_supplement) {
+			xasprintf(&buf, "line %s: expected %s", lines, parser->error_supplement);
+		} else {
+			xasprintf(&buf, "line %s: expected token", lines);
+		}
+		break;
 	case PARSER_ERROR_INVALID_REGEXP:
 		if (parser->error_supplement) {
 			xasprintf(&buf, "invalid regexp: %s", parser->error_supplement);
@@ -392,6 +399,8 @@ parser_append_token(struct Parser *parser, enum TokenType type, const char *data
 	struct Token *t = token_new(type, &parser->lines, data, parser->varname,
 				    parser->condname, parser->targetname);
 	if (t == NULL) {
+		parser->error = PARSER_ERROR_EXPECTED_TOKEN;
+		parser->error_supplement = xstrdup(token_type_tostring(type));
 		return;
 	}
 	array_append_unique(parser->tokengc, t, NULL);

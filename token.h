@@ -62,5 +62,6 @@ int token_goalcol(struct Token *);
 struct Range *token_lines(struct Token *);
 struct Target *token_target(struct Token *);
 enum TokenType token_type(struct Token *);
+const char *token_type_tostring(enum TokenType);
 struct Variable *token_variable(struct Token *);
 void token_set_goalcol(struct Token *, int);
