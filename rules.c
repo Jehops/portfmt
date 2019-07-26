@@ -1773,9 +1773,10 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_NUGET, "NUGET_PACKAGEDIR" },
 	{ BLOCK_NUGET, "NUGET_LAYOUT" },
 	{ BLOCK_NUGET, "NUGET_FEEDS" },
-	{ BLOCK_NUGET, "_URL" },
-	{ BLOCK_NUGET, "_FILE" },
-	{ BLOCK_NUGET, "_DEPENDS" },
+	// TODO: These need to be handled specially
+	//{ BLOCK_NUGET, "_URL" },
+	//{ BLOCK_NUGET, "_FILE" },
+	//{ BLOCK_NUGET, "_DEPENDS" },
 	{ BLOCK_NUGET, "PAKET_PACKAGEDIR" },
 	{ BLOCK_NUGET, "PAKET_DEPENDS" },
 
