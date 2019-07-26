@@ -1753,10 +1753,10 @@ static struct VariableOrderEntry variable_order_[] = {
 
 	{ BLOCK_GO, "GO_PKGNAME" },
 	{ BLOCK_GO, "GO_TARGET" },
+	{ BLOCK_GO, "GO_BUILDFLAGS" },
 	{ BLOCK_GO, "CGO_ENABLED" },
 	{ BLOCK_GO, "CGO_CFLAGS" },
 	{ BLOCK_GO, "CGO_LDFLAGS" },
-	{ BLOCK_GO, "GO_BUILDFLAGS" },
 
 	{ BLOCK_LAZARUS, "NO_LAZBUILD" },
 	{ BLOCK_LAZARUS, "LAZARUS_PROJECT_FILES" },
