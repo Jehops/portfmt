@@ -205,11 +205,23 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 			array_append(tokens, t);
 		}
 		if (!added) {
+			// Prepend it instead if there are no conditionals or targets
+			array_truncate(tokens);
 			struct Range *lines = &(struct Range){ 0, 1 };
 			if (array_len(ptokens) > 0) {
 				lines = token_lines(array_get(ptokens, array_len(ptokens) - 1));
 			}
 			append_new_variable(parser, tokens, var, lines);
+			int empty_line_added = 0;
+			for (ssize_t i = 0; i < ptokenslen; i++) {
+				struct Token *t = array_get(ptokens, i);
+				if (!empty_line_added && token_type(t) == VARIABLE_START &&
+				    variable_order_block(variable_name(token_variable(t))) != varblock) {
+					append_empty_line(parser, tokens, token_lines(t));
+					empty_line_added = 1;
+				}
+				array_append(tokens, t);
+			}
 		}
 		return tokens;
 	}
