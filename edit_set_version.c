@@ -48,8 +48,12 @@
 static ssize_t
 extract_git_describe_suffix(const char *ver)
 {
+	if (strlen(ver) == 0) {
+		return -1;
+	}
+
 	int gflag = 0;
-	for (size_t i = strlen(ver) - 1; i >= 0; i--) {
+	for (size_t i = strlen(ver) - 1; i != 0; i--) {
 		switch (ver[i]) {
 		case 'a':
 		case 'b':
