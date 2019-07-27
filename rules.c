@@ -2713,8 +2713,8 @@ compare_order(const void *ap, const void *bp)
 		char *aprefix = NULL;
 		char *bhelper = NULL;
 		char *bprefix = NULL;
-		if (!is_options_helper(a, &aprefix, &ahelper) ||
-		    !is_options_helper(b, &bprefix, &bhelper)) {
+		if (!is_flavors_helper(a, &aprefix, &ahelper) ||
+		    !is_flavors_helper(b, &bprefix, &bhelper)) {
 			abort();
 		}
 		assert(ahelper != NULL && aprefix != NULL);
