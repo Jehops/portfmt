@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include <sys/param.h>
+#include <ctype.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -44,9 +45,119 @@
 #include "util.h"
 #include "variable.h"
 
+static ssize_t
+extract_git_describe_suffix(const char *ver)
+{
+	int gflag = 0;
+	for (size_t i = strlen(ver) - 1; i >= 0; i--) {
+		switch (ver[i]) {
+		case 'a':
+		case 'b':
+		case 'c':
+		case 'd':
+		case 'e':
+		case 'f':
+			break;
+		case 'g':
+			gflag = 1;
+			break;
+		case '-':
+			if (gflag) {
+				return i;
+			} else {
+				return -1;
+			}
+		default:
+			if (!isdigit(ver[i])) {
+				return -1;
+			}
+		}
+	}
+
+	return -1;
+}
+
+static ssize_t
+extract_git_describe_prefix(const char *ver)
+{
+	if (*ver == 0 || isdigit(*ver)) {
+		return -1;
+	}
+
+	for (size_t i = 0; i < strlen(ver); i++) {
+		if (!isdigit(ver[i])) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+static int
+is_git_describe_version(const char *ver, char **distversion, char **prefix, char **suffix)
+{
+	ssize_t suffix_index;
+	if ((suffix_index = extract_git_describe_suffix(ver)) == -1) {
+		if (distversion != NULL) {
+			*distversion = NULL;
+		}
+		if (prefix != NULL) {
+			*prefix = NULL;
+		}
+		if (suffix != NULL) {
+			*suffix = NULL;
+		}
+		return 0;
+	}
+
+	ssize_t prefix_index;
+	if ((prefix_index = extract_git_describe_prefix(ver)) != -1) {
+		if (prefix != NULL) {
+			*prefix = xstrndup(ver, prefix_index + 1);
+		}
+
+	} else {
+		if (prefix != NULL) {
+			*prefix = NULL;
+		}
+	}
+
+	if (suffix != NULL) {
+		*suffix = xstrdup(ver + suffix_index);
+	}
+
+	if (distversion != NULL) {
+		*distversion = xstrndup(ver + prefix_index + 1, suffix_index - prefix_index - 1);
+	}
+
+	return 1;
+}
+
 struct Array *
 edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
 {
+	const char *newversion = userdata;
+
+	int remove_distversionprefix = 0;
+	int remove_distversionsuffix = 0;
+	char *distversion;
+	char *prefix;
+	char *suffix;
+	if (!is_git_describe_version(newversion, &distversion, &prefix, &suffix)) {
+		if (parser_lookup_variable(parser, "DISTVERSIONSUFFIX", NULL, NULL)) {
+			remove_distversionsuffix = 1;
+		}
+		if (parser_lookup_variable_str(parser, "DISTVERSIONPREFIX", &prefix, NULL)) {
+			if (str_startswith(newversion, prefix)) {
+				newversion += strlen(prefix);
+			}
+			free(prefix);
+			prefix = NULL;
+		}
+	} else if (prefix == NULL) {
+		remove_distversionprefix = 1;
+	}
+
 	const char *ver = "DISTVERSION";
 	if (parser_lookup_variable(parser, "PORTVERSION", NULL, NULL)) {
 		ver = "PORTVERSION";
@@ -56,7 +167,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 	int rev = 0;
 	if (parser_lookup_variable_str(parser, ver, &version, NULL)) {
 		char *revision;
-		if (strcmp(version, userdata) != 0 &&
+		if (strcmp(version, newversion) != 0 &&
 		    parser_lookup_variable_str(parser, "PORTREVISION", &revision, NULL)) {
 			const char *errstr = NULL;
 			rev = strtonum(revision, 0, INT_MAX, &errstr);
@@ -70,20 +181,53 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 		free(version);
 	}
 
-	char *buf;
-	if (rev > 0) {
-		// Remove PORTREVISION
-		xasprintf(&buf, "%s=%s\nPORTREVISION!=", ver, userdata);
-	} else {
-		xasprintf(&buf, "%s=%s", ver, userdata);
-	}
-
 	struct ParserSettings settings = parser_settings(parser);
 	struct Parser *subparser = parser_new(&settings);
+
+	char *buf = NULL;
+	if (suffix) {
+		xasprintf(&buf, "DISTVERSIONSUFFIX=%s", suffix);
+	} else if (remove_distversionsuffix) {
+		xasprintf(&buf, "DISTVERSIONSUFFIX!=");
+	}
+	if (buf) {
+		*error = parser_read_from_buffer(subparser, buf, strlen(buf));
+		if (*error != PARSER_ERROR_OK) {
+			goto cleanup;
+		}
+		free(buf);
+		buf = NULL;
+	}
+
+	if (prefix) {
+		xasprintf(&buf, "DISTVERSIONPREFIX=%s", prefix);
+	} else if (remove_distversionprefix) {
+		xasprintf(&buf, "DISTVERSIONPREFIX!=");
+	}
+	if (buf) {
+		*error = parser_read_from_buffer(subparser, buf, strlen(buf));
+		if (*error != PARSER_ERROR_OK) {
+			goto cleanup;
+		}
+		free(buf);
+		buf = NULL;
+	}
+
+	if (distversion) {
+		newversion = distversion;
+	}
+
+	if (rev > 0) {
+		// Remove PORTREVISION
+		xasprintf(&buf, "%s=%s\nPORTREVISION!=", ver, newversion);
+	} else {
+		xasprintf(&buf, "%s=%s", ver, newversion);
+	}
 	*error = parser_read_from_buffer(subparser, buf, strlen(buf));
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
+
 	*error = parser_read_finish(subparser);
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
@@ -96,6 +240,15 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 cleanup:
 	parser_free(subparser);
 	free(buf);
+	if (prefix) {
+		free(prefix);
+	}
+	if (distversion) {
+		free(distversion);
+	}
+	if (suffix) {
+		free(suffix);
+	}
 
 	return NULL;
 }
