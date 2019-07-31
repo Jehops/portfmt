@@ -138,7 +138,7 @@ is_git_describe_version(const char *ver, char **distversion, char **prefix, char
 }
 
 struct Array *
-edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
+edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	const char *newversion = userdata;
 
@@ -178,6 +178,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 			free(revision);
 			if (errstr != NULL) {
 				*error = PARSER_ERROR_EXPECTED_INT;
+				*error_msg = xstrdup(errstr);
 				free(version);
 				return NULL;
 			}

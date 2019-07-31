@@ -79,22 +79,22 @@ main(int argc, char *argv[])
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, fp_in);
 	if (error != PARSER_ERROR_OK) {
-		errx(1, "parser_read_from_fd: %s", parser_error_tostring(parser));
+		errx(1, "%s", parser_error_tostring(parser));
 	}
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
-		errx(1, "parser_read_finish: %s", parser_error_tostring(parser));
+		errx(1, "%s", parser_error_tostring(parser));
 	}
 
 	int status = 0;
 	error = parser_edit(parser, lint_order, &status);
 	if (error != PARSER_ERROR_OK) {
-		errx(1, "parser_edit: %s", parser_error_tostring(parser));
+		errx(1, "%s", parser_error_tostring(parser));
 	}
 
 	error = parser_output_write_to_file(parser, fp_out);
 	if (error != PARSER_ERROR_OK) {
-		errx(1, "parser_output_write: %s", parser_error_tostring(parser));
+		errx(1, "%s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
 

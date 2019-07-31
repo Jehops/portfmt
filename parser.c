@@ -63,7 +63,7 @@ struct Parser {
 	struct Range lines;
 	int skip;
 	enum ParserError error;
-	char *error_supplement;
+	char *error_msg;
 	char *inbuf;
 	char *condname;
 	char *targetname;
@@ -195,10 +195,10 @@ consume_token(struct Parser *parser, const char *line, size_t pos,
 	}
 	if (!eol_ok) {
 		parser->error = PARSER_ERROR_EXPECTED_CHAR;
-		if (parser->error_supplement) {
-			free(parser->error_supplement);
+		if (parser->error_msg) {
+			free(parser->error_msg);
 		}
-		xasprintf(&parser->error_supplement, "%c", endchar);
+		xasprintf(&parser->error_msg, "%c", endchar);
 		return 0;
 	} else {
 		return i;
@@ -267,7 +267,7 @@ parser_new(struct ParserSettings *settings)
 	parser->result = array_new(sizeof(char *));
 	parser->tokens = array_new(sizeof(struct Token *));
 	parser->error = PARSER_ERROR_OK;
-	parser->error_supplement = NULL;
+	parser->error_msg = NULL;
 	parser->lines.start = 1;
 	parser->lines.end = 1;
 	parser->inbuf = xmalloc(INBUF_SIZE);
@@ -301,8 +301,8 @@ parser_free(struct Parser *parser)
 	array_free(parser->edited);
 	array_free(parser->tokens);
 
-	if (parser->error_supplement) {
-		free(parser->error_supplement);
+	if (parser->error_msg) {
+		free(parser->error_msg);
 	}
 	free(parser->inbuf);
 	free(parser);
@@ -318,71 +318,71 @@ parser_error_tostring(struct Parser *parser)
 		xasprintf(&buf, "line %s: no error", lines);
 		break;
 	case PARSER_ERROR_BUFFER_TOO_SMALL:
-		if (parser->error_supplement) {
-			xasprintf(&buf, "line %s: buffer too small: %s", lines, parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "line %s: buffer too small: %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: buffer too small", lines);
 		}
 		break;
 	case PARSER_ERROR_EDIT_FAILED:
-		if (parser->error_supplement) { 
-			xasprintf(&buf, "edit failed: %s", parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "%s", parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: edit failed", lines);
 		}
 		break;
 	case PARSER_ERROR_EXPECTED_CHAR:
-		if (parser->error_supplement) { 
-			xasprintf(&buf, "line %s: expected char: %s", lines, parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "line %s: expected char: %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: expected char", lines);
 		}
 		break;
 	case PARSER_ERROR_EXPECTED_INT:
-		if (parser->error_supplement) {
-			xasprintf(&buf, "line %s: expected integer: %s", lines, parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "line %s: expected integer: %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: expected integer", lines);
 		}
 		break;
 	case PARSER_ERROR_EXPECTED_TOKEN:
-		if (parser->error_supplement) {
-			xasprintf(&buf, "line %s: expected %s", lines, parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "line %s: expected %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: expected token", lines);
 		}
 		break;
 	case PARSER_ERROR_INVALID_REGEXP:
-		if (parser->error_supplement) {
-			xasprintf(&buf, "invalid regexp: %s", parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "invalid regexp: %s", parser->error_msg);
 		} else {
 			xasprintf(&buf, "invalid regexp");
 		}
 		break;
 	case PARSER_ERROR_IO:
-		if (parser->error_supplement) {
-			xasprintf(&buf, "line %s: IO error: %s", lines, parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "line %s: IO error: %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: IO error", lines);
 		}
 		break;
 	case PARSER_ERROR_NOT_FOUND:
-		if (parser->error_supplement) {
-			xasprintf(&buf, "line %s: not found: %s", lines, parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "line %s: not found: %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: not found", lines);
 		}
 		break;
 	case PARSER_ERROR_UNHANDLED_TOKEN_TYPE:
-		if (parser->error_supplement) {
-			xasprintf(&buf, "line %s: unhandled token type: %s", lines, parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "line %s: unhandled token type: %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: unhandled token type", lines);
 		}
 		break;
 	case PARSER_ERROR_UNSPECIFIED:
-		if (parser->error_supplement) {
-			xasprintf(&buf, "line %s: parse error: %s", lines, parser->error_supplement);
+		if (parser->error_msg) {
+			xasprintf(&buf, "line %s: parse error: %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: parse error", lines);
 		}
@@ -400,7 +400,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, const char *data
 				    parser->condname, parser->targetname);
 	if (t == NULL) {
 		parser->error = PARSER_ERROR_EXPECTED_TOKEN;
-		parser->error_supplement = xstrdup(token_type_tostring(type));
+		parser->error_msg = xstrdup(token_type_tostring(type));
 		return;
 	}
 	array_append_unique(parser->tokengc, t, NULL);
@@ -465,10 +465,10 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 				dollar++;
 			} else {
 				parser->error = PARSER_ERROR_EXPECTED_CHAR;
-				if (parser->error_supplement) {
-					free(parser->error_supplement);
+				if (parser->error_msg) {
+					free(parser->error_msg);
 				}
-				parser->error_supplement = xstrdup("$");
+				parser->error_msg = xstrdup("$");
 			}
 			if (parser->error != PARSER_ERROR_OK) {
 				return parser->error;
@@ -1491,18 +1491,18 @@ parser_output_write_to_file(struct Parser *parser, FILE *fp)
 	if (parser->settings.behavior & PARSER_OUTPUT_INPLACE) {
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			parser->error = PARSER_ERROR_IO;
-			if (parser->error_supplement) {
-				free(parser->error_supplement);
+			if (parser->error_msg) {
+				free(parser->error_msg);
 			}
-			xasprintf(&parser->error_supplement, "lseek: %s", strerror(errno));
+			xasprintf(&parser->error_msg, "lseek: %s", strerror(errno));
 			return parser->error;
 		}
 		if (ftruncate(fd, 0) < 0) {
 			parser->error = PARSER_ERROR_IO;
-			if (parser->error_supplement) {
-				free(parser->error_supplement);
+			if (parser->error_msg) {
+				free(parser->error_msg);
 			}
-			xasprintf(&parser->error_supplement, "ftruncate: %s", strerror(errno));
+			xasprintf(&parser->error_msg, "ftruncate: %s", strerror(errno));
 			return parser->error;
 		}
 	}
@@ -1528,10 +1528,10 @@ parser_output_write_to_file(struct Parser *parser, FILE *fp)
 		}
 		if (writev(fd, iov, j) < 0) {
 			parser->error = PARSER_ERROR_IO;
-			if (parser->error_supplement) {
-				free(parser->error_supplement);
+			if (parser->error_msg) {
+				free(parser->error_msg);
 			}
-			xasprintf(&parser->error_supplement, "writev: %s", strerror(errno));
+			xasprintf(&parser->error_msg, "writev: %s", strerror(errno));
 			free(iov);
 			return parser->error;
 		}
@@ -1591,7 +1591,8 @@ parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
 	}
 
 	enum ParserError error = PARSER_ERROR_OK;
-	struct Array *tokens = f(parser, parser->tokens, &error, userdata);
+	char *error_msg = NULL;
+	struct Array *tokens = f(parser, parser->tokens, &error, &error_msg, userdata);
 	if (tokens && tokens != parser->tokens) {
 		array_free(parser->tokens);
 		parser->tokens = tokens;
@@ -1599,10 +1600,15 @@ parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
 
 	if (error != PARSER_ERROR_OK) {
 		parser->error = error;
-		if (parser->error_supplement) {
-			free(parser->error_supplement);
+		if (parser->error_msg) {
+			free(parser->error_msg);
 		}
-		parser->error_supplement = parser_error_tostring(parser);
+		parser->error_msg = error_msg;
+		error_msg = parser_error_tostring(parser);
+		if (parser->error_msg) {
+			free(parser->error_msg);
+		}
+		parser->error_msg = error_msg;
 		parser->error = PARSER_ERROR_EDIT_FAILED;
 	}
 

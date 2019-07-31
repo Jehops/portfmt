@@ -44,10 +44,10 @@
 #include "util.h"
 #include "variable.h"
 
-static char *get_revision(struct Parser *, const char *, enum ParserError *);
+static char *get_revision(struct Parser *, const char *, enum ParserError *, char **);
 
 static char *
-get_revision(struct Parser *parser, const char *variable, enum ParserError *error)
+get_revision(struct Parser *parser, const char *variable, enum ParserError *error, char **error_msg)
 {
 	char *revision;
 	char *comment;
@@ -60,6 +60,7 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 			rev++;
 		} else {
 			*error = PARSER_ERROR_EXPECTED_INT;
+			*error_msg = xstrdup(errstr);
 			free(comment);
 			return NULL;
 		}
@@ -73,14 +74,14 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 }
 
 struct Array *
-edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, const void *userdata)
+edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	const char *variable = userdata;
 	if (variable == NULL) {
 		variable = "PORTREVISION";
 	}
 
-	char *revision = get_revision(parser, variable, error);
+	char *revision = get_revision(parser, variable, error, error_msg);
 	if (revision == NULL) {
 		return NULL;
 	}

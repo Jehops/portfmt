@@ -97,7 +97,7 @@ variable_list(struct Array *tokens)
 }
 
 struct Array *
-lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error, const void *userdata)
+lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	int *status = (int*)userdata;
 	struct ParserSettings settings = parser_settings(parser);
@@ -182,7 +182,9 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	struct diff p;
 	int rc = array_diff(origin, target, &p, str_compare);
 	if (rc <= 0) {
-		errx(1, "cannot compute difference");
+		*error = PARSER_ERROR_EDIT_FAILED;
+		*error_msg = xstrdup("lint_order: cannot compute difference");
+		goto cleanup;
 	}
 
 	size_t edits = 0;
@@ -247,6 +249,7 @@ done:
 	free(p.ses);
 	free(p.lcs);
 
+cleanup:
 	for (size_t i = 0; i < array_len(origin); i++) {
 		free(array_get(origin, i));
 	}

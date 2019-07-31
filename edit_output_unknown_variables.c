@@ -40,7 +40,7 @@
 #include "variable.h"
 
 struct Array *
-edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, const void *userdata)
+edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		return NULL;
