@@ -932,9 +932,9 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 	int opt_use = 0;
 	char *helper = NULL;
 	if (is_options_helper(variable_name(token_variable(t)), NULL, &helper)) {
-		if (strcmp(helper, "USE") == 0) {
+		if (strcmp(helper, "USE") == 0 || strcmp(helper, "USE_OFF") == 0)  {
 			opt_use = 1;
-		} else if (strcmp(helper, "VARS") == 0) {
+		} else if (strcmp(helper, "VARS") == 0 || strcmp(helper, "VARS_OFF") == 0) {
 			opt_use = 0;
 		} else {
 			free(helper);
