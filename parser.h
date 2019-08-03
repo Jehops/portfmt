@@ -46,6 +46,7 @@ enum ParserMergeBehavior{
 	PARSER_MERGE_DEFAULT = 0,
 	PARSER_MERGE_COMMENTS = 2,
 	PARSER_MERGE_SHELL_IS_DELETE = 4,
+	PARSER_MERGE_OPTIONAL_LIKE_ASSIGN = 16,
 };
 
 enum ParserError {
@@ -86,8 +87,8 @@ enum ParserError parser_output_write_to_file(struct Parser *, FILE *);
 
 enum ParserError parser_edit(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
-int parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
-int parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
+struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
+struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
 enum ParserError parser_merge(struct Parser *, struct Parser *, enum ParserMergeBehavior);

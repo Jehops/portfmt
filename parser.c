@@ -1620,9 +1620,10 @@ struct ParserSettings parser_settings(struct Parser *parser)
 	return parser->settings;
 }
 
-int
+struct Variable *
 parser_lookup_variable(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment)
 {
+	struct Variable *var = NULL;
 	struct Array *tokens = array_new(sizeof(char *));
 	struct Array *comments = array_new(sizeof(char *));
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
@@ -1642,6 +1643,7 @@ parser_lookup_variable(struct Parser *parser, const char *name, struct Array **r
 			break;
 		case VARIABLE_END:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
+				var = token_variable(t);
 				goto found;
 			}
 			break;
@@ -1660,7 +1662,7 @@ parser_lookup_variable(struct Parser *parser, const char *name, struct Array **r
 		*retval = NULL;
 	}
 
-	return 0;
+	return NULL;
 
 found:
 	if (comment) {
@@ -1674,16 +1676,17 @@ found:
 		array_free(tokens);
 	}
 
-	return 1;
+	return var;
 }
 
-int
+struct Variable *
 parser_lookup_variable_str(struct Parser *parser, const char *name, char **retval, char **comment)
 {
 	struct Array *comments;
 	struct Array *tokens;
-	if (!parser_lookup_variable(parser, name, &tokens, &comments)) {
-		return 0;
+	struct Variable *var;
+	if ((var = parser_lookup_variable(parser, name, &tokens, &comments)) == NULL) {
+		return NULL;
 	}
 
 	if (comment) {
@@ -1697,7 +1700,7 @@ parser_lookup_variable_str(struct Parser *parser, const char *name, char **retva
 	array_free(comments);
 	array_free(tokens);
 
-	return 1;
+	return var;
 }
 
 enum ParserError

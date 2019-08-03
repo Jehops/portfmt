@@ -46,6 +46,7 @@
 #include "variable.h"
 
 struct MergeParameter {
+	enum ParserMergeBehavior behavior;
 	struct Variable *var;
 	struct Array *comments;
 	struct Array *values;
@@ -295,7 +296,8 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 		case VARIABLE_START:
 			if (variable_cmp(params->var, token_variable(t)) == 0) {
 				found = 1;
-				if (mod == MODIFIER_ASSIGN) {
+				if (mod == MODIFIER_ASSIGN ||
+				    (mod == MODIFIER_OPTIONAL && (params->behavior & PARSER_MERGE_OPTIONAL_LIKE_ASSIGN))) {
 					append_comments(parser, tokens, params->comments);
 					assign_values(parser, tokens, variable_modifier(token_variable(t)), params);
 				} else if (mod == MODIFIER_APPEND) {
@@ -311,7 +313,7 @@ merge_existent(struct Parser *parser, struct Array *ptokens, enum ParserError *e
 			break;
 		case VARIABLE_TOKEN:
 			if (found) {
-				if (mod == MODIFIER_ASSIGN) {
+				if (mod == MODIFIER_ASSIGN || mod == MODIFIER_OPTIONAL) {
 					// nada
 				} else if (mod == MODIFIER_SHELL) {
 					parser_mark_for_gc(parser, t);
@@ -375,6 +377,12 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 					break;
 				}
 				/* fallthrough */
+			case MODIFIER_OPTIONAL:
+				if (variable_modifier(var) == MODIFIER_OPTIONAL &&
+				    !(params->behavior & PARSER_MERGE_OPTIONAL_LIKE_ASSIGN)) {
+					break;
+				}
+				/* fallthrough */
 			case MODIFIER_APPEND:
 			case MODIFIER_ASSIGN:
 				if (!parser_lookup_variable(parser, variable_name(var), NULL, NULL)) {
@@ -400,11 +408,12 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 		case VARIABLE_END:
 			if (merge) {
 				array_append(mergetokens, t);
-				struct MergeParameter params;
-				params.var = var;
-				params.comments = comments;
-				params.values = mergetokens;
-				*error = parser_edit(parser, merge_existent, &params);
+				struct MergeParameter par;
+				par.behavior = params->behavior;
+				par.var = var;
+				par.comments = comments;
+				par.values = mergetokens;
+				*error = parser_edit(parser, merge_existent, &par);
 				if (*error != PARSER_ERROR_OK) {
 					goto cleanup;
 				}

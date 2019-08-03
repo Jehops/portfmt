@@ -52,7 +52,8 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 	char *revision;
 	char *comment;
 	char *current_revision;
-	if (parser_lookup_variable_str(parser, variable, &current_revision, &comment)) {
+	struct Variable *var;
+	if ((var = parser_lookup_variable_str(parser, variable, &current_revision, &comment)) != NULL) {
 		const char *errstr = NULL;
 		int rev = strtonum(current_revision, 0, INT_MAX, &errstr);
 		free(current_revision);
@@ -64,7 +65,9 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 			free(comment);
 			return NULL;
 		}
-		xasprintf(&revision, "%s=%d %s", variable, rev, comment);
+		char *buf = variable_tostring(var);
+		xasprintf(&revision, "%s!=\n%s%d %s\n", variable, buf, rev, comment);
+		free(buf);
 		free(comment);
 	} else {
 		xasprintf(&revision, "%s=1", variable);
@@ -96,7 +99,7 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
-	*error = parser_merge(parser, subparser, PARSER_MERGE_DEFAULT);
+	*error = parser_merge(parser, subparser, PARSER_MERGE_SHELL_IS_DELETE | PARSER_MERGE_OPTIONAL_LIKE_ASSIGN);
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
