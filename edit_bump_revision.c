@@ -66,7 +66,14 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 			return NULL;
 		}
 		char *buf = variable_tostring(var);
-		xasprintf(&revision, "%s!=\n%s%d %s\n", variable, buf, rev, comment);
+		if (parser_lookup_variable(parser, "MASTERDIR", NULL, NULL)) {
+			// In slave ports we do not delete the variable first since
+			// they have a non-uniform structure and edit_merge will probably
+			// insert it into a non-optimal position.
+			xasprintf(&revision, "%s%d %s\n", buf, rev, comment);
+		} else {
+			xasprintf(&revision, "%s!=\n%s%d %s\n", variable, buf, rev, comment);
+		}
 		free(buf);
 		free(comment);
 	} else {
