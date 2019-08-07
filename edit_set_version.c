@@ -144,6 +144,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 
 	int remove_distversionprefix = 0;
 	int remove_distversionsuffix = 0;
+	int remove_portversion = 0;
 	char *distversion;
 	char *prefix;
 	char *suffix;
@@ -160,10 +161,13 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 		}
 	} else if (prefix == NULL) {
 		remove_distversionprefix = 1;
+		remove_portversion = 1;
+	} else {
+		remove_portversion = 1;
 	}
 
 	const char *ver = "DISTVERSION";
-	if (parser_lookup_variable(parser, "PORTVERSION", NULL, NULL)) {
+	if (!remove_portversion && parser_lookup_variable(parser, "PORTVERSION", NULL, NULL)) {
 		ver = "PORTVERSION";
 	}
 
@@ -210,6 +214,16 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 		xasprintf(&buf, "DISTVERSIONPREFIX!=");
 	}
 	if (buf) {
+		*error = parser_read_from_buffer(subparser, buf, strlen(buf));
+		if (*error != PARSER_ERROR_OK) {
+			goto cleanup;
+		}
+		free(buf);
+		buf = NULL;
+	}
+
+	if (remove_portversion) {
+		xasprintf(&buf, "PORTVERSION!=");
 		*error = parser_read_from_buffer(subparser, buf, strlen(buf));
 		if (*error != PARSER_ERROR_OK) {
 			goto cleanup;
