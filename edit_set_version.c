@@ -168,7 +168,6 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 
 	int remove_distversionprefix = 0;
 	int remove_distversionsuffix = 0;
-	int remove_portversion = 0;
 	char *distversion;
 	char *prefix;
 	char *suffix;
@@ -185,10 +184,8 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 		}
 	} else if (prefix == NULL) {
 		remove_distversionprefix = 1;
-		remove_portversion = 1;
 		ver = "DISTVERSION";
 	} else {
-		remove_portversion = 1;
 		ver = "DISTVERSION";
 	}
 
@@ -224,7 +221,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 		buf = NULL;
 	}
 
-	if (remove_portversion) {
+	if (strcmp(ver, "DISTVERSION") == 0) {
 		xasprintf(&buf, "PORTVERSION!=");
 		*error = parser_read_from_buffer(subparser, buf, strlen(buf));
 		if (*error != PARSER_ERROR_OK) {
