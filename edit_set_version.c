@@ -142,32 +142,8 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 {
 	const char *newversion = userdata;
 
-	int remove_distversionprefix = 0;
-	int remove_distversionsuffix = 0;
-	int remove_portversion = 0;
-	char *distversion;
-	char *prefix;
-	char *suffix;
-	if (!is_git_describe_version(newversion, &distversion, &prefix, &suffix)) {
-		if (parser_lookup_variable(parser, "DISTVERSIONSUFFIX", NULL, NULL)) {
-			remove_distversionsuffix = 1;
-		}
-		if (parser_lookup_variable_str(parser, "DISTVERSIONPREFIX", &prefix, NULL)) {
-			if (str_startswith(newversion, prefix)) {
-				newversion += strlen(prefix);
-			}
-			free(prefix);
-			prefix = NULL;
-		}
-	} else if (prefix == NULL) {
-		remove_distversionprefix = 1;
-		remove_portversion = 1;
-	} else {
-		remove_portversion = 1;
-	}
-
 	const char *ver = "DISTVERSION";
-	if (!remove_portversion && parser_lookup_variable(parser, "PORTVERSION", NULL, NULL)) {
+	if (parser_lookup_variable(parser, "PORTVERSION", NULL, NULL)) {
 		ver = "PORTVERSION";
 	}
 
@@ -188,6 +164,32 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 			}
 		}
 		free(version);
+	}
+
+	int remove_distversionprefix = 0;
+	int remove_distversionsuffix = 0;
+	int remove_portversion = 0;
+	char *distversion;
+	char *prefix;
+	char *suffix;
+	if (!is_git_describe_version(newversion, &distversion, &prefix, &suffix)) {
+		if (parser_lookup_variable(parser, "DISTVERSIONSUFFIX", NULL, NULL)) {
+			remove_distversionsuffix = 1;
+		}
+		if (parser_lookup_variable_str(parser, "DISTVERSIONPREFIX", &prefix, NULL)) {
+			if (str_startswith(newversion, prefix)) {
+				newversion += strlen(prefix);
+			}
+			free(prefix);
+			prefix = NULL;
+		}
+	} else if (prefix == NULL) {
+		remove_distversionprefix = 1;
+		remove_portversion = 1;
+		ver = "DISTVERSION";
+	} else {
+		remove_portversion = 1;
+		ver = "DISTVERSION";
 	}
 
 	struct ParserSettings settings = parser_settings(parser);
