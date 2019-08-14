@@ -1862,6 +1862,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_CFLAGS, "CXXFLAGS_powerpc64" },
 	{ BLOCK_CFLAGS, "CXXFLAGS_powerpcspe" },
 	{ BLOCK_CFLAGS, "CXXFLAGS_sparc64" },
+	{ BLOCK_CFLAGS, "RUSTFLAGS" },
 	{ BLOCK_CFLAGS, "LDFLAGS" },
 	{ BLOCK_CFLAGS, "LDFLAGS_aarch64" },
 	{ BLOCK_CFLAGS, "LDFLAGS_amd64" },
