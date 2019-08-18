@@ -1,0 +1,274 @@
+.\"-
+.\" SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+.\"
+.\" Copyright (c) 2019 Tobias Kortkamp <tobik@FreeBSD.org>
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.Dd August 18, 2019
+.Dt PORTEDIT 1
+.Os
+.Sh NAME
+.Nm portedit
+.Nd "edit and refactor FreeBSD Ports Collection Makefiles"
+.Sh SYNOPSIS
+.Nm
+.Cm bump-revision
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Op Ar Makefile
+.Nm
+.Cm bump-epoch
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Op Ar Makefile
+.Nm
+.Cm get
+.Ar variable-regexp
+.Op Ar Makefile
+.Nm
+.Cm merge
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Op Ar Makefile
+.Nm
+.Cm sanitize-append
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Op Ar Makefile
+.Nm
+.Cm set-version
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Ar version
+.Op Ar Makefile
+.Nm
+.Cm unknown-vars
+.Op Ar Makefile
+.Sh DESCRIPTION
+.Nm
+is a tool for editing and refactoring
+.Fx
+Ports Collection Makefiles.
+.Pp
+If the optional
+.Ar Makefile
+argument is not given, the Makefile will be read from stdin.
+.Pp
+The following options are shared between the
+.Cm bump-epoch ,
+.Cm bump-revision ,
+.Cm merge ,
+.Cm sanitize-append ,
+.Cm set-version
+commands and
+.Xr portfmt 1 .
+.Bl -tag -width indent
+.It Fl i
+Format
+.Ar Makefile
+in-place instead of writing the result to stdout.
+.It Fl u
+Leave variables unsorted.
+.It Fl w Ar wrapcol
+Sets the wrapping column to
+.Ar wrapcol
+(default: 80).
+This is a goal not a hard value.
+It will be ignored for several variables like COMMENT, DISTFILES,
+MASTER_SITES, etc.
+.Pp
+With a value of -1 it is ignored for all variables.
+Variables with wrapped tokens over multiple lines will be concatenated
+onto a single line.
+.El
+.Sh COMMANDS
+.Bl -tag -width 2n
+.It Xo
+.Nm
+.Cm bump-epoch
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Op Ar Makefile
+.Xc
+.Pp
+Same as
+.Cm bump-revision
+but for PORTEPOCH.
+.It Xo
+.Nm
+.Cm bump-revision
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Op Ar Makefile
+.Xc
+.Pp
+Increments PORTREVISION by one.
+It will be inserted if not already present in the Makefile.
+If PORTREVISION is not currently in the right place it will be moved
+as part of the operation.
+.It Xo
+.Nm
+.Cm get
+.Ar variable-regexp
+.Op Ar Makefile
+.Xc
+.Pp
+Returns the raw tokens of a variable matching the extended regular
+expression
+.Po see
+.Xr re_format 7 Pc
+.Ar variable-regexp .
+.It Xo
+.Nm
+.Cm merge
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Op Ar Makefile
+.Xc
+.Pp
+Merges files in
+.Xr make 1
+syntax into
+.Ar Makefile .
+This is currently limited to variables only.
+Conditionals and targets are ignored.
+.Pp
+The
+.Sy !=
+modifier is overloaded to delete variables.
+.Sy +=
+will append to the specified variable.
+.pp
+No deduplication of tokens happens yet.
+.It Xo
+.Nm
+.Cm sanitize-append
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Op Ar Makefile
+.Xc
+.Pp
+Sanitize
+.Sy +=
+in Makefiles before
+.Sy bsd.port.options.mk
+or
+.Sy bsd.port.pre.mk .
+This prevents leaking variable values from the build environment.
+CXXFLAGS, CFLAGS, LDFLAGS, RUSTFLAGS will not be sanitized since
+users might want to set optimization flags that affect port builds
+in their environment.
+.It Xo
+.Nm
+.Cm set-version
+.Op Fl iu
+.Op Fl w Ar wrapcol
+.Ar version
+.Op Ar Makefile
+.Xc
+.Pp
+Sets the port version.
+If the port currently has PORTVERSION it will be used again for the
+new version.
+Otherwise it defaults to DISTVERSION.
+.Pp
+PORTREVISION will be removed (reset to 0).
+However special care is taken for slave ports where PORTREVISION
+will not be removed and will be set to 0 explicitly to prevent
+inheriting the revision from the master port.
+.Pp
+It tries to be smart based on the format of
+.Ar version .
+.Pp
+If
+.Ar version
+starts with the current value of DISTVERSIONPREFIX or ends with the
+current value of DISTVERSIONSUFFIX, it will be trimmed accordingly
+to set DISTVERSION or PORTVERSION correctly.
+.Pp
+If
+.Ar version
+is in the format as returned by
+.Cm git describe --tags ,
+DISTVERSION{PREFIX,SUFFIX} will be set accordingly.
+.It Xo
+.Nm
+.Cm unknown-vars
+.Op Ar Makefile
+.Xc
+.Pp
+List variables that are not known to
+.Nm
+or
+.Xr portclippy 1 .
+.El
+.Sh EXAMPLES
+Append
+.Sy pkgconfig
+to USES and delete MASTER_SITES:
+.Bd -literal -offset indent
+$ printf 'USES+=pkgconfig\nMASTER_SITES!=' | portedit merge -i Makefile
+.Ed
+.Pp
+During maintainance of USES=cargo ports we have to regenerate
+CARGO_CRATES and related variables based on output of
+.Cm make cargo-crates .
+We can merge the output of this command into our Makefile with
+.Nm Cm merge :
+.Bd -literal -offset indent
+$ make cargo-crates
+CARGO_CRATES=	# ...
+$ make cargo-crates | portedit merge -i Makefile
+.Ed
+.Pp
+We have to run
+.Cm make cargo-crates
+twice since the first time the output might not be clean and might
+contain framework messages.
+.Pp
+A port that is using a versioning scheme that is derived from
+.Cm git describe --tags
+might have
+.Bd -literal -offset indent
+DISTVERSIONPREFIX=	v
+DISTVERSION=	0.9.2-259
+DISTVERSIONSUFFIX=	-gc07c115
+.Ed
+.Pp
+To update it we can run
+.Bd -literal -offset indent
+$ portedit set-version -i v0.9.2-279-gc23f123
+.Ed
+.Pp
+The triple will have been updated accordingly:
+.Bd -literal -offset indent
+DISTVERSIONPREFIX=	v
+DISTVERSION=	0.9.2-279
+DISTVERSIONSUFFIX=	-gc23f123
+.Ed
+.Sh SEE ALSO
+.Xr portclippy 1 ,
+.Xr portfmt 1
+.Sh AUTHORS
+.An Tobias Kortkamp Aq Mt tobik@FreeBSD.org

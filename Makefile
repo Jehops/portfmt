@@ -67,7 +67,7 @@ variable.o: config.h regexp.h rules.h util.h variable.c variable.h
 
 install:
 	${MKDIR} ${DESTDIR}${BINDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${MANDIR}/man1
-	${INSTALL_MAN} portclippy.1 portfmt.1 ${DESTDIR}${MANDIR}/man1
+	${INSTALL_MAN} portclippy.1 portedit.1 portfmt.1 ${DESTDIR}${MANDIR}/man1
 	${INSTALL_PROGRAM} portclippy portedit portfmt ${DESTDIR}${BINDIR}
 	${INSTALL_LIB} ${LIBNAME}.${LIBSUFFIX} ${DESTDIR}${LIBDIR}
 	@if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
