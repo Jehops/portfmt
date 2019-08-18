@@ -45,7 +45,7 @@ static void usage(void);
 void
 usage()
 {
-	fprintf(stderr, "usage: portfmt [-aditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portfmt [-ditu] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
@@ -59,7 +59,7 @@ main(int argc, char *argv[])
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
 		PARSER_OUTPUT_REFORMAT;
 
-	if (!read_common_args(&argc, &argv, &settings, "adituw:")) {
+	if (!read_common_args(&argc, &argv, &settings, "dituw:")) {
 		usage();
 	}
 

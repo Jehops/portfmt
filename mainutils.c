@@ -84,9 +84,6 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 	int ch;
 	while ((ch = getopt(*argc, *argv, optstr)) != -1) {
 		switch (ch) {
-		case 'a':
-			settings->behavior |= PARSER_SANITIZE_APPEND;
-			break;
 		case 'd':
 			settings->behavior |= PARSER_OUTPUT_DUMP_TOKENS;
 			break;

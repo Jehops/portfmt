@@ -43,32 +43,33 @@ struct Array *
 refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	/* Sanitize += before bsd.options.mk */
-	ssize_t start = -1;
 	struct Array *seen = array_new(sizeof(struct Variable *));
+	struct Array *tokens = array_new(sizeof(struct Variable *));
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {
 		case VARIABLE_START:
-			start = i;
+		case VARIABLE_TOKEN:
+			array_append(tokens, t);
 			break;
 		case VARIABLE_END: {
-			if (start < 0) {
-				continue;
-			}
+			array_append(tokens, t);
 			if (!array_append_unique(seen, token_variable(t), variable_compare)) {
-				start = -1;
+				array_truncate(tokens);
 				continue;
 			}
-			for (size_t j = start; j <= i; j++) {
-				struct Token *o = array_get(ptokens, j);
+			for (size_t j = 0; j < array_len(tokens); j++) {
+				struct Token *o = array_get(tokens, j);
 				if (strcmp(variable_name(token_variable(o)), "CXXFLAGS") != 0 &&
 				    strcmp(variable_name(token_variable(o)), "CFLAGS") != 0 &&
 				    strcmp(variable_name(token_variable(o)), "LDFLAGS") != 0 &&
+				    strcmp(variable_name(token_variable(o)), "RUSTFLAGS") != 0 &&
 				    variable_modifier(token_variable(o)) == MODIFIER_APPEND) {
 					variable_set_modifier(token_variable(o), MODIFIER_ASSIGN);
+					parser_mark_edited(parser, o);
 				}
 			}
-			start = -1;
+			array_truncate(tokens);
 			break;
 		} case CONDITIONAL_TOKEN:
 			if (is_include_bsd_port_mk(t)) {
@@ -80,6 +81,7 @@ refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, 
 	}
 end:
 	array_free(seen);
+	array_free(tokens);
 
 	return ptokens;
 }
