@@ -79,10 +79,10 @@ enter_sandbox()
 }
 
 int
-read_common_args(int *argc, char ***argv, struct ParserSettings *settings)
+read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const char *optstr)
 {
 	int ch;
-	while ((ch = getopt(*argc, *argv, "adituw:")) != -1) {
+	while ((ch = getopt(*argc, *argv, optstr)) != -1) {
 		switch (ch) {
 		case 'a':
 			settings->behavior |= PARSER_SANITIZE_APPEND;

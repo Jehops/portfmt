@@ -59,7 +59,7 @@ main(int argc, char *argv[])
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
 		PARSER_OUTPUT_REFORMAT;
 
-	if (!read_common_args(&argc, &argv, &settings)) {
+	if (!read_common_args(&argc, &argv, &settings, "adituw:")) {
 		usage();
 	}
 
