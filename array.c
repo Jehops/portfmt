@@ -88,16 +88,6 @@ array_append(struct Array *array, void *v)
 }
 
 int
-array_append_unique(struct Array *array, void *v, ArrayCompareFn compar)
-{
-	if (array_find(array, v, compar) == -1) {
-		array_append(array, v);
-		return 1;
-	}
-	return 0;
-}
-
-int
 array_diff(struct Array *base1, struct Array *base2, struct diff *d, ArrayCompareFn cmp)
 {
 	assert(base1->value_size == base2->value_size);

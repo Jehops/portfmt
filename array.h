@@ -33,7 +33,6 @@ typedef int (*ArrayCompareFn)(const void *, const void *);
 
 struct Array *array_new(size_t);
 void array_append(struct Array *, void *);
-int array_append_unique(struct Array *, void *, ArrayCompareFn);
 int array_diff(struct Array *, struct Array *, struct diff *, ArrayCompareFn);
 void array_free(struct Array *);
 void *array_get(struct Array *, size_t);

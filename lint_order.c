@@ -67,8 +67,8 @@ variable_list(struct Array *tokens)
 		}
 		char *var = variable_name(token_variable(t));
 		// Ignore port local variables that start with an _
-		if (var[0] != '_') {
-			array_append_unique(vars, var, str_compare);
+		if (var[0] != '_' && array_find(vars, var, str_compare) == -1) {
+			array_append(vars, var);
 		}
 	}
 
@@ -119,8 +119,8 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 		}
 		char *var = variable_name(token_variable(t));
 		// Ignore port local variables that start with an _
-		if (var[0] != '_') {
-			array_append_unique(vars, var, str_compare);
+		if (var[0] != '_' && array_find(vars, var, str_compare) == -1) {
+			array_append(vars, var);
 		}
 	}
 

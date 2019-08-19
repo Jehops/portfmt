@@ -402,7 +402,7 @@ parser_append_token(struct Parser *parser, enum TokenType type, const char *data
 		parser->error_msg = xstrdup(token_type_tostring(type));
 		return;
 	}
-	array_append_unique(parser->tokengc, t, NULL);
+	parser_mark_for_gc(parser, t);
 	array_append(parser->tokens, t);
 }
 
@@ -686,7 +686,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 				continue;
 			} else {
 				struct Token *t = token_clone(token, row);
-				array_append_unique(parser->tokengc, t, NULL);
+				parser_mark_for_gc(parser, t);
 				array_append(arr, t);
 				row[0] = 0;
 			}
@@ -710,7 +710,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	}
 	if (token && strlen(row) > 0 && array_len(arr) < array_len(tokens)) {
 		struct Token *t = token_clone(token, row);
-		array_append_unique(parser->tokengc, t, NULL);
+		parser_mark_for_gc(parser, t);
 		array_append(arr, t);
 	}
 	print_newline_array(parser, arr);
@@ -934,7 +934,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 		free(prefix);
 
 		struct Token *t2 = token_clone(t, buf);
-		array_append_unique(parser->tokengc, t2, NULL);
+		parser_mark_for_gc(parser, t2);
 		array_append(up, t2);
 		free(buf);
 	}
@@ -1564,7 +1564,9 @@ parser_read_from_buffer(struct Parser *parser, const char *input, size_t len)
 void
 parser_mark_for_gc(struct Parser *parser, struct Token *t)
 {
-	array_append_unique(parser->tokengc, t, NULL);
+	if (array_find(parser->tokengc, t, NULL) == -1) {
+		array_append(parser->tokengc, t);
+	}
 }
 
 void
