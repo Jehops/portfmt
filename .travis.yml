@@ -2,11 +2,7 @@ language: c
 matrix:
   include:
   - os: osx
-    script: ./configure && make && mkdir -p ~/lib && cp libportfmt.dylib ~/lib/ && MANDOC=/usr/local/bin/mandoc make test
-    addons:
-      homebrew:
-        packages:
-          - mandoc
+    script: ./configure && make && mkdir -p ~/lib && cp libportfmt.dylib ~/lib/ && make test
   - os: linux
     dist: bionic
     before_install: echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-

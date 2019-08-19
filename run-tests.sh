@@ -1,7 +1,7 @@
 #!/bin/sh
 set -u
 ROOT="${PWD}"
-: ${MANDOC:="mandoc"}
+MANDOC="mandoc"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
 
@@ -60,8 +60,10 @@ for t in reject/*.in; do
 done
 
 cd "${ROOT}"
+if type ${MANDOC} >/dev/null 2>&1; then
 if ! ${MANDOC} -Tlint -Wstyle *.1; then
 	tests_failed=$((tests_failed + 1))
+fi
 fi
 
 printf "fail: %s ok: %s/%s\n" "${tests_failed}" "$((tests_run - tests_failed))" "${tests_run}"
