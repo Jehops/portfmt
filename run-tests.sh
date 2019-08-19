@@ -1,7 +1,7 @@
 #!/bin/sh
 set -u
 ROOT="${PWD}"
-MANDOC="mandoc"
+: ${MANDOC:="mandoc"}
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
 
