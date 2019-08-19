@@ -1008,6 +1008,7 @@ parser_output_edited_insert_empty(struct Parser *parser, struct Token *prev)
 	} case COMMENT:
 	case TARGET_COMMAND_END:
 	case TARGET_END:
+	case TARGET_START:
 		break;
 	default:
 		parser_enqueue_output(parser, "\n");
@@ -1611,6 +1612,53 @@ parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
 struct ParserSettings parser_settings(struct Parser *parser)
 {
 	return parser->settings;
+}
+
+struct Target *
+parser_lookup_target(struct Parser *parser, const char *name, struct Array **retval)
+{
+	struct Target *target = NULL;
+	struct Array *tokens = array_new(sizeof(char *));
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		switch (token_type(t)) {
+		case TARGET_START:
+			array_truncate(tokens);
+			/* fallthrough */
+		case TARGET_COMMAND_START:
+		case TARGET_COMMAND_TOKEN:
+		case TARGET_COMMAND_END:
+			if (strcmp(target_name(token_target(t)), name) == 0) {
+				array_append(tokens, token_data(t));
+			}
+			break;
+		case TARGET_END:
+			if (strcmp(target_name(token_target(t)), name) == 0) {
+				target = token_target(t);
+				goto found;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	array_free(tokens);
+
+	if (retval) {
+		*retval = NULL;
+	}
+
+	return NULL;
+
+found:
+	if (retval) {
+		*retval = tokens;
+	} else {
+		array_free(tokens);
+	}
+
+	return target;
 }
 
 struct Variable *
