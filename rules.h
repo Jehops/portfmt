@@ -88,6 +88,7 @@ struct Match;
 
 const char *blocktype_tostring(enum BlockType);
 int compare_order(const void *, const void *);
+int compare_target_order(const void *, const void *);
 int compare_tokens(const void *, const void *);
 int ignore_wrap_col(struct Variable *);
 int indent_goalcol(struct Variable *);

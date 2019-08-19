@@ -53,6 +53,7 @@ static int compare_plist_files(struct Variable *, const char *, const char *, in
 static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static int is_flavors_helper(const char *, char **, char **);
+static void target_extract_opt(const char *, char **, char **, int *);
 
 static struct {
 	const char *pattern;
@@ -1169,6 +1170,42 @@ static const char *ignore_wrap_col_opthelpers_[] = {
 	"IGNORE",
 	"MASTER_SITES_OFF",
 	"MASTER_SITES",
+};
+
+static const char *target_order_[] = {
+	"post-chroot",
+	"pre-everything",
+	"pre-fetch",
+	"pre-fetch-script",
+	"do-fetch",
+	"post-fetch",
+	"post-fetch-script",
+	"pre-extract",
+	"pre-extract-script",
+	"do-extract",
+	"post-extract",
+	"post-extract-script",
+	"pre-patch",
+	"pre-patch-script",
+	"do-patch",
+	"post-patch",
+	"post-patch-script",
+	"pre-configure",
+	"pre-configure-script",
+	"do-configure",
+	"post-configure",
+	"post-configure-script",
+	"pre-build",
+	"pre-build-script",
+	"do-build",
+	"post-build",
+	"post-build-script",
+	"pre-install",
+	"pre-install-script",
+	"do-install",
+	"post-install",
+	"post-install-script",
+	"post-stage",
 };
 
 struct VariableOrderEntry {
@@ -2849,6 +2886,121 @@ compare_order(const void *ap, const void *bp)
 	} else {
 		return strcmp(a, b);
 	}
+}
+
+void
+target_extract_opt(const char *target, char **target_out, char **opt_out, int *state)
+{
+	*opt_out = NULL;
+	*target_out = NULL;
+	*state = 0;
+
+	int on;
+	if ((on = str_endswith(target, "-on")) || str_endswith(target, "-off")) {
+		const char *p = target;
+		for (; *p == '-' || (islower(*p) && isalpha(*p)); p++);
+		if (on) {
+			*opt_out = xstrndup(p, strlen(p) - strlen("-on"));
+			*state = 1;
+		} else {
+			*opt_out = xstrndup(p, strlen(p) - strlen("-off"));
+			*state = 0;
+		}
+		char *tmp;
+		xasprintf(&tmp, "%s_USES", *opt_out);
+		if (is_options_helper(tmp, NULL, NULL)) {
+			*target_out = xstrndup(target, strlen(target) - strlen(p) - 1);
+		} else {
+			*target_out = xstrdup(target);
+			free(*opt_out);
+			*opt_out = NULL;
+		}
+		free(tmp);
+	} else {
+		*target_out = xstrdup(target);
+	}
+}
+
+int
+compare_target_order(const void *ap, const void *bp)
+{
+	int retval = 0;
+	const char *a_ = *(const char **)ap;
+	const char *b_ = *(const char **)bp;
+
+	if (strcmp(a_, b_) == 0) {
+		return 0;
+	}
+
+	char *a, *b, *aopt, *bopt;
+	int aoptstate, boptstate;
+	target_extract_opt(a_, &a, &aopt, &aoptstate);
+	target_extract_opt(b_, &b, &bopt, &boptstate);
+
+	ssize_t aindex = -1;
+	ssize_t bindex = -1;
+	for (size_t i = 0; i < nitems(target_order_) && (aindex == -1 || bindex == -1); i++) {
+		if (aindex == -1 && strcmp(target_order_[i], a) == 0) {
+			aindex = i;
+		}
+		if (bindex == -1 && strcmp(target_order_[i], b) == 0) {
+			bindex = i;
+		}
+	}
+
+	if (aindex == -1) {
+		retval = 1;
+		goto cleanup;
+	} else if (bindex == -1) {
+		retval = -1;
+		goto cleanup;
+	} else if (aindex == bindex) {
+		if (aopt == NULL) {
+			retval = -1;
+			goto cleanup;
+		}
+		if (bopt == NULL) {
+			retval = 1;
+			goto cleanup;
+		}
+
+		int c = strcmp(aopt, bopt);
+		if (c < 0) {
+			retval = -1;
+			goto cleanup;
+		} else if (c > 0) {
+			retval = 1;
+			goto cleanup;
+		}
+
+		if (aoptstate && !boptstate) {
+			retval = 1;
+			goto cleanup;
+		} else if (!aoptstate && boptstate) {
+			retval = -1;
+			goto cleanup;
+		} else {
+			// should not happen
+			abort();
+		}
+	} else if (aindex < bindex) {
+		retval = -1;
+		goto cleanup;
+	} else if (aindex > bindex) {
+		retval = 1;
+		goto cleanup;
+	} else {
+		// should not happen
+		abort();
+	}
+
+cleanup:
+	free(a);
+	free(aopt);
+	free(b);
+	free(bopt);
+
+	return retval;
 }
 
 const char *
