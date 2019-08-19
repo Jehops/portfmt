@@ -61,6 +61,7 @@ done
 
 cd "${ROOT}"
 if type ${MANDOC} >/dev/null 2>&1; then
+tests_run=$((tests_run + 1))
 if ! ${MANDOC} -Tlint -Wstyle *.1; then
 	tests_failed=$((tests_failed + 1))
 fi
