@@ -25,7 +25,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd August 18, 2019
+.Dd August 19, 2019
 .Dt PORTCLIPPY 1
 .Os
 .Sh NAME
@@ -54,10 +54,10 @@ It can be used to check if a variable is in the right position.
 It is heavily inspired by Chapter 15 of the Porter's Handbook and
 provides an objective measure for it.
 .Pp
-Variables in wrong positions will be demarked with -.
-The position they should appear in is demarked with a +.
+Variables in wrong positions will be marked with -.
+The position they should appear in is marked with a +.
 .Pp
-Variable that start with an underscore _ will be ignored.
+Variables that start with an underscore _ will be ignored.
 .Sh ENVIRONMENT
 The following environment variables affect the execution of
 .Nm :
@@ -105,8 +105,8 @@ The output of
 is inspired by unified
 .Xr diff 1
 output.
-Here RUN_DEPENDS is in the wrong position (demarked with -) and
-should be moved to before USES (demarked with +).
+Here RUN_DEPENDS is in the wrong position (marked with -) and
+should be moved to before USES (marked with +).
 .Sh SEE ALSO
 .Xr portfmt 1 ,
 .Xr portlint 1
