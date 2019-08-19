@@ -1,6 +1,7 @@
 #!/bin/sh
 set -u
 ROOT="${PWD}"
+MANDOC="mandoc"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
 
@@ -57,6 +58,11 @@ for t in reject/*.in; do
 		echo "error ok"
 	fi
 done
+
+cd "${ROOT}"
+if ! ${MANDOC} -Tlint -Wstyle *.1; then
+	tests_failed=$((tests_failed + 1))
+fi
 
 printf "fail: %s ok: %s/%s\n" "${tests_failed}" "$((tests_run - tests_failed))" "${tests_run}"
 if [ "${tests_failed}" -gt 0 ]; then

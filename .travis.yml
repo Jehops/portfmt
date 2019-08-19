@@ -3,9 +3,16 @@ matrix:
   include:
   - os: osx
     script: ./configure && make && mkdir -p ~/lib && cp libportfmt.dylib ~/lib/ && make test
+    addons:
+      homebrew:
+        packages:
+          - mandoc
   - os: linux
     before_install: echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
     addons:
+      apt:
+        packages:
+          - mandoc
       coverity_scan:
         project:
           name: "t6/portfmt"
