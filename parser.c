@@ -1755,5 +1755,12 @@ enum ParserError
 parser_merge(struct Parser *parser, struct Parser *subparser, enum ParserMergeBehavior settings)
 {
 	struct EditMergeParams params = { subparser, settings };
-	return parser_edit(parser, edit_merge, &params);
+	enum ParserError error = parser_edit(parser, edit_merge, &params);
+
+	if (error == PARSER_ERROR_OK &&
+	    parser->settings.behavior & PARSER_DEDUP_TOKENS) {
+		error = parser_edit(parser, refactor_dedup_tokens, NULL);
+	}
+
+	return error;
 }
