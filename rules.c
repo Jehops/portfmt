@@ -2423,6 +2423,13 @@ print_as_newlines(struct Variable *var)
 }
 
 int
+skip_dedup(struct Variable *var)
+{
+	// XXX: skip_dedup is probably a super set of leave_unsorted
+	return leave_unsorted(var);
+}
+
+int
 skip_goalcol(struct Variable *var)
 {
 	if (matches(RE_LICENSE_NAME, variable_name(var))) {

@@ -13,7 +13,7 @@ OBJS=		array.o compats.o conditional.o diff.o edit_bump_revision.o \
 		edit_merge.o edit_output_unknown_variables.o \
 		edit_output_variable_value.o edit_set_version.o lint_order.o \
 		mainutils.o parser.o refactor_collapse_adjacent.o \
-		refactor_sanitize_append_modifier.o \
+		refactor_dedup_tokens.o refactor_sanitize_append_modifier.o \
 		refactor_sanitize_eol_comments.o regexp.o rules.o target.o \
 		token.o util.o variable.o
 
@@ -61,6 +61,7 @@ edit_output_unknown_variables.o: config.h array.h parser.h regexp.h rules.h toke
 edit_set_version.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_set_version.c
 lint_order.o: config.h array.h diff.h parser.h rules.h token.h util.h variable.h lint_order.c
 refactor_collapse_adjacent.o: config.h array.h parser.h token.h util.h variable.h refactor_collapse_adjacent.c
+refactor_dedup_tokens.o: config.h array.h parser.h token.h util.h variable.h refactor_dedup_tokens.c
 refactor_sanitize_append_modifier.o: config.h array.h parser.h rules.h token.h variable.h refactor_sanitize_append_modifier.c
 refactor_sanitize_eol_comments.o: config.h array.h parser.h rules.h token.h util.h variable.h refactor_sanitize_eol_comments.c
 variable.o: config.h regexp.h rules.h util.h variable.c variable.h

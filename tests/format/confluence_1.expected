@@ -2,7 +2,7 @@ LIB_DEPENDS=	libABC.so:asfd/asdfa \
 		libcurl.so:ftp/curl \
 		libsndio.so:audio/sndio \
 		libX11.so:x11/xlib
-USES+=		3 3 3 3453 345345 5 6 67 8 87 9 9 a a b c d e f gsd h sdf z
+USES+=		3 3453 345345 5 6 67 8 87 9 a b c d e f gsd h sdf z
 
 CONFIGURE_ARGS=	exampledir=${EXAMPLESDIR} \
 		mandir=${MANPREFIX}/man \

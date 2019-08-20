@@ -469,7 +469,7 @@ main(int argc, char *argv[])
 
 	struct ParserSettings settings;
 	parser_init_settings(&settings);
-	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
+	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES | PARSER_DEDUP_TOKENS |
 		PARSER_OUTPUT_REFORMAT | PARSER_OUTPUT_EDITED |
 		PARSER_KEEP_EOL_COMMENTS;
 

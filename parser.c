@@ -1470,6 +1470,11 @@ parser_read_finish(struct Parser *parser)
 		return parser->error;
 	}
 
+	if (parser->settings.behavior & PARSER_DEDUP_TOKENS &&
+	    PARSER_ERROR_OK != parser_edit(parser, refactor_dedup_tokens, NULL)) {
+		return parser->error;
+	}
+
 	return parser->error;
 }
 

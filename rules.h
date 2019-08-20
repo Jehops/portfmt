@@ -101,6 +101,7 @@ int matches(enum RegularExpression, const char *);
 int preserve_eol_comment(struct Token *);
 int print_as_newlines(struct Variable *);
 void rules_init(void);
+int skip_dedup(struct Variable *);
 int skip_goalcol(struct Variable *);
 char *sub(enum RegularExpression, const char *, const char *);
 int target_command_should_wrap(char *);

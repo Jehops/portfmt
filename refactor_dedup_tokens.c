@@ -28,76 +28,55 @@
 
 #include "config.h"
 
-#if HAVE_ERR
-# include <err.h>
-#endif
-#include <stdio.h>
+#include <regex.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sysexits.h>
-#include <unistd.h>
+#include <stdio.h>
 
-#include "mainutils.h"
+#include "array.h"
 #include "parser.h"
+#include "rules.h"
+#include "token.h"
+#include "util.h"
+#include "variable.h"
 
-static void usage(void);
-
-void
-usage()
+struct Array *
+refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	fprintf(stderr, "usage: portfmt [-ditu] [-w wrapcol] [Makefile]\n");
-	exit(EX_USAGE);
-}
-
-int
-main(int argc, char *argv[])
-{
-	int status = 0;
-	struct ParserSettings settings;
-
-	parser_init_settings(&settings);
-	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
-		PARSER_DEDUP_TOKENS | PARSER_OUTPUT_REFORMAT;
-
-	if (!read_common_args(&argc, &argv, &settings, "dituw:")) {
-		usage();
-	}
-
-	FILE *fp_in = stdin;
-	FILE *fp_out = stdout;
-	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out, 0)) {
-		if (fp_in == NULL) {
-			err(1, "fopen");
-		} else {
-			usage();
+	struct Array *tokens = array_new(sizeof(struct Token *));
+	struct Array *seen = array_new(sizeof(const char *));
+	int always_append = 0;
+	int skip = 0;
+	for (size_t i = 0; i < array_len(ptokens); i++) {
+		struct Token *t = array_get(ptokens, i);
+		switch (token_type(t)) {
+		case VARIABLE_START:
+			array_truncate(seen);
+			always_append = 0;
+			skip = skip_dedup(token_variable(t));
+			array_append(tokens, t);
+			break;
+		case VARIABLE_TOKEN:
+			if (skip) {
+				array_append(tokens, t);
+			} else {
+				if (is_comment(t)) {
+					always_append = 1;
+				}
+				// XXX: This is naive and does not dedup composite tokens like USES=mod:args or *_DEPENDS in a good way.
+				if (always_append || array_find(seen, token_data(t), str_compare) == -1) {
+					array_append(tokens, t);
+					array_append(seen, token_data(t));
+				} else {
+					parser_mark_for_gc(parser, t);
+				}
+			}
+			break;
+		default:
+			array_append(tokens, t);
+			break;
 		}
 	}
-	if (!can_use_colors(fp_out)) {
-		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
-	}
 
-	enter_sandbox();
-
-	struct Parser *parser = parser_new(&settings);
-	enum ParserError error = parser_read_from_file(parser, fp_in);
-	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
-	}
-	error = parser_read_finish(parser);
-	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
-	}
-
-	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
-	}
-	parser_free(parser);
-
-	fclose(fp_out);
-	if (fp_out != fp_in) {
-		fclose(fp_in);
-	}
-
-	return status;
+	array_free(seen);
+	return tokens;
 }

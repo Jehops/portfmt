@@ -30,16 +30,17 @@
 enum ParserBehavior {
 	PARSER_DEFAULT = 0,
 	PARSER_COLLAPSE_ADJACENT_VARIABLES = 2,
-	PARSER_FORMAT_TARGET_COMMANDS = 4,
-	PARSER_KEEP_EOL_COMMENTS = 8,
-	PARSER_OUTPUT_DUMP_TOKENS = 16,
-	PARSER_OUTPUT_EDITED = 32,
-	PARSER_OUTPUT_INPLACE = 64,
-	PARSER_OUTPUT_NO_COLOR = 128,
-	PARSER_OUTPUT_RAWLINES = 256,
-	PARSER_OUTPUT_REFORMAT = 512,
-	PARSER_SANITIZE_APPEND = 1024,
-	PARSER_UNSORTED_VARIABLES = 2048,
+	PARSER_DEDUP_TOKENS = 4,
+	PARSER_FORMAT_TARGET_COMMANDS = 8,
+	PARSER_KEEP_EOL_COMMENTS = 16,
+	PARSER_OUTPUT_DUMP_TOKENS = 32,
+	PARSER_OUTPUT_EDITED = 64,
+	PARSER_OUTPUT_INPLACE = 128,
+	PARSER_OUTPUT_NO_COLOR = 256,
+	PARSER_OUTPUT_RAWLINES = 512,
+	PARSER_OUTPUT_REFORMAT = 1024,
+	PARSER_SANITIZE_APPEND = 2048,
+	PARSER_UNSORTED_VARIABLES = 4096,
 };
 
 enum ParserMergeBehavior{
@@ -96,6 +97,7 @@ enum ParserError parser_merge(struct Parser *, struct Parser *, enum ParserMerge
 struct ParserSettings parser_settings(struct Parser *);
 
 struct Array *refactor_collapse_adjacent_variables(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
+struct Array *refactor_dedup_tokens(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 struct Array *refactor_sanitize_append_modifier(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 struct Array *refactor_sanitize_eol_comments(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 struct Array *edit_bump_revision(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
