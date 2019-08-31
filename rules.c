@@ -2586,7 +2586,9 @@ is_flavors_helper(const char *var, char **prefix, char **helper)
 			continue;
 		}
 		const char *helper = variable_order_[i].var;
-		if (str_endswith(var, helper)) {
+		if (str_endswith(var, helper) &&
+		    strlen(var) > strlen(helper) &&
+		    var[strlen(var) - strlen(helper) - 1] == '_') {
 			suffix = helper;
 			break;
 		}
@@ -2632,7 +2634,9 @@ is_options_helper(const char *var, char **prefix, char **helper)
 				continue;
 			}
 			const char *helper = variable_order_[i].var;
-			if (str_endswith(var, helper)) {
+			if (str_endswith(var, helper) &&
+			    strlen(var) > strlen(helper) &&
+			    var[strlen(var) - strlen(helper) - 1] == '_') {
 				suffix = helper;
 				break;
 			}
