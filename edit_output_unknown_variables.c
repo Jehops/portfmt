@@ -42,6 +42,7 @@
 struct Array *
 edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
+	int *unknowns = (int*)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		return NULL;
 	}
@@ -55,9 +56,15 @@ edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum 
 		array_append(vars, variable_name(token_variable(t)));
 	}
 
+	if (unknowns) {
+		*unknowns = 0;
+	}
 	for (size_t i = 0; i < array_len(vars); i++) {
 		char *var = array_get(vars, i);
 		if (variable_order_block(var) == BLOCK_UNKNOWN) {
+			if (unknowns) {
+				(*unknowns)++;
+			}
 			parser_enqueue_output(parser, var);
 			parser_enqueue_output(parser, "\n");
 		}

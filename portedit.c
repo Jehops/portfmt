@@ -346,7 +346,8 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_vars_usage();
 	}
 
-	int error = parser_edit(parser, edit_output_unknown_variables, NULL);
+	int has_unknowns;
+	int error = parser_edit(parser, edit_output_unknown_variables, &has_unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -360,6 +361,10 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 	fclose(fp_out);
 	if (fp_out != fp_in) {
 		fclose(fp_in);
+	}
+
+	if (has_unknowns) {
+		return 1;
 	}
 
 	return 0;
