@@ -140,7 +140,13 @@ is_git_describe_version(const char *ver, char **distversion, char **prefix, char
 struct Array *
 edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	const char *newversion = userdata;
+	if (userdata == NULL) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		*error_msg = xstrdup("missing version");
+		return NULL;
+	}
+	char *newversion_buf = xstrdup(userdata);
+	const char *newversion = newversion_buf;
 
 	const char *ver = "DISTVERSION";
 	if (parser_lookup_variable(parser, "PORTVERSION", NULL, NULL)) {
@@ -160,6 +166,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 				*error = PARSER_ERROR_EXPECTED_INT;
 				*error_msg = xstrdup(errstr);
 				free(version);
+				free(newversion_buf);
 				return NULL;
 			}
 		}
@@ -172,8 +179,14 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 	char *prefix;
 	char *suffix;
 	if (!is_git_describe_version(newversion, &distversion, &prefix, &suffix)) {
-		if (parser_lookup_variable(parser, "DISTVERSIONSUFFIX", NULL, NULL)) {
-			remove_distversionsuffix = 1;
+		if (parser_lookup_variable_str(parser, "DISTVERSIONSUFFIX", &suffix, NULL)) {
+			if (str_endswith(newversion, suffix)) {
+				newversion_buf[strlen(newversion) - strlen(suffix)] = 0;
+			} else {
+				remove_distversionsuffix = 1;
+			}
+			free(suffix);
+			suffix = NULL;
 		}
 		if (parser_lookup_variable_str(parser, "DISTVERSIONPREFIX", &prefix, NULL)) {
 			if (str_startswith(newversion, prefix)) {
@@ -267,6 +280,8 @@ cleanup:
 	if (suffix) {
 		free(suffix);
 	}
+
+	free(newversion_buf);
 
 	return NULL;
 }
