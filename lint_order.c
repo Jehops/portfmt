@@ -213,9 +213,12 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	}
 	array_append(origin, xstrdup("# Out of order targets"));
 	for (size_t i = 0; i < array_len(targets); i++) {
-		char *buf;
-		xasprintf(&buf, "%s:", array_get(targets, i));
-		array_append(origin, buf);
+		char *name = array_get(targets, i);
+		if (is_known_target(name)) {
+			char *buf;
+			xasprintf(&buf, "%s:", name);
+			array_append(origin, buf);
+		}
 	}
 
 	array_sort(targets, compare_target_order);
@@ -226,9 +229,22 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	}
 	array_append(target, xstrdup("# Out of order targets"));
 	for (size_t i = 0; i < array_len(targets); i++) {
-		char *buf;
-		xasprintf(&buf, "%s:", array_get(targets, i));
-		array_append(target, buf);
+		char *name = array_get(targets, i);
+		if (is_known_target(name)) {
+			char *buf;
+			xasprintf(&buf, "%s:", name);
+			array_append(target, buf);
+		}
+	}
+
+	unknowns = array_new(sizeof(char *));
+	for (size_t i = 0; i< array_len(targets); i++) {
+		char *name = array_get(targets, i);
+		if (!is_known_target(name) && name[0] != '_') {
+			char *buf;
+			xasprintf(&buf, "%s:", name);
+			array_append(unknowns, buf);
+		}
 	}
 	array_free(targets);
 
@@ -238,6 +254,27 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 		*error_msg = xstrdup("lint_order: cannot compute difference");
 		return NULL;
 	}
+
+	if (array_len(unknowns) > 0) {
+		if (status_var || status_target) {
+			parser_enqueue_output(parser, "\n");
+		}
+		if (!no_color) {
+			parser_enqueue_output(parser, ANSI_COLOR_CYAN);
+		}
+		parser_enqueue_output(parser, "# Unknown targets");
+		if (!no_color) {
+			parser_enqueue_output(parser, ANSI_COLOR_RESET);
+		}
+		parser_enqueue_output(parser, "\n");
+	}
+	for (size_t i = 0; i < array_len(unknowns); i++) {
+		char *name = array_get(unknowns, i);
+		parser_enqueue_output(parser, name);
+		parser_enqueue_output(parser, "\n");
+		free(name);
+	}
+	array_free(unknowns);
 
 	if (status_var > 0 || status_target > 0) {
 		*status = 1;

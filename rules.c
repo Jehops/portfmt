@@ -3125,6 +3125,25 @@ target_extract_opt(const char *target, char **target_out, char **opt_out, int *s
 }
 
 int
+is_known_target(const char *target)
+{
+	char *root, *opt;
+	int state;
+	target_extract_opt(target, &root, &opt, &state);
+	free(opt);
+
+	for (size_t i = 0; i < nitems(target_order_); i++) {
+		if (strcmp(target_order_[i], root) == 0) {
+			free(root);
+			return 1;
+		}
+	}
+
+	free(root);
+	return 0;
+}
+
+int
 compare_target_order(const void *ap, const void *bp)
 {
 	int retval = 0;
