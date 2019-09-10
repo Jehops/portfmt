@@ -213,7 +213,9 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	}
 	array_append(origin, xstrdup("# Out of order targets"));
 	for (size_t i = 0; i < array_len(targets); i++) {
-		array_append(origin, xstrdup(array_get(targets, i))); 
+		char *buf;
+		xasprintf(&buf, "%s:", array_get(targets, i));
+		array_append(origin, buf);
 	}
 
 	array_sort(targets, compare_target_order);
@@ -224,7 +226,9 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	}
 	array_append(target, xstrdup("# Out of order targets"));
 	for (size_t i = 0; i < array_len(targets); i++) {
-		array_append(target, xstrdup(array_get(targets, i))); 
+		char *buf;
+		xasprintf(&buf, "%s:", array_get(targets, i));
+		array_append(target, buf);
 	}
 	array_free(targets);
 
