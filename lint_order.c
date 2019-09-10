@@ -245,13 +245,14 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 
 	int status_target = 0;
 	if ((status_target = output_diff(parser, origin, target, no_color)) == -1) {
-		return -1;
+		goto cleanup;
 	}
 
 	if (array_len(unknowns) > 0) {
 		if (status_var || status_target) {
 			parser_enqueue_output(parser, "\n");
 		}
+		status_target = 1;
 		if (!no_color) {
 			parser_enqueue_output(parser, ANSI_COLOR_CYAN);
 		}
@@ -260,12 +261,16 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 			parser_enqueue_output(parser, ANSI_COLOR_RESET);
 		}
 		parser_enqueue_output(parser, "\n");
+		for (size_t i = 0; i < array_len(unknowns); i++) {
+			char *name = array_get(unknowns, i);
+			parser_enqueue_output(parser, name);
+			parser_enqueue_output(parser, "\n");
+		}
 	}
+
+cleanup:
 	for (size_t i = 0; i < array_len(unknowns); i++) {
-		char *name = array_get(unknowns, i);
-		parser_enqueue_output(parser, name);
-		parser_enqueue_output(parser, "\n");
-		free(name);
+		free(array_get(unknowns, i));
 	}
 	array_free(unknowns);
 
