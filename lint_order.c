@@ -40,6 +40,7 @@
 #include "diff.h"
 #include "parser.h"
 #include "rules.h"
+#include "target.h"
 #include "token.h"
 #include "util.h"
 #include "variable.h"
@@ -51,6 +52,8 @@
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
+
+static int output_diff(struct Parser *, struct Array *, struct Array *, int);
 
 static struct Array *
 variable_list(struct Array *tokens)
@@ -94,6 +97,25 @@ variable_list(struct Array *tokens)
 	array_free(vars);
 
 	return output;
+}
+
+static struct Array *
+target_list(struct Array *tokens)
+{
+	struct Array *targets = array_new(sizeof(char *));
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		if (token_type(t) != TARGET_START) {
+			continue;
+		}
+		char *target = target_name(token_target(t));
+		// Ignore port local targets that start with an _
+		if (target[0] != '_' && array_find(targets, target, str_compare) == -1) {
+			array_append(targets, target);
+		}
+	}
+
+	return targets;
 }
 
 struct Array *
@@ -177,13 +199,57 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	array_free(unknowns);
 	array_free(vars);
 
-	// Diff
+	int status_var;
+	if ((status_var = output_diff(parser, origin, target, no_color)) == -1) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		*error_msg = xstrdup("lint_order: cannot compute difference");
+		return NULL;
+	}
 
+	struct Array *targets = target_list(tokens);
+	origin = array_new(sizeof(char *));
+	if (status_var != 0) {
+		array_append(origin, xstrdup(""));
+	}
+	array_append(origin, xstrdup("# Out of order targets"));
+	for (size_t i = 0; i < array_len(targets); i++) {
+		array_append(origin, xstrdup(array_get(targets, i))); 
+	}
+
+	array_sort(targets, compare_target_order);
+
+	target = array_new(sizeof(char *));
+	if (status_var != 0) {
+		array_append(target, xstrdup(""));
+	}
+	array_append(target, xstrdup("# Out of order targets"));
+	for (size_t i = 0; i < array_len(targets); i++) {
+		array_append(target, xstrdup(array_get(targets, i))); 
+	}
+	array_free(targets);
+
+	int status_target = 0;
+	if ((status_target = output_diff(parser, origin, target, no_color)) == -1) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		*error_msg = xstrdup("lint_order: cannot compute difference");
+		return NULL;
+	}
+
+	if (status_var > 0 || status_target > 0) {
+		*status = 1;
+	}
+
+	return NULL;
+}
+
+static int
+output_diff(struct Parser *parser, struct Array *origin, struct Array *target, int no_color)
+{
+	int status = 0;
 	struct diff p;
 	int rc = array_diff(origin, target, &p, str_compare);
 	if (rc <= 0) {
-		*error = PARSER_ERROR_EDIT_FAILED;
-		*error_msg = xstrdup("lint_order: cannot compute difference");
+		status = -1;
 		goto cleanup;
 	}
 
@@ -199,11 +265,11 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 		}
 	}
 	if (edits == 0) {
-		*status = 0;
+		status = 0;
 		goto done;
 	}
 
-	*status = 1;
+	status = 1;
 	for (size_t i = 0; i < p.sessz; i++) {
 		const char *s = *(const char **)p.ses[i].e;
 		if (strlen(s) == 0) {
@@ -260,5 +326,5 @@ cleanup:
 	}
 	array_free(target);
 
-	return NULL;
+	return status;
 }
