@@ -3211,83 +3211,83 @@ blocktype_tostring(enum BlockType block)
 {
 	switch (block) {
 	case BLOCK_APACHE:
-		return "BLOCK_APACHE";
+		return "USES=apache related variables";
 	case BLOCK_BROKEN:
-		return "BLOCK_BROKEN";
+		return "BROKEN/IGNORE/DEPRECATED messages";
 	case BLOCK_CABAL:
-		return "BLOCK_CABAL";
+		return "USES=cabal related variables";
 	case BLOCK_CARGO1:
-		return "BLOCK_CARGO1";
+		return "USES=cargo related variables (1/2)";
 	case BLOCK_CARGO2:
-		return "BLOCK_CARGO2";
+		return "USES=cargo related variables (2/2)";
 	case BLOCK_CFLAGS:
-		return "BLOCK_CFLAGS";
+		return "CFLAGS/CXXFLAGS/LDFLAGS block";
 	case BLOCK_CMAKE:
-		return "BLOCK_CMAKE";
+		return "USES=cmake related variables";
 	case BLOCK_CONFIGURE:
-		return "BLOCK_CONFIGURE";
+		return "Configure block";
 	case BLOCK_CONFLICTS:
-		return "BLOCK_CONFLICTS";
+		return "Conflicts";
 	case BLOCK_DEPENDS:
-		return "BLOCK_DEPENDS";
+		return "Dependencies";
 	case BLOCK_ELIXIR:
-		return "BLOCK_ELIXIR";
+		return "USES=elixir related variables";
 	case BLOCK_EMACS:
-		return "BLOCK_EMACS";
+		return "USES=emacs related variables";
 	case BLOCK_ERLANG:
-		return "BLOCK_ERLANG";
+		return "USES=erlang related variables";
 	case BLOCK_FLAVORS:
-		return "BLOCK_FLAVORS";
+		return "Flavors";
 	case BLOCK_FLAVORS_HELPER:
-		return "BLOCK_FLAVORS_HELPER";
+		return "Flavors helpers";
 	case BLOCK_GO:
-		return "BLOCK_GO";
+		return "USES=go related variables";
 	case BLOCK_LAZARUS:
-		return "BLOCK_LAZARUS";
+		return "USES=lazarus related variables";
 	case BLOCK_LICENSE:
-		return "BLOCK_LICENSE";
+		return "License block";
 	case BLOCK_LICENSE_OLD:
-		return "BLOCK_LICENSE_OLD";
+		return "Old-school license block (please replace with LICENSE)";
 	case BLOCK_LINUX:
-		return "BLOCK_LINUX";
+		return "USES=linux related variables";
 	case BLOCK_MAINTAINER:
-		return "BLOCK_MAINTAINER";
+		return "Maintainer block";
 	case BLOCK_MAKE:
-		return "BLOCK_MAKE";
+		return "Make block";
 	case BLOCK_MESON:
-		return "BLOCK_MESON";
+		return "USES=meson related variables";
 	case BLOCK_NUGET:
-		return "BLOCK_NUGET";
+		return "USES=mono related variables";
 	case BLOCK_OPTDEF:
-		return "BLOCK_OPTDEF";
+		return "Option definitions";
 	case BLOCK_OPTDESC:
-		return "BLOCK_OPTDESC";
+		return "Option descriptions";
 	case BLOCK_OPTHELPER:
-		return "BLOCK_OPTHELPER";
+		return "Option helpers";
 	case BLOCK_PATCHFILES:
-		return "BLOCK_PATCHFILES";
+		return "Patch files";
 	case BLOCK_PLIST:
-		return "BLOCK_PLIST";
+		return "Packaging list block";
 	case BLOCK_PORTNAME:
-		return "BLOCK_PORTNAME";
+		return "PORTNAME block";
 	case BLOCK_QMAKE:
-		return "BLOCK_QMAKE";
+		return "USES=qmake related variables";
 	case BLOCK_SCONS:
-		return "BLOCK_SCONS";
+		return "USES=scons related variables";
 	case BLOCK_SHEBANGFIX:
-		return "BLOCK_SHEBANGFIX";
+		return "USES=shebangfix related variables";
 	case BLOCK_STANDARD:
-		return "BLOCK_STANDARD";
+		return "Standard bsd.port.mk variables";
 	case BLOCK_UNIQUEFILES:
-		return "BLOCK_UNIQUEFILES";
+		return "USES=uniquefiles block";
 	case BLOCK_UNKNOWN:
-		return "BLOCK_UNKNOWN";
+		return "Unknown variables";
 	case BLOCK_USERS:
-		return "BLOCK_USERS";
+		return "Users and groups block";
 	case BLOCK_USES:
-		return "BLOCK_USES";
+		return "USES block";
 	case BLOCK_WRKSRC:
-		return "BLOCK_WRKSRC";
+		return "WRKSRC block";
 	}
 
 	abort();
