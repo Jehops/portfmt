@@ -53,6 +53,8 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+static int check_target_order(struct Parser *, struct Array *, int, int);
+static int check_variable_order(struct Parser *, struct Array *, int);
 static int output_diff(struct Parser *, struct Array *, struct Array *, int);
 
 static struct Array *
@@ -118,16 +120,9 @@ target_list(struct Array *tokens)
 	return targets;
 }
 
-struct Array *
-lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+int
+check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 {
-	int *status = (int*)userdata;
-	struct ParserSettings settings = parser_settings(parser);
-	if (!(settings.behavior & PARSER_OUTPUT_RAWLINES)) {
-		return NULL;
-	}
-	int no_color = settings.behavior & PARSER_OUTPUT_NO_COLOR;
-
 	struct Array *origin = variable_list(tokens);
 
 	struct Array *vars = array_new(sizeof(char *));
@@ -199,16 +194,16 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	array_free(unknowns);
 	array_free(vars);
 
-	int status_var;
-	if ((status_var = output_diff(parser, origin, target, no_color)) == -1) {
-		*error = PARSER_ERROR_EDIT_FAILED;
-		*error_msg = xstrdup("lint_order: cannot compute difference");
-		return NULL;
-	}
+	return output_diff(parser, origin, target, no_color);
+}
 
+int
+check_target_order(struct Parser *parser, struct Array *tokens, int no_color, int status_var)
+{
 	struct Array *targets = target_list(tokens);
-	origin = array_new(sizeof(char *));
-	if (status_var != 0) {
+	struct Array *origin = array_new(sizeof(char *));
+
+	if (status_var) {
 		array_append(origin, xstrdup(""));
 	}
 	array_append(origin, xstrdup("# Out of order targets"));
@@ -223,8 +218,8 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 
 	array_sort(targets, compare_target_order);
 
-	target = array_new(sizeof(char *));
-	if (status_var != 0) {
+	struct Array *target = array_new(sizeof(char *));
+	if (status_var) {
 		array_append(target, xstrdup(""));
 	}
 	array_append(target, xstrdup("# Out of order targets"));
@@ -237,7 +232,7 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 		}
 	}
 
-	unknowns = array_new(sizeof(char *));
+	struct Array *unknowns = array_new(sizeof(char *));
 	for (size_t i = 0; i< array_len(targets); i++) {
 		char *name = array_get(targets, i);
 		if (!is_known_target(name) && name[0] != '_') {
@@ -250,9 +245,7 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 
 	int status_target = 0;
 	if ((status_target = output_diff(parser, origin, target, no_color)) == -1) {
-		*error = PARSER_ERROR_EDIT_FAILED;
-		*error_msg = xstrdup("lint_order: cannot compute difference");
-		return NULL;
+		return -1;
 	}
 
 	if (array_len(unknowns) > 0) {
@@ -276,11 +269,7 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	}
 	array_free(unknowns);
 
-	if (status_var > 0 || status_target > 0) {
-		*status = 1;
-	}
-
-	return NULL;
+	return status_target;
 }
 
 static int
@@ -369,3 +358,35 @@ cleanup:
 
 	return status;
 }
+
+struct Array *
+lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+{
+	int *status = (int*)userdata;
+	struct ParserSettings settings = parser_settings(parser);
+	if (!(settings.behavior & PARSER_OUTPUT_RAWLINES)) {
+		return NULL;
+	}
+	int no_color = settings.behavior & PARSER_OUTPUT_NO_COLOR;
+
+	int status_var;
+	if ((status_var = check_variable_order(parser, tokens, no_color)) == -1) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		*error_msg = xstrdup("lint_order: cannot compute difference");
+		return NULL;
+	}
+
+	int status_target;
+	if ((status_target = check_target_order(parser, tokens, no_color, status_var)) == -1) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		*error_msg = xstrdup("lint_order: cannot compute difference");
+		return NULL;
+	}
+
+	if (status_var > 0 || status_target > 0) {
+		*status = 1;
+	}
+
+	return NULL;
+}
+
