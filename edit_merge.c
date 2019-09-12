@@ -183,8 +183,6 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 		if (cmp < 0) {
 			block_before = variable_order_block(a);
 			insert_after = i;
-		} else {
-			break;
 		}
 	}
 
