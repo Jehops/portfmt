@@ -3276,11 +3276,11 @@ blocktype_tostring(enum BlockType block)
 	case BLOCK_NUGET:
 		return "USES=mono related variables";
 	case BLOCK_OPTDEF:
-		return "Option definitions";
+		return "Options definitions";
 	case BLOCK_OPTDESC:
-		return "Option descriptions";
+		return "Options descriptions";
 	case BLOCK_OPTHELPER:
-		return "Option helpers";
+		return "Options helpers";
 	case BLOCK_PATCHFILES:
 		return "Patch files";
 	case BLOCK_PLIST:
