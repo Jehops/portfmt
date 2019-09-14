@@ -17,12 +17,12 @@ tests_run=0
 cd "${ROOT}/tests/parser" || exit 1
 for test in *.sh; do
 	echo "parser/${test%*.sh}"
-	if ! sh -eu ${test}; then
-		test_run=$((tests_run + 1))
+	if ! sh -eu "${test}"; then
+		tests_run=$((tests_run + 1))
 		tests_failed=$((tests_failed + 1))
 		continue
 	fi
-	test_run=$((tests_run + 1))
+	tests_run=$((tests_run + 1))
 done
 
 cd "${ROOT}/tests/format" || exit 1
@@ -73,7 +73,7 @@ done
 cd "${ROOT}"
 if type ${MANDOC} >/dev/null 2>&1; then
 tests_run=$((tests_run + 1))
-if ! ${MANDOC} -Tlint -Wstyle *.1; then
+if ! ${MANDOC} -Tlint -Wstyle ./*.1; then
 	tests_failed=$((tests_failed + 1))
 fi
 fi
