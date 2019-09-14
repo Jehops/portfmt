@@ -1304,6 +1304,12 @@ static const char *target_order_[] = {
 	"post-install",
 	"post-install-script",
 	"post-stage",
+	"pre-test",
+	"do-test",
+	"post-test",
+	"pre-package",
+	"do-package",
+	"post-package",
 };
 
 struct VariableOrderEntry {
