@@ -14,6 +14,17 @@ export LD_LIBRARY_PATH="${ROOT}"
 tests_failed=0
 tests_run=0
 
+cd "${ROOT}/tests/parser" || exit 1
+for test in *.sh; do
+	echo "parser/${test%*.sh}"
+	if ! sh -eu ${test}; then
+		test_run=$((tests_run + 1))
+		tests_failed=$((tests_failed + 1))
+		continue
+	fi
+	test_run=$((tests_run + 1))
+done
+
 cd "${ROOT}/tests/format" || exit 1
 for test in *.in; do
 	t=${test%*.in}

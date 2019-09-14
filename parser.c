@@ -1377,18 +1377,6 @@ parser_read_internal(struct Parser *parser)
 		parser->in_target = 0;
 	}
 
-	pos = consume_target(buf);
-	if (pos > 0) {
-		parser->in_target = 1;
-		if (parser->targetname) {
-			free(parser->targetname);
-			parser->targetname = NULL;
-		}
-		parser->targetname = xstrdup(buf);
-		parser_append_token(parser, TARGET_START, buf);
-		goto next;
-	}
-
 	pos = consume_conditional(buf);
 	if (pos > 0) {
 		if (parser->condname) {
@@ -1403,6 +1391,18 @@ parser_read_internal(struct Parser *parser)
 		parser_append_token(parser, CONDITIONAL_TOKEN, parser->condname);
 		parser_tokenize(parser, buf, CONDITIONAL_TOKEN, pos);
 		parser_append_token(parser, CONDITIONAL_END, parser->condname);
+		goto next;
+	}
+
+	pos = consume_target(buf);
+	if (pos > 0) {
+		parser->in_target = 1;
+		if (parser->targetname) {
+			free(parser->targetname);
+			parser->targetname = NULL;
+		}
+		parser->targetname = xstrdup(buf);
+		parser_append_token(parser, TARGET_START, buf);
 		goto next;
 	}
 
