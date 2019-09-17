@@ -81,12 +81,13 @@ enum RegularExpression {
 	RE_VAR,
 };
 
+struct Parser;
 struct Token;
 struct Variable;
 struct Match;
 
 const char *blocktype_tostring(enum BlockType);
-int compare_order(const void *, const void *);
+int compare_order(struct Parser *, const void *, const void *);
 int compare_target_order(const void *, const void *);
 int compare_tokens(const void *, const void *);
 int ignore_wrap_col(struct Variable *);
@@ -105,4 +106,4 @@ int skip_dedup(struct Variable *);
 int skip_goalcol(struct Variable *);
 char *sub(enum RegularExpression, const char *, const char *);
 int target_command_should_wrap(char *);
-enum BlockType variable_order_block(const char *);
+enum BlockType variable_order_block(struct Parser *, const char *);

@@ -61,7 +61,7 @@ edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum 
 	}
 	for (size_t i = 0; i < array_len(vars); i++) {
 		char *var = array_get(vars, i);
-		if (variable_order_block(var) == BLOCK_UNKNOWN) {
+		if (variable_order_block(parser, var) == BLOCK_UNKNOWN) {
 			if (unknowns) {
 				(*unknowns)++;
 			}

@@ -37,11 +37,14 @@
 #include <math.h>
 #include <regex.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
+#include "array.h"
 #include "conditional.h"
 #include "regexp.h"
 #include "rules.h"
+#include "parser.h"
 #include "token.h"
 #include "util.h"
 #include "variable.h"
@@ -2874,7 +2877,7 @@ is_options_helper(const char *var, char **prefix, char **helper)
 }
 
 enum BlockType
-variable_order_block(const char *var)
+variable_order_block(struct Parser *parser, const char *var)
 {
 	if (strcmp(var, "LICENSE") == 0) {
 		return BLOCK_LICENSE;
@@ -2889,8 +2892,15 @@ variable_order_block(const char *var)
 		}
 		if (str_startswith(var, variable_order_[i].var)) {
 			const char *suffix = var + strlen(variable_order_[i].var);
-			if (*suffix == '_') {
-				return BLOCK_LICENSE;
+			struct Array *licenses = NULL;
+			if (*suffix == '_' && parser_lookup_variable(parser, "LICENSE", &licenses, NULL) != NULL) {
+				for (size_t j = 0; j < array_len(licenses); j++) {
+					if (strcmp(suffix + 1, array_get(licenses, j)) == 0) {
+						array_free(licenses);
+						return BLOCK_LICENSE;
+					}
+				}
+				array_free(licenses);
 			}
 		}
 	}
@@ -2932,7 +2942,7 @@ variable_order_block(const char *var)
 }
 
 int
-compare_order(const void *ap, const void *bp)
+compare_order(struct Parser *parser, const void *ap, const void *bp)
 {
 	const char *a = *(const char **)ap;
 	const char *b = *(const char **)bp;
@@ -2940,8 +2950,8 @@ compare_order(const void *ap, const void *bp)
 	if (strcmp(a, b) == 0) {
 		return 0;
 	}
-	enum BlockType ablock = variable_order_block(a);
-	enum BlockType bblock = variable_order_block(b);
+	enum BlockType ablock = variable_order_block(parser, a);
+	enum BlockType bblock = variable_order_block(parser, b);
 	if (ablock < bblock) {
 		return -1;
 	} else if (ablock > bblock) {

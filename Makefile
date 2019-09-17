@@ -49,7 +49,7 @@ conditional.o: config.h conditional.c conditional.h regexp.h
 diff.o: config.h diff.h
 mainutils.o: config.h mainutils.c mainutils.h parser.h
 regexp.o: config.h
-rules.o: config.h conditional.h rules.c regexp.h rules.h token.h util.h variable.h
+rules.o: config.h array.h conditional.h parser.h rules.c regexp.h rules.h token.h util.h variable.h
 parser.o: config.h array.h conditional.h regexp.h parser.c parser.h rules.h target.h token.h util.h variable.h
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h

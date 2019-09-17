@@ -57,8 +57,10 @@ static int check_target_order(struct Parser *, struct Array *, int, int);
 static int check_variable_order(struct Parser *, struct Array *, int);
 static int output_diff(struct Parser *, struct Array *, struct Array *, int);
 
+static struct Parser *_compare_order_parser = NULL;
+
 static struct Array *
-variable_list(struct Array *tokens)
+variable_list(struct Parser *parser, struct Array *tokens)
 {
 	struct Array *output = array_new(sizeof(char *));
 	struct Array *vars = array_new(sizeof(char *));
@@ -82,7 +84,7 @@ variable_list(struct Array *tokens)
 	int flag = 0;
 	for (size_t i = 0; i < array_len(vars); i++) {
 		char *var = array_get(vars, i);
-		block = variable_order_block(var);
+		block = variable_order_block(parser, var);
 		if (block != last_block) {
 			if (flag && block != last_block) {
 				array_append(output, xstrdup(""));
@@ -120,10 +122,16 @@ target_list(struct Array *tokens)
 	return targets;
 }
 
+static int
+compare_order_wrapper(const void *ap, const void *bp)
+{
+	return compare_order(_compare_order_parser, ap, bp);
+}
+
 int
 check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 {
-	struct Array *origin = variable_list(tokens);
+	struct Array *origin = variable_list(parser, tokens);
 
 	struct Array *vars = array_new(sizeof(char *));
 	for (size_t i = 0; i < array_len(tokens); i++) {
@@ -141,7 +149,9 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 		}
 	}
 
-	array_sort(vars, compare_order);
+	_compare_order_parser = parser;
+	array_sort(vars, compare_order_wrapper);
+	_compare_order_parser = NULL;
 
 	struct Array *target = array_new(sizeof(char *));
 	struct Array *unknowns = array_new(sizeof(char *));
@@ -150,7 +160,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	int flag = 0;
 	for (size_t i = 0; i < array_len(vars); i++) {
 		char *var = array_get(vars, i);
-		if ((block = variable_order_block(var)) != BLOCK_UNKNOWN) {
+		if ((block = variable_order_block(parser, var)) != BLOCK_UNKNOWN) {
 			if (block != last_block) {
 				if (flag && block != last_block) {
 					array_append(target, xstrdup(""));
