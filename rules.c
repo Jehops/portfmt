@@ -1313,6 +1313,7 @@ static const char *target_order_[] = {
 	"pre-package",
 	"do-package",
 	"post-package",
+	"makesum",
 };
 
 struct VariableOrderEntry {
