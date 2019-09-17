@@ -170,7 +170,11 @@ variable_tostring(struct Variable *var)
 		break;
 	}
 
+	const char *sep = "";
+	if (str_endswith(var->name, "+")) {
+		sep = " ";
+	}
 	char *s;
-	xasprintf(&s, "%s%s", var->name, mod);
+	xasprintf(&s, "%s%s%s", var->name, sep, mod);
 	return s;
 }
