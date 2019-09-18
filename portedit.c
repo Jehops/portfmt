@@ -49,6 +49,7 @@ static int get_variable(struct ParserSettings *, int, char *[]);
 static int merge(struct ParserSettings *, int, char *[]);
 static int sanitize_append(struct ParserSettings *, int, char *[]);
 static int set_version(struct ParserSettings *, int, char *[]);
+static int unknown_targets(struct ParserSettings *, int, char *[]);
 static int unknown_vars(struct ParserSettings *, int, char *[]);
 static void bump_epoch_usage(void);
 static void bump_revision_usage(void);
@@ -56,6 +57,7 @@ static void get_variable_usage(void);
 static void merge_usage(void);
 static void sanitize_append_usage(void);
 static void set_version_usage(void);
+static void unknown_targets_usage(void);
 static void unknown_vars_usage(void);
 static void usage(void);
 
@@ -71,6 +73,7 @@ static struct PorteditCommand cmds[] = {
 	{ "bump-revision", bump_revision },
 	{ "get", get_variable },
 	{ "merge", merge },
+	{ "unknown-targets", unknown_targets },
 	{ "unknown-vars", unknown_vars },
 	{ "sanitize-append", sanitize_append },
 	{ "set-version", set_version },
@@ -332,6 +335,45 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 }
 
 int
+unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
+{
+	settings->behavior |= PARSER_OUTPUT_RAWLINES;
+
+	argv += 2;
+	argc -= 2;
+
+	FILE *fp_in = stdin;
+	FILE *fp_out = stdout;
+	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 0);
+	if (parser == NULL) {
+		unknown_targets_usage();
+	}
+
+	int has_unknowns = 0;
+	int error = parser_edit(parser, edit_output_unknown_targets, &has_unknowns);
+	if (error != PARSER_ERROR_OK) {
+		errx(1, "%s", parser_error_tostring(parser));
+	}
+
+	error = parser_output_write_to_file(parser, fp_out);
+	if (error != PARSER_ERROR_OK) {
+		errx(1, "%s", parser_error_tostring(parser));
+	}
+	parser_free(parser);
+
+	fclose(fp_out);
+	if (fp_out != fp_in) {
+		fclose(fp_in);
+	}
+
+	if (has_unknowns) {
+		return 1;
+	}
+
+	return 0;
+}
+
+int
 unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 {
 	settings->behavior |= PARSER_OUTPUT_RAWLINES;
@@ -369,7 +411,6 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 
 	return 0;
 }
-
 
 void
 bump_epoch_usage()
@@ -414,6 +455,13 @@ set_version_usage()
 }
 
 void
+unknown_targets_usage()
+{
+	fprintf(stderr, "usage: portedit unknown-targets [Makefile]\n");
+	exit(EX_USAGE);
+}
+
+void
 unknown_vars_usage()
 {
 	fprintf(stderr, "usage: portedit unknown-vars [Makefile]\n");
@@ -431,6 +479,7 @@ usage()
 	fprintf(stderr, "\t%-16s%s\n", "merge", "Merge variables into the Makefile");
 	fprintf(stderr, "\t%-16s%s\n", "sanitize-append", "Sanitize += before bsd.port.{options,pre}.mk");
 	fprintf(stderr, "\t%-16s%s\n", "set-version", "Bump port version, set DISTVERSION{,PREFIX,SUFFIX}");
+	fprintf(stderr, "\t%-16s%s\n", "unknown-targets", "List unknown targets");
 	fprintf(stderr, "\t%-16s%s\n", "unknown-vars", "List unknown variables");
 	exit(EX_USAGE);
 }

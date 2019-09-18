@@ -10,10 +10,11 @@ CFLAGS+=	-std=c99
 LDADD+=		-lm
 
 OBJS=		array.o compats.o conditional.o diff.o edit_bump_revision.o \
-		edit_merge.o edit_output_unknown_variables.o \
-		edit_output_variable_value.o edit_set_version.o lint_order.o \
-		mainutils.o parser.o refactor_collapse_adjacent.o \
-		refactor_dedup_tokens.o refactor_sanitize_append_modifier.o \
+		edit_merge.o edit_output_unknown_targets.o \
+		edit_output_unknown_variables.o edit_output_variable_value.o \
+		edit_set_version.o lint_order.o mainutils.o parser.o \
+		refactor_collapse_adjacent.o refactor_dedup_tokens.o \
+		refactor_sanitize_append_modifier.o \
 		refactor_sanitize_eol_comments.o regexp.o rules.o target.o \
 		token.o util.o variable.o
 
@@ -57,6 +58,7 @@ util.o: config.h util.c util.h
 edit_bump_revision.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_bump_revision.c
 edit_merge.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_merge.c
 edit_output_variable_value.o: config.h array.h parser.h token.h variable.h edit_output_variable_value.c
+edit_output_unknown_targets.o: config.h array.h parser.h regexp.h rules.h target.h token.h util.h edit_output_variable_value.c
 edit_output_unknown_variables.o: config.h array.h parser.h regexp.h rules.h token.h util.h variable.h edit_output_variable_value.c
 edit_set_version.o: config.h array.h parser.h rules.h token.h util.h variable.h edit_set_version.c
 lint_order.o: config.h array.h diff.h parser.h rules.h target.h token.h util.h variable.h lint_order.c
