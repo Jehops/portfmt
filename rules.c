@@ -1319,6 +1319,42 @@ static const char *target_order_[] = {
 	"makesum",
 };
 
+static const char *special_targets_[] = {
+	".BEGIN",
+	".DEFAULT",
+	".DELETE_ON_ERROR",
+	".END",
+	".ERROR",
+	".EXEC",
+	".IGNORE",
+	".INTERRUPT",
+	".MADE",
+	".MAIN",
+	".MAKE",
+	".MAKEFLAGS",
+	".META",
+	".NO_PARALLEL",
+	".NOMAIN",
+	".NOMETA_CMP",
+	".NOMETA",
+	".NOPATH",
+	".NOTPARALLEL",
+	".OBJDIR",
+	".OPTIONAL",
+	".ORDER",
+	".PATH",
+	".PHONY",
+	".PRECIOUS",
+	".RECURSIVE",
+	".SHELL",
+	".SILENT",
+	".STALE",
+	".SUFFIXES",
+	".USE",
+	".USEBEFORE",
+	".WAIT",
+};
+
 struct VariableOrderEntry {
 	enum BlockType block;
 	const char *var;
@@ -3162,6 +3198,19 @@ is_known_target(const char *target)
 	free(root);
 	return 0;
 }
+
+int
+is_special_target(const char *target)
+{
+	for (size_t i = 0; i < nitems(special_targets_); i++) {
+		if (strcmp(target, special_targets_[i]) == 0) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 
 int
 compare_target_order(const void *ap, const void *bp)

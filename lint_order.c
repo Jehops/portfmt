@@ -114,7 +114,8 @@ target_list(struct Array *tokens)
 		}
 		char *target = target_name(token_target(t));
 		// Ignore port local targets that start with an _
-		if (target[0] != '_' && array_find(targets, target, str_compare) == -1) {
+		if (target[0] != '_' && !is_special_target(target) &&
+		    array_find(targets, target, str_compare) == -1) {
 			array_append(targets, target);
 		}
 	}

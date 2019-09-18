@@ -95,6 +95,7 @@ int indent_goalcol(struct Variable *);
 int is_comment(struct Token *);
 int is_include_bsd_port_mk(struct Token *);
 int is_known_target(const char *);
+int is_special_target(const char *);
 int is_options_helper(const char *, char **, char **);
 int leave_unsorted(struct Variable *);
 regex_t *regex(enum RegularExpression);
