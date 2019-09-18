@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -40,10 +41,64 @@ struct Target {
 	char *deps;
 };
 
+static size_t
+consume_token(const char *line, size_t pos, char startchar, char endchar)
+{
+	int counter = 0;
+	int escape = 0;
+	size_t i = pos;
+	for (; i < strlen(line); i++) {
+		char c = line[i];
+		if (escape) {
+			escape = 0;
+			continue;
+		}
+		if (startchar == endchar) {
+			if (c == startchar) {
+				if (counter == 1) {
+					return i;
+				} else {
+					counter++;
+				}
+			} else if (c == '\\') {
+				escape = 1;
+			}
+		} else {
+			if (c == startchar) {
+				counter++;
+			} else if (c == endchar && counter == 1) {
+				return i;
+			} else if (c == endchar) {
+				counter--;
+			} else if (c == '\\') {
+				escape = 1;
+			}
+		}
+	}
+	return 0;
+}
+
 struct Target *
 target_new(char *buf)
 {
-	char *after_target = memchr(buf, ':', strlen(buf));
+	char *after_target = NULL;
+	for (size_t i = 0; i < strlen(buf); i++) {
+		char c = buf[i];
+		if (c == '$') {
+			size_t pos = consume_token(buf, i, '{', '}');
+			if (pos == 0) {
+				i++;
+				if (i >= strlen(buf) || !isalnum(buf[i])) {
+					return NULL;
+				}
+			} else {
+				i = pos;
+			}
+		} else if (c == ':') {
+			after_target = buf + i;
+			break;
+		}
+	}
 	if (after_target == NULL || after_target < buf) {
 		return NULL;
 	}
