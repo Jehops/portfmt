@@ -37,6 +37,7 @@
 #include "parser.h"
 #include "rules.h"
 #include "token.h"
+#include "util.h"
 #include "variable.h"
 
 struct Array *
@@ -47,29 +48,27 @@ edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum 
 		return NULL;
 	}
 
+	if (unknowns) {
+		*unknowns = 0;
+	}
 	struct Array *vars = array_new(sizeof(char *));
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
-		array_append(vars, variable_name(token_variable(t)));
-	}
-
-	if (unknowns) {
-		*unknowns = 0;
-	}
-	for (size_t i = 0; i < array_len(vars); i++) {
-		char *var = array_get(vars, i);
-		if (variable_order_block(parser, var) == BLOCK_UNKNOWN) {
+		char *name = variable_name(token_variable(t));
+		if (variable_order_block(parser, name) == BLOCK_UNKNOWN) {
 			if (unknowns) {
 				(*unknowns)++;
 			}
-			parser_enqueue_output(parser, var);
-			parser_enqueue_output(parser, "\n");
+			if (array_find(vars, name, str_compare) == -1) {
+				parser_enqueue_output(parser, name);
+				parser_enqueue_output(parser, "\n");
+				array_append(vars, name);
+			}
 		}
 	}
-
 	array_free(vars);
 
 	return NULL;
