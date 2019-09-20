@@ -1305,7 +1305,7 @@ static const char *target_order_[] = {
 	"post-build",
 	"post-build-script",
 	"pre-install",
-	"pre-install-script",
+	"pre-su-install",
 	"do-install",
 	"post-install",
 	"post-install-script",
