@@ -53,8 +53,12 @@ struct Variable;
 struct Target;
 
 struct Token *token_new(enum TokenType, struct Range *, const char *, char *, char *, char *);
-struct Token *token_new2(enum TokenType, struct Range *, const char *, struct Variable *, struct Conditional *, struct Target *);
+struct Token *token_new_comment(struct Range *, const char *, struct Conditional *);
+struct Token *token_new_variable_end(struct Range *, struct Variable *);
+struct Token *token_new_variable_start(struct Range *, struct Variable *);
+struct Token *token_new_variable_token(struct Range *, struct Variable *, const char *);
 void token_free(struct Token *);
+struct Token *token_as_comment(struct Token *);
 struct Token *token_clone(struct Token *, const char *);
 struct Conditional *token_conditional(struct Token *);
 char *token_data(struct Token *);

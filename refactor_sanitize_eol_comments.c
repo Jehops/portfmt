@@ -71,7 +71,7 @@ refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enu
 		case VARIABLE_END:
 			if (placeholder_index > -1 && last_token_index > -1 &&
 			    !preserve_eol_comment(last_token)) {
-				struct Token *comment = token_new2(COMMENT, token_lines(last_token), token_data(last_token), NULL, token_conditional(last_token), NULL);
+				struct Token *comment = token_as_comment(last_token);
 				parser_mark_for_gc(parser, comment);
 				parser_mark_edited(parser, comment);
 				array_set(tokens, placeholder_index, comment);

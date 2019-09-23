@@ -100,26 +100,64 @@ token_new(enum TokenType type, struct Range *lines, const char *data,
 }
 
 struct Token *
-token_new2(enum TokenType type, struct Range *lines, const char *data,
-	   struct Variable *var, struct Conditional *cond, struct Target *target)
+token_new_comment(struct Range *lines, const char *data, struct Conditional *cond)
 {
+	if (lines == NULL || data == NULL) {
+		return NULL;
+	}
+
 	struct Token *t = xmalloc(sizeof(struct Token));
-
-	t->type = type;
+	t->type = COMMENT;
 	t->lines = *lines;
-
-	if (data) {
-		t->data = xstrdup(data);
-	}
-	if (target) {
-		t->target = target_clone(target);
-	}
 	if (cond) {
 		t->cond = conditional_clone(cond);
 	}
-	if (var) {
-		t->var = variable_clone(var);
+	t->data = xstrdup(data);
+	return t;
+}
+
+struct Token *
+token_new_variable_end(struct Range *lines, struct Variable *var)
+{
+	if (lines == NULL || var == NULL) {
+		return NULL;
 	}
+
+	struct Token *t = xmalloc(sizeof(struct Token));
+	t->type = VARIABLE_END;
+	t->lines = *lines;
+	t->var = variable_clone(var);
+
+	return t;
+}
+
+struct Token *
+token_new_variable_start(struct Range *lines, struct Variable *var)
+{
+	if (lines == NULL || var == NULL) {
+		return NULL;
+	}
+
+	struct Token *t = xmalloc(sizeof(struct Token));
+	t->type = VARIABLE_START;
+	t->lines = *lines;
+	t->var = variable_clone(var);
+
+	return t;
+}
+
+struct Token *
+token_new_variable_token(struct Range *lines, struct Variable *var, const char *data)
+{
+	if (lines == NULL || var == NULL || data == NULL) {
+		return NULL;
+	}
+
+	struct Token *t = xmalloc(sizeof(struct Token));
+	t->type = VARIABLE_TOKEN;
+	t->lines = *lines;
+	t->var = variable_clone(var);
+	t->data = xstrdup(data);
 
 	return t;
 }
@@ -137,6 +175,12 @@ token_free(struct Token *token)
 		target_free(token->target);
 	}
 	free(token);
+}
+
+struct Token *
+token_as_comment(struct Token *token)
+{
+	return token_new_comment(token_lines(token), token_data(token), token_conditional(token));
 }
 
 struct Token *

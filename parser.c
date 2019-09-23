@@ -909,10 +909,12 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 			char *tmp, *s, *token;
 			tmp = s = xstrdup(suffix);
 			while ((token = strsep(&s, ",")) != NULL) {
-				struct Token *t2 = token_new(VARIABLE_TOKEN, token_lines(t), token, var, NULL, NULL);
+				struct Variable *v = variable_new(var);
+				struct Token *t2 = token_new_variable_token(token_lines(t), v, token);
 				if (t2 != NULL) {
 					array_append(values, t2);
 				}
+				free(v);
 			}
 			free(tmp);
 			free(var);

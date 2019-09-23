@@ -132,7 +132,7 @@ append_tokens(struct Parser *parser, struct Array *tokens, struct Array *nonvars
 void
 append_empty_line(struct Parser *parser, struct Array *tokens, struct Range *lines)
 {
-	struct Token *t = token_new(COMMENT, lines, "", NULL, NULL, NULL);
+	struct Token *t = token_new_comment(lines, "", NULL);
 	array_append(tokens, t);
 	parser_mark_edited(parser, t);
 }
@@ -140,10 +140,10 @@ append_empty_line(struct Parser *parser, struct Array *tokens, struct Range *lin
 void
 append_new_variable(struct Parser *parser, struct Array *tokens, struct Variable *var, struct Range *lines) 
 {
-	struct Token *t = token_new2(VARIABLE_START, lines, NULL, var, NULL, NULL);
+	struct Token *t = token_new_variable_start(lines, var);
 	array_append(tokens, t);
 	parser_mark_edited(parser, t);
-	t = token_new2(VARIABLE_END, lines, NULL, var, NULL, NULL);
+	t = token_new_variable_end(lines, var);
 	array_append(tokens, t);
 	parser_mark_edited(parser, t);
 }
