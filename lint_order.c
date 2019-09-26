@@ -37,6 +37,7 @@
 #include <string.h>
 
 #include "array.h"
+#include "conditional.h"
 #include "diff.h"
 #include "parser.h"
 #include "rules.h"
@@ -59,17 +60,47 @@ static int output_diff(struct Parser *, struct Array *, struct Array *, int);
 
 static struct Parser *_compare_order_parser = NULL;
 
+static int
+skip_developer_only(struct Token *t, int state)
+{
+	switch(token_type(t)) {
+	case CONDITIONAL_START:
+		switch (conditional_type(token_conditional(t))) {
+		case COND_IF:
+			return 1;
+		default:
+			return 0;
+		}
+	case CONDITIONAL_TOKEN:
+		switch (state) {
+		case 1:
+			return 2;
+		case 2:
+			if (token_data(t) &&
+			    strcmp(token_data(t), "defined(DEVELOPER)") == 0) {
+				return 3;
+			}
+			break;
+		}
+		return 0;
+	default:
+		return state;
+	}
+}
+
 static struct Array *
 variable_list(struct Parser *parser, struct Array *tokens)
 {
 	struct Array *output = array_new(sizeof(char *));
 	struct Array *vars = array_new(sizeof(char *));
+	int developer_only = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (is_include_bsd_port_mk(t)) {
 			break;
 		}
-		if (token_type(t) != VARIABLE_START) {
+		developer_only = skip_developer_only(t, developer_only);
+		if (developer_only == 3 || token_type(t) != VARIABLE_START) {
 			continue;
 		}
 		char *var = variable_name(token_variable(t));
@@ -107,9 +138,11 @@ static struct Array *
 target_list(struct Array *tokens)
 {
 	struct Array *targets = array_new(sizeof(char *));
+	int developer_only = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		if (token_type(t) != TARGET_START) {
+		developer_only = skip_developer_only(t, developer_only);
+		if (developer_only == 3 || token_type(t) != TARGET_START) {
 			continue;
 		}
 		char *target = target_name(token_target(t));
@@ -135,12 +168,14 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	struct Array *origin = variable_list(parser, tokens);
 
 	struct Array *vars = array_new(sizeof(char *));
+	int developer_only = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (is_include_bsd_port_mk(t)) {
 			break;
 		}
-		if (token_type(t) != VARIABLE_START) {
+		developer_only = skip_developer_only(t, developer_only);
+		if (developer_only == 3 || token_type(t) != VARIABLE_START) {
 			continue;
 		}
 		char *var = variable_name(token_variable(t));
