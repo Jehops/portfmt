@@ -1,6 +1,7 @@
 bla:
 	@${REINPLACE_CMD} -e 's,/usr/share/doc/cmus/examples,${EXAMPLESDIR},g' \
-		-e 's,/usr/share/cmus,${DATADIR},g' ${WRKSRC}/Doc/cmus.txt
+		-e 's,/usr/share/cmus,${DATADIR},g' \
+		${WRKSRC}/Doc/cmus.txt
 
 bla:
 	@cd ${WRKSRC}/modules/web/src/main/native/Source/ThirdParty && \

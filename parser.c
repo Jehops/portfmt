@@ -739,8 +739,49 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		return;
 	}
 
+	struct Array *commands = array_new(sizeof(char *));
+	struct Array *merge = array_new(sizeof(char *));
+	char *command = NULL;
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		char *word = token_data(t);
+		assert(token_type(t) == TARGET_COMMAND_TOKEN);
+		assert(word && strlen(word) != 0);
+
+		if (command == NULL) {
+			command = word;
+			if (*command == '@') {
+				command++;
+			}
+		}
+		if (strcmp(word, "&&") == 0 ||
+		    strcmp(word, "||") == 0 ||
+		    strcmp(word, "do") == 0 ||
+		    strcmp(word, "then") == 0 ||
+		    str_endswith(word, ";")) {
+			command = NULL;
+		}
+
+		if (command && strcmp(command, "${REINPLACE_CMD}") == 0) {
+			if (strcmp(word, "-e") == 0) {
+				array_append(merge, word);
+				continue;
+			}
+		}
+
+		array_append(merge, word);
+		array_append(commands, array_join(merge, " "));
+		if (array_len(merge) > 1) {
+			// An empty string is abused as a "wrap line here" marker
+			array_append(commands, xstrdup(""));
+		}
+		array_truncate(merge);
+	}
+	array_free(merge);
+	merge = NULL;
+
 	const char *endline = "\n";
-	const char *endnext = " \\\n";
+	const char *endnext = "\\\n";
 	const char *endword = " ";
 	const char *startlv0 = "";
 	const char *startlv1 = "\t";
@@ -752,12 +793,8 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	struct Array *wraps = array_new(sizeof(int));
 	size_t column = 8;
 	int complexity = 0;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-		char *word = token_data(t);
-
-		assert(token_type(t) == TARGET_COMMAND_TOKEN);
-		assert(strlen(word) != 0);
+	for (size_t i = 0; i < array_len(commands); i++) {
+		char *word = array_get(commands, i);
 
 		for (char *c = word; *c != 0; c++) {
 			switch (*c) {
@@ -778,10 +815,10 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 
 		column += strlen(start) * 8 + strlen(word);
 		if (column > parser->settings.target_command_format_wrapcol ||
-		    target_command_should_wrap(word)) {
-			if (i + 1 < array_len(tokens)) {
-				struct Token *next = array_get(tokens, i + 1);
-				if (target_command_should_wrap(token_data(next))) {
+		    strcmp(word, "") == 0 || target_command_should_wrap(word)) {
+			if (i + 1 < array_len(commands)) {
+				char *next = array_get(commands, i + 1);
+				if (strcmp(next, "") == 0 || target_command_should_wrap(next)) {
 					continue;
 				}
 			}
@@ -802,9 +839,8 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 
 	parser_enqueue_output(parser, startlv1);
 	int wrapped = 0;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-		char *word = token_data(t);
+	for (size_t i = 0; i < array_len(commands); i++) {
+		const char *word = array_get(commands, i);
 
 		if (wrapped) {
 			parser_enqueue_output(parser, startlv2);
@@ -816,6 +852,9 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 			if (i == array_len(tokens) - 1) {
 				parser_enqueue_output(parser, endline);
 			} else {
+				if (strcmp(word, "") != 0) {
+					parser_enqueue_output(parser, endword);
+				}
 				parser_enqueue_output(parser, endnext);
 			}
 		} else {
@@ -828,6 +867,10 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	}
 
 cleanup:
+	for (size_t i = 0; i < array_len(commands); i++) {
+		free(array_get(commands, i));
+	}
+	array_free(commands);
 	array_free(wraps);
 }
 
