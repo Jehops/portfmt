@@ -77,7 +77,8 @@ skip_developer_only(struct Token *t, int state)
 			return 2;
 		case 2:
 			if (token_data(t) &&
-			    strcmp(token_data(t), "defined(DEVELOPER)") == 0) {
+			    (strcmp(token_data(t), "defined(DEVELOPER)") == 0 ||
+			     strcmp(token_data(t), "defined(MAINTAINER_MODE)") == 0)) {
 				return 3;
 			}
 			break;
