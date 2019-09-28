@@ -60,30 +60,40 @@ static int output_diff(struct Parser *, struct Array *, struct Array *, int);
 
 static struct Parser *_compare_order_parser = NULL;
 
-static int
-skip_developer_only(struct Token *t, int state)
+enum SkipDeveloperState {
+	SKIP_DEVELOPER_INIT,
+	SKIP_DEVELOPER_IF,
+	SKIP_DEVELOPER_SKIP,
+	SKIP_DEVELOPER_END,
+};
+
+static enum SkipDeveloperState
+skip_developer_only(enum SkipDeveloperState state, struct Token *t)
 {
 	switch(token_type(t)) {
 	case CONDITIONAL_START:
 		switch (conditional_type(token_conditional(t))) {
 		case COND_IF:
-			return 1;
+			return SKIP_DEVELOPER_IF;
 		default:
-			return 0;
+			return SKIP_DEVELOPER_INIT;
 		}
 	case CONDITIONAL_TOKEN:
 		switch (state) {
-		case 1:
-			return 2;
-		case 2:
+		case SKIP_DEVELOPER_INIT:
+		case SKIP_DEVELOPER_END:
+			break;
+		case SKIP_DEVELOPER_IF:
+			return SKIP_DEVELOPER_SKIP;
+		case SKIP_DEVELOPER_SKIP:
 			if (token_data(t) &&
 			    (strcmp(token_data(t), "defined(DEVELOPER)") == 0 ||
 			     strcmp(token_data(t), "defined(MAINTAINER_MODE)") == 0)) {
-				return 3;
+				return SKIP_DEVELOPER_END;
 			}
 			break;
 		}
-		return 0;
+		return SKIP_DEVELOPER_INIT;
 	default:
 		return state;
 	}
@@ -94,14 +104,15 @@ variable_list(struct Parser *parser, struct Array *tokens)
 {
 	struct Array *output = array_new(sizeof(char *));
 	struct Array *vars = array_new(sizeof(char *));
-	int developer_only = 0;
+	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (is_include_bsd_port_mk(t)) {
 			break;
 		}
-		developer_only = skip_developer_only(t, developer_only);
-		if (developer_only == 3 || token_type(t) != VARIABLE_START) {
+		developer_only = skip_developer_only(developer_only, t);
+		if (developer_only == SKIP_DEVELOPER_END ||
+		    token_type(t) != VARIABLE_START) {
 			continue;
 		}
 		char *var = variable_name(token_variable(t));
@@ -139,11 +150,12 @@ static struct Array *
 target_list(struct Array *tokens)
 {
 	struct Array *targets = array_new(sizeof(char *));
-	int developer_only = 0;
+	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		developer_only = skip_developer_only(t, developer_only);
-		if (developer_only == 3 || token_type(t) != TARGET_START) {
+		developer_only = skip_developer_only(developer_only, t);
+		if (developer_only == SKIP_DEVELOPER_END ||
+		    token_type(t) != TARGET_START) {
 			continue;
 		}
 		char *target = target_name(token_target(t));
@@ -169,14 +181,15 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	struct Array *origin = variable_list(parser, tokens);
 
 	struct Array *vars = array_new(sizeof(char *));
-	int developer_only = 0;
+	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (is_include_bsd_port_mk(t)) {
 			break;
 		}
-		developer_only = skip_developer_only(t, developer_only);
-		if (developer_only == 3 || token_type(t) != VARIABLE_START) {
+		developer_only = skip_developer_only(developer_only, t);
+		if (developer_only == SKIP_DEVELOPER_END ||
+		    token_type(t) != VARIABLE_START) {
 			continue;
 		}
 		char *var = variable_name(token_variable(t));
