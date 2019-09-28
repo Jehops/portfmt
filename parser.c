@@ -997,7 +997,9 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* uno
 	struct Token *t0 = array_get(arr, 0);
 
 	/* Leave variables unformatted that have $\ in them. */
-	if (array_len(arr) == 1 && strstr(token_data(t0), "$\001") != NULL) {
+	if ((array_len(arr) == 1 && strstr(token_data(t0), "$\001") != NULL) ||
+	    (leave_unformatted(token_variable(t0)) &&
+	     array_find(parser->edited, t0, NULL) == -1)) {
 		parser_output_print_rawlines(parser, token_lines(t0));
 		goto cleanup;
 	}

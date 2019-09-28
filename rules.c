@@ -527,6 +527,10 @@ static const char *case_sensitive_sort_[] = {
 	"PORTEXAMPLES",
 };
 
+static const char *leave_unformatted_[] = {
+	"GO_BUILDFLAGS",
+};
+
 // Sanitize whitespace but do *not* sort tokens; more complicated
 // patterns below in leave_unsorted()
 static const char *leave_unsorted_[] = {
@@ -2580,6 +2584,18 @@ case_sensitive_sort(struct Variable *var)
 {
 	for (size_t i = 0; i < nitems(case_sensitive_sort_); i++) {
 		if (strcmp(variable_name(var), case_sensitive_sort_[i]) == 0) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int
+leave_unformatted(struct Variable *var)
+{
+	for (size_t i = 0; i < nitems(leave_unformatted_); i++) {
+		if (strcmp(variable_name(var), leave_unformatted_[i]) == 0) {
 			return 1;
 		}
 	}
