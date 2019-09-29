@@ -742,6 +742,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	struct Array *commands = array_new(sizeof(char *));
 	struct Array *merge = array_new(sizeof(char *));
 	char *command = NULL;
+	int wrap_after = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		char *word = token_data(t);
@@ -754,28 +755,36 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 				command++;
 			}
 		}
-		if (strcmp(word, "&&") == 0 ||
-		    strcmp(word, "||") == 0 ||
-		    strcmp(word, "do") == 0 ||
-		    strcmp(word, "then") == 0 ||
-		    str_endswith(word, ";")) {
+		if (target_command_should_wrap(word)) {
 			command = NULL;
 		}
 
-		if (command && strcmp(command, "${REINPLACE_CMD}") == 0) {
+		if (command &&
+		    (strcmp(command, "${SED}") == 0 ||
+		     strcmp(command, "${REINPLACE_CMD}") == 0)) {
 			if (strcmp(word, "-e") == 0) {
 				array_append(merge, word);
+				wrap_after = 1;
 				continue;
 			}
 		}
 
 		array_append(merge, word);
 		array_append(commands, array_join(merge, " "));
-		if (array_len(merge) > 1) {
+		if (wrap_after) {
 			// An empty string is abused as a "wrap line here" marker
 			array_append(commands, xstrdup(""));
+			wrap_after = 0;
 		}
 		array_truncate(merge);
+	}
+	if (array_len(merge) > 0) {
+		array_append(commands, array_join(merge, " "));
+		if (wrap_after) {
+			// An empty string is abused as a "wrap line here" marker
+			array_append(commands, xstrdup(""));
+			wrap_after = 0;
+		}
 	}
 	array_free(merge);
 	merge = NULL;
@@ -788,13 +797,22 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	const char *startlv2 = "\t\t";
 	const char *start = startlv0;
 
-	/* Find the places we need to wrap to the next line.
-	 */
+	// Find the places we need to wrap to the next line.
 	struct Array *wraps = array_new(sizeof(int));
 	size_t column = 8;
 	int complexity = 0;
+	size_t command_i = 0;
 	for (size_t i = 0; i < array_len(commands); i++) {
 		char *word = array_get(commands, i);
+
+		if (command == NULL) {
+			command = word;
+			command_i = i;
+		}
+		if (target_command_should_wrap(word)) {
+			command = NULL;
+			command_i = 0;
+		}
 
 		for (char *c = word; *c != 0; c++) {
 			switch (*c) {
@@ -815,7 +833,8 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 
 		column += strlen(start) * 8 + strlen(word);
 		if (column > parser->settings.target_command_format_wrapcol ||
-		    strcmp(word, "") == 0 || target_command_should_wrap(word)) {
+		    strcmp(word, "") == 0 || target_command_should_wrap(word) ||
+		    (command && i > command_i && target_command_wrap_after_each_token(command))) {
 			if (i + 1 < array_len(commands)) {
 				char *next = array_get(commands, i + 1);
 				if (strcmp(next, "") == 0 || target_command_should_wrap(next)) {

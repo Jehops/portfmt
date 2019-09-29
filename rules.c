@@ -1291,6 +1291,21 @@ static const char *ignore_wrap_col_opthelpers_[] = {
 	"MASTER_SITES",
 };
 
+static const char *target_command_wrap_after_each_token_[] = {
+	"${INSTALL_DATA}",
+	"${INSTALL_LIB}",
+	"${INSTALL_MAN}",
+	"${INSTALL_PROGRAM}",
+	"${INSTALL_SCRIPT}",
+	"${INSTALL}",
+	"${MKDIR}",
+	"${MV}",
+	"${REINPLACE_CMD}",
+	"${RMDIR}",
+	"${SED}",
+	"${STRIP_CMD}",
+};
+
 static const char *target_order_[] = {
 	"post-chroot",
 	"pre-everything",
@@ -3418,7 +3433,21 @@ blocktype_tostring(enum BlockType block)
 }
 
 int
-target_command_should_wrap(char *word)
+target_command_wrap_after_each_token(const char *command)
+{
+	if (*command == '@') {
+		command++;
+	}
+	for (size_t i = 0; i < nitems(target_command_wrap_after_each_token_); i++) {
+		if (strcmp(command, target_command_wrap_after_each_token_[i]) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int
+target_command_should_wrap(const char *word)
 {
 	if (strcmp(word, "&&") == 0 ||
 	    strcmp(word, "||") == 0 ||

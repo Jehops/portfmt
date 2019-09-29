@@ -107,5 +107,6 @@ void rules_init(void);
 int skip_dedup(struct Variable *);
 int skip_goalcol(struct Variable *);
 char *sub(enum RegularExpression, const char *, const char *);
-int target_command_should_wrap(char *);
+int target_command_wrap_after_each_token(const char *);
+int target_command_should_wrap(const char *);
 enum BlockType variable_order_block(struct Parser *, const char *);
