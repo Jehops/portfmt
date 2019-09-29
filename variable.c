@@ -105,6 +105,9 @@ variable_clone(struct Variable *var)
 void
 variable_free(struct Variable *var)
 {
+	if (var == NULL) {
+		return;
+	}
 	free(var->name);
 	free(var);
 }

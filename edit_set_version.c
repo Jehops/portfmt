@@ -271,16 +271,9 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 cleanup:
 	parser_free(subparser);
 	free(buf);
-	if (prefix) {
-		free(prefix);
-	}
-	if (distversion) {
-		free(distversion);
-	}
-	if (suffix) {
-		free(suffix);
-	}
-
+	free(prefix);
+	free(distversion);
+	free(suffix);
 	free(newversion_buf);
 
 	return NULL;

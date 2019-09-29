@@ -194,9 +194,7 @@ consume_token(struct Parser *parser, const char *line, size_t pos,
 	}
 	if (!eol_ok) {
 		parser->error = PARSER_ERROR_EXPECTED_CHAR;
-		if (parser->error_msg) {
-			free(parser->error_msg);
-		}
+		free(parser->error_msg);
 		xasprintf(&parser->error_msg, "%c", endchar);
 		return 0;
 	} else {
@@ -282,6 +280,10 @@ parser_new(struct ParserSettings *settings)
 void
 parser_free(struct Parser *parser)
 {
+	if (parser == NULL) {
+		return;
+	}
+
 	for (size_t i = 0; i < array_len(parser->result); i++) {
 		free(array_get(parser->result, i));
 	}
@@ -300,9 +302,7 @@ parser_free(struct Parser *parser)
 	array_free(parser->edited);
 	array_free(parser->tokens);
 
-	if (parser->error_msg) {
-		free(parser->error_msg);
-	}
+	free(parser->error_msg);
 	free(parser->inbuf);
 	free(parser);
 }
@@ -465,9 +465,7 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 				dollar++;
 			} else {
 				parser->error = PARSER_ERROR_EXPECTED_CHAR;
-				if (parser->error_msg) {
-					free(parser->error_msg);
-				}
+				free(parser->error_msg);
 				parser->error_msg = xstrdup("$");
 			}
 			if (parser->error != PARSER_ERROR_OK) {
@@ -1415,10 +1413,7 @@ parser_read_internal(struct Parser *parser)
 	if (parser->in_target) {
 		pos = consume_conditional(buf);
 		if (pos > 0) {
-			if (parser->condname) {
-				free(parser->condname);
-				parser->condname = NULL;
-			}
+			free(parser->condname);
 			char *tmp = str_substr_dup(buf, 0, pos);
 			parser->condname = str_trim(tmp);
 			free(tmp);
@@ -1445,10 +1440,8 @@ parser_read_internal(struct Parser *parser)
 
 	pos = consume_conditional(buf);
 	if (pos > 0) {
-		if (parser->condname) {
-			free(parser->condname);
-			parser->condname = NULL;
-		}
+		free(parser->condname);
+		parser->condname = NULL;
 		char *tmp = str_substr_dup(buf, 0, pos);
 		parser->condname = str_trim(tmp);
 		free(tmp);
@@ -1463,10 +1456,7 @@ parser_read_internal(struct Parser *parser)
 	pos = consume_target(buf);
 	if (pos > 0) {
 		parser->in_target = 1;
-		if (parser->targetname) {
-			free(parser->targetname);
-			parser->targetname = NULL;
-		}
+		free(parser->targetname);
 		parser->targetname = xstrdup(buf);
 		parser_append_token(parser, TARGET_START, buf);
 		goto next;
@@ -1557,17 +1547,13 @@ parser_output_write_to_file(struct Parser *parser, FILE *fp)
 	if (parser->settings.behavior & PARSER_OUTPUT_INPLACE) {
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			parser->error = PARSER_ERROR_IO;
-			if (parser->error_msg) {
-				free(parser->error_msg);
-			}
+			free(parser->error_msg);
 			xasprintf(&parser->error_msg, "lseek: %s", strerror(errno));
 			return parser->error;
 		}
 		if (ftruncate(fd, 0) < 0) {
 			parser->error = PARSER_ERROR_IO;
-			if (parser->error_msg) {
-				free(parser->error_msg);
-			}
+			free(parser->error_msg);
 			xasprintf(&parser->error_msg, "ftruncate: %s", strerror(errno));
 			return parser->error;
 		}
@@ -1594,9 +1580,7 @@ parser_output_write_to_file(struct Parser *parser, FILE *fp)
 		}
 		if (writev(fd, iov, j) < 0) {
 			parser->error = PARSER_ERROR_IO;
-			if (parser->error_msg) {
-				free(parser->error_msg);
-			}
+			free(parser->error_msg);
 			xasprintf(&parser->error_msg, "writev: %s", strerror(errno));
 			free(iov);
 			return parser->error;
@@ -1668,14 +1652,10 @@ parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
 
 	if (error != PARSER_ERROR_OK) {
 		parser->error = error;
-		if (parser->error_msg) {
-			free(parser->error_msg);
-		}
+		free(parser->error_msg);
 		parser->error_msg = error_msg;
 		error_msg = parser_error_tostring(parser);
-		if (parser->error_msg) {
-			free(parser->error_msg);
-		}
+		free(parser->error_msg);
 		parser->error_msg = error_msg;
 		parser->error = PARSER_ERROR_EDIT_FAILED;
 	}

@@ -127,6 +127,9 @@ target_clone(struct Target *target)
 void
 target_free(struct Target *target)
 {
+	if (target == NULL) {
+		return;
+	}
 	free(target->name);
 	free(target->deps);
 	free(target);

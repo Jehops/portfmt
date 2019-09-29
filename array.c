@@ -99,6 +99,9 @@ array_diff(struct Array *base1, struct Array *base2, struct diff *d, ArrayCompar
 void
 array_free(struct Array *array)
 {
+	if (array == NULL) {
+		return;
+	}
 	free(array->buf);
 	free(array);
 }

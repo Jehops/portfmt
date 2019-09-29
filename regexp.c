@@ -63,6 +63,9 @@ regexp_new(regex_t *regex)
 void
 regexp_free(struct Regexp *regexp)
 {
+	if (regexp == NULL) {
+		return;
+	}
 	free(regexp->match);
 	free(regexp);
 }
