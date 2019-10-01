@@ -1854,6 +1854,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_USES, "PYDISTUTILS_INSTALLARGS" },
 	{ BLOCK_USES, "PYDISTUTILS_EGGINFO" },
 	{ BLOCK_USES, "USE_QT" },
+	{ BLOCK_USES, "QT5_VERSION" },
 	{ BLOCK_USES, "USE_RC_SUBR" },
 	{ BLOCK_USES, "USE_RUBY" },
 	{ BLOCK_USES, "RUBY_NO_BUILD_DEPENDS" },
