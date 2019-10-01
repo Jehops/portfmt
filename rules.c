@@ -921,6 +921,7 @@ static const char *leave_unsorted_opthelpers_[] = {
 
 // Don't indent with the rest of the variables in a paragraph
 static const char *skip_goalcol_[] = {
+	"BINARY_WRAPPERS",
 	"BUILD_DEPENDS_aarch64",
 	"BUILD_DEPENDS_amd64",
 	"BUILD_DEPENDS_armv6",
@@ -2237,6 +2238,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_STANDARD, "WWWDIR" },
 	{ BLOCK_STANDARD, "WWWDIR_REL" },
 	{ BLOCK_STANDARD, "BINARY_ALIAS" },
+	{ BLOCK_STANDARD, "BINARY_WRAPPERS" },
 	{ BLOCK_STANDARD, "BINMODE" },
 	{ BLOCK_STANDARD, "MANMODE" },
 	{ BLOCK_STANDARD, "_SHAREMODE" },
