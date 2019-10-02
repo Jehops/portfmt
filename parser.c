@@ -93,6 +93,7 @@ static size_t consume_var(const char *);
 static int is_empty_line(const char *);
 static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
+static struct Variable *parser_lookup_variable_internal(struct Parser *, const char *, struct Array **, struct Array **, int);
 static enum ParserError parser_output_dump_tokens(struct Parser *);
 static enum ParserError parser_output_prepare(struct Parser *);
 static void parser_output_print_rawlines(struct Parser *, struct Range *);
@@ -349,6 +350,13 @@ parser_error_tostring(struct Parser *parser)
 			xasprintf(&buf, "line %s: expected %s", lines, parser->error_msg);
 		} else {
 			xasprintf(&buf, "line %s: expected token", lines);
+		}
+		break;
+	case PARSER_ERROR_INVALID_ARGUMENT:
+		if (parser->error_msg) {
+			xasprintf(&buf, "invalid argument: %s", parser->error_msg);
+		} else {
+			xasprintf(&buf, "invalid argument");
 		}
 		break;
 	case PARSER_ERROR_INVALID_REGEXP:
@@ -1716,7 +1724,7 @@ found:
 }
 
 struct Variable *
-parser_lookup_variable(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment)
+parser_lookup_variable_internal(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment, int cont)
 {
 	struct Variable *var = NULL;
 	struct Array *tokens = array_new(sizeof(char *));
@@ -1725,7 +1733,9 @@ parser_lookup_variable(struct Parser *parser, const char *name, struct Array **r
 		struct Token *t = array_get(parser->tokens, i);
 		switch (token_type(t)) {
 		case VARIABLE_START:
-			array_truncate(tokens);
+			if (!cont) {
+				array_truncate(tokens);
+			}
 			break;
 		case VARIABLE_TOKEN:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
@@ -1739,12 +1749,18 @@ parser_lookup_variable(struct Parser *parser, const char *name, struct Array **r
 		case VARIABLE_END:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
 				var = token_variable(t);
-				goto found;
+				if (!cont) {
+					goto found;
+				}
 			}
 			break;
 		default:
 			break;
 		}
+	}
+
+	if (var) {
+		goto found;
 	}
 
 	array_free(comments);
@@ -1772,6 +1788,18 @@ found:
 	}
 
 	return var;
+}
+
+struct Variable *
+parser_lookup_variable(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment)
+{
+	return parser_lookup_variable_internal(parser, name, retval, comment, 0);
+}
+
+struct Variable *
+parser_lookup_variable_all(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment)
+{
+	return parser_lookup_variable_internal(parser, name, retval, comment, 1);
 }
 
 struct Variable *

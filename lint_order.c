@@ -430,6 +430,8 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	int *status = (int*)userdata;
 	struct ParserSettings settings = parser_settings(parser);
 	if (!(settings.behavior & PARSER_OUTPUT_RAWLINES)) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 	int no_color = settings.behavior & PARSER_OUTPUT_NO_COLOR;

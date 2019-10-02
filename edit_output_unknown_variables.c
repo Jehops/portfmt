@@ -43,13 +43,15 @@
 struct Array *
 edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	int *unknowns = (int*)userdata;
+	struct Array **unknowns = (struct Array **)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 
 	if (unknowns) {
-		*unknowns = 0;
+		*unknowns = NULL;
 	}
 	struct Array *vars = array_new(sizeof(char *));
 	for (size_t i = 0; i < array_len(tokens); i++) {
@@ -59,9 +61,6 @@ edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum 
 		}
 		char *name = variable_name(token_variable(t));
 		if (variable_order_block(parser, name) == BLOCK_UNKNOWN) {
-			if (unknowns) {
-				(*unknowns)++;
-			}
 			if (array_find(vars, name, str_compare) == -1) {
 				parser_enqueue_output(parser, name);
 				parser_enqueue_output(parser, "\n");
@@ -69,7 +68,11 @@ edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum 
 			}
 		}
 	}
-	array_free(vars);
+	if (unknowns) {
+		*unknowns = vars;
+	} else {
+		array_free(vars);
+	}
 
 	return NULL;
 }

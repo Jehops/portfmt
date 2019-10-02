@@ -57,6 +57,7 @@ enum ParserError {
 	PARSER_ERROR_EXPECTED_CHAR,
 	PARSER_ERROR_EXPECTED_INT,
 	PARSER_ERROR_EXPECTED_TOKEN,
+	PARSER_ERROR_INVALID_ARGUMENT,
 	PARSER_ERROR_INVALID_REGEXP,
 	PARSER_ERROR_IO,
 	PARSER_ERROR_NOT_FOUND,
@@ -90,6 +91,7 @@ enum ParserError parser_edit(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
 struct Target *parser_lookup_target(struct Parser *, const char *, struct Array **);
 struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
+struct Variable *parser_lookup_variable_all(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);

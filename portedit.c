@@ -39,6 +39,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "array.h"
 #include "mainutils.h"
 #include "parser.h"
 #include "util.h"
@@ -349,8 +350,8 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_targets_usage();
 	}
 
-	int has_unknowns = 0;
-	int error = parser_edit(parser, edit_output_unknown_targets, &has_unknowns);
+	struct Array *unknowns = NULL;
+	enum ParserError error = parser_edit(parser, edit_output_unknown_targets, &unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -366,9 +367,11 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	if (has_unknowns) {
+	if (array_len(unknowns) > 0) {
+		array_free(unknowns);
 		return 1;
 	}
+	array_free(unknowns);
 
 	return 0;
 }
@@ -388,8 +391,8 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_vars_usage();
 	}
 
-	int has_unknowns = 0;
-	int error = parser_edit(parser, edit_output_unknown_variables, &has_unknowns);
+	struct Array *unknowns = NULL;
+	enum ParserError error = parser_edit(parser, edit_output_unknown_variables, &unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -405,9 +408,11 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	if (has_unknowns) {
+	if (array_len(unknowns) > 0) {
+		array_free(unknowns);
 		return 1;
 	}
+	array_free(unknowns);
 
 	return 0;
 }

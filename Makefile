@@ -39,7 +39,7 @@ portfmt: ${LIBNAME}.${LIBSUFFIX} portfmt.o
 portclippy.o: portclippy.c config.h mainutils.h parser.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portedit.o: portedit.c config.h mainutils.h parser.h util.h
+portedit.o: portedit.c config.h array.h mainutils.h parser.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 portfmt.o: portfmt.c config.h mainutils.h parser.h
