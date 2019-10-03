@@ -18,7 +18,7 @@ OBJS=		array.o compats.o conditional.o diff.o edit_bump_revision.o \
 		refactor_sanitize_eol_comments.o regexp.o rules.o target.o \
 		token.o util.o variable.o
 
-all: portclippy portedit portfmt
+all: portclippy portedit portfmt portscan
 
 .c.o:
 	${CC} ${CPPFLAGS} -fPIC ${CFLAGS} -o $@ -c $<
@@ -36,6 +36,9 @@ portedit: ${LIBNAME}.${LIBSUFFIX} portedit.o
 portfmt: ${LIBNAME}.${LIBSUFFIX} portfmt.o
 	${CC} ${LDFLAGS} -o portfmt portfmt.o ${LIBNAME}.${LIBSUFFIX}
 
+portscan: ${LIBNAME}.${LIBSUFFIX} portscan.o
+	${CC} ${LDFLAGS} -o portscan portscan.o -lpthread ${LIBNAME}.${LIBSUFFIX}
+
 portclippy.o: portclippy.c config.h mainutils.h parser.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
@@ -43,6 +46,9 @@ portedit.o: portedit.c config.h array.h mainutils.h parser.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 portfmt.o: portfmt.c config.h mainutils.h parser.h
+	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
+
+portscan.o: portscan.c config.h array.h parser.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 array.o: config.h array.c array.h diff.h
@@ -70,8 +76,8 @@ variable.o: config.h regexp.h rules.h util.h variable.c variable.h
 
 install:
 	${MKDIR} ${DESTDIR}${BINDIR} ${DESTDIR}${LIBDIR} ${DESTDIR}${MANDIR}/man1
-	${INSTALL_MAN} portclippy.1 portedit.1 portfmt.1 ${DESTDIR}${MANDIR}/man1
-	${INSTALL_PROGRAM} portclippy portedit portfmt ${DESTDIR}${BINDIR}
+	${INSTALL_MAN} portclippy.1 portedit.1 portfmt.1 portscan.1 ${DESTDIR}${MANDIR}/man1
+	${INSTALL_PROGRAM} portclippy portedit portfmt portscan ${DESTDIR}${BINDIR}
 	${INSTALL_LIB} ${LIBNAME}.${LIBSUFFIX} ${DESTDIR}${LIBDIR}
 	@if [ ! -L "${DESTDIR}${PREFIX}/bin/portfmt" ]; then \
 		${SED} -i '' 's,/usr/local,${PREFIX},' ${DESTDIR}${PREFIX}/bin/portfmt; \
