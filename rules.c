@@ -1842,6 +1842,7 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_USES, "IGNORE_WITH_PHP" },
 	{ BLOCK_USES, "PHP_MODPRIO" },
 	{ BLOCK_USES, "USE_PYQT" },
+	{ BLOCK_USES, "PYQT_DIST" },
 	{ BLOCK_USES, "USE_PYTHON" },
 	{ BLOCK_USES, "PYTHON_NO_DEPENDS" },
 	{ BLOCK_USES, "PYTHON_CMD" },
