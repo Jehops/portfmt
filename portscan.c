@@ -78,7 +78,7 @@ static void *lookup_origins_worker(void *);
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int);
-struct Array *scan_ports(int, struct Array *, int);
+static struct Array *scan_ports(int, struct Array *, int);
 static void usage(void);
 
 FILE *
