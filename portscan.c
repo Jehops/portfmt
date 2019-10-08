@@ -48,8 +48,10 @@
 #include <unistd.h>
 
 #include "array.h"
+#include "conditional.h"
 #include "mainutils.h"
 #include "parser.h"
+#include "token.h"
 #include "util.h"
 
 struct ScanResult {
@@ -72,9 +74,18 @@ struct PortReaderData {
 	size_t end;
 };
 
+// Ignore these ports when processing .include
+static const char *ports_include_blacklist_[] = {
+	"devel/llvm",
+	"ports-mgmt/wanted-ports",
+	"lang/gnatdroid-armv7",
+};
+
 static struct Array *lookup_subdirs(int, const char *);
 static void lookup_unknowns(int, const char *, struct ScanResult *);
 static void *lookup_origins_worker(void *);
+static enum ParserError process_include(struct Parser *, const char *, int, const char *);
+static struct Array *extract_includes(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int);
@@ -145,6 +156,86 @@ cleanup:
 	return subdirs;
 }
 
+enum ParserError
+process_include(struct Parser *parser, const char *curdir, int portsdir, const char *filename)
+{
+	char *path;
+	if (str_startswith(filename, "${MASTERDIR}/")) {
+		// Do not follow to the master port.  It would already
+		// have been processed once, so we do not need to do
+		// it again.
+		return PARSER_ERROR_OK;
+	} else if (str_startswith(filename, "${.CURDIR}/")) {
+		filename += strlen("${.CURDIR}/");
+		xasprintf(&path, "%s/%s", curdir, filename);
+	} else if (str_startswith(filename, "${.CURDIR:H}/")) {
+		filename += strlen("${.CURDIR:H}/");
+		xasprintf(&path, "%s/../%s", curdir, filename);
+	} else if (str_startswith(filename, "${.CURDIR:H:H}/")) {
+		filename += strlen("${.CURDIR:H:H}/");
+		xasprintf(&path, "%s/../../%s", curdir, filename);
+	} else if (str_startswith(filename, "${PORTSDIR}/")) {
+		filename += strlen("${PORTSDIR}/");
+		path = xstrdup(filename);
+	} else if (str_startswith(filename, "${FILESDIR}/")) {
+		filename += strlen("${FILESDIR}/");
+		xasprintf(&path, "%s/files/%s", curdir, filename);
+	} else {
+		xasprintf(&path, "%s/%s", curdir, filename);
+	}
+	FILE *f = fileopenat(portsdir, path);
+	if (f == NULL) {
+		warn("open_file: %s", path);
+		free(path);
+		return PARSER_ERROR_OK;
+	}
+	free(path);
+	enum ParserError error = parser_read_from_file(parser, f);
+	fclose(f);
+	return error;
+}
+
+struct Array *
+extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+{
+	struct Array **retval = (struct Array **)userdata;
+
+	struct Array *includes = array_new(sizeof(char *));
+	int found = 0;
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		switch (token_type(t)) {
+		case CONDITIONAL_START:
+			if (conditional_type(token_conditional(t)) == COND_INCLUDE) {
+				found = 1;
+			}
+			break;
+		case CONDITIONAL_TOKEN:
+			if (found == 1) {
+				found++;
+			} else if (found > 1) {
+				found = 0;
+				char *data = token_data(t);
+				if (data && *data == '"' && data[strlen(data) - 1] == '"') {
+					data++;
+					data[strlen(data) - 1] = 0;
+					array_append(includes, data);
+				}
+			}
+			break;
+		case CONDITIONAL_END:
+			found = 0;
+			break;
+		default:
+			break;
+		}
+	}
+
+	*retval = includes;
+
+	return NULL;
+}
+
 void
 lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 {
@@ -167,6 +258,32 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
+
+	int ignore_port = 0;
+	for (size_t i = 0; i < nitems(ports_include_blacklist_); i++) {
+		if (strcmp(retval->origin, ports_include_blacklist_[i]) == 0) {
+			ignore_port = 1;
+			break;
+		}
+	}
+	if (!ignore_port) {
+		struct Array *includes = NULL;
+		error = parser_edit(parser, extract_includes, &includes);
+		if (error != PARSER_ERROR_OK) {
+			warnx("%s: %s", path, parser_error_tostring(parser));
+			goto cleanup;
+		}
+		for (size_t i = 0; i < array_len(includes); i++) {
+			error = process_include(parser, retval->origin, portsdir, array_get(includes, i));
+			if (error != PARSER_ERROR_OK) {
+				array_free(includes);
+				warnx("%s: %s", path, parser_error_tostring(parser));
+				goto cleanup;
+			}
+		}
+		array_free(includes);
+	}
+
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
