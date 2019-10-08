@@ -123,7 +123,9 @@ conditional_new(char *s)
 		cond_type = COND_ELIFMAKE;
 	} else if (strcmp(type, ".endif") == 0) {
 		cond_type = COND_ENDIF;
-	} else if (strcmp(type, ".sinclude") == 0) {
+	} else if (strcmp(type, ".dinclude") == 0) {
+		cond_type = COND_DINCLUDE;
+	} else if (strcmp(type, ".sinclude") == 0 || strcmp(type, ".-include") == 0) {
 		cond_type = COND_SINCLUDE;
 	} else {
 		free(type);
@@ -157,6 +159,9 @@ conditional_tostring(struct Conditional *cond)
 	const char *type = NULL;
 
 	switch(cond->type) {
+	case COND_DINCLUDE:
+		type = ".dinclude";
+		break;
 	case COND_ELIF:
 		type = ".elif";
 		break;

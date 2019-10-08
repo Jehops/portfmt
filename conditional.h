@@ -30,6 +30,7 @@
 struct Conditional;
 
 enum ConditionalType {
+	COND_DINCLUDE,
 	COND_ELIF,
 	COND_ELIFDEF,
 	COND_ELIFMAKE,
