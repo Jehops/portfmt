@@ -109,6 +109,13 @@ static enum ParserError print_newline_array(struct Parser *, struct Array *);
 static enum ParserError print_token_array(struct Parser *, struct Array *);
 static char *range_tostring(struct Range *);
 
+static struct Parser *_compare_tokens_parser = NULL;
+static int
+compare_tokens_wrapper(const void *ap, const void *bp)
+{
+	return compare_tokens(_compare_tokens_parser, ap, bp);
+}
+
 size_t
 consume_comment(const char *buf)
 {
@@ -671,7 +678,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 	struct Array *arr = array_new(sizeof(struct Token *));
 	struct Token *o = array_get(tokens, 0);
 	size_t wrapcol;
-	if (token_variable(o) && ignore_wrap_col(token_variable(o))) {
+	if (token_variable(o) && ignore_wrap_col(parser, token_variable(o))) {
 		wrapcol = 99999999;
 	} else {
 		/* Minus ' \' at end of line */
@@ -934,7 +941,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 	assert(token_type(t) == VARIABLE_TOKEN);
 	int opt_use = 0;
 	char *helper = NULL;
-	if (is_options_helper(variable_name(token_variable(t)), NULL, &helper)) {
+	if (is_options_helper(parser, variable_name(token_variable(t)), NULL, &helper)) {
 		if (strcmp(helper, "USE") == 0 || strcmp(helper, "USE_OFF") == 0)  {
 			opt_use = 1;
 		} else if (strcmp(helper, "VARS") == 0 || strcmp(helper, "VARS_OFF") == 0) {
@@ -988,7 +995,8 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 			free(var);
 			tmp = var = NULL;
 
-			array_sort(values, compare_tokens);
+			_compare_tokens_parser = parser;
+			array_sort(values, compare_tokens_wrapper);
 			for (size_t j = 0; j < array_len(values); j++) {
 				struct Token *t2 = array_get(values, j);
 				xstrlcat(buf, token_data(t2), bufsz);
@@ -1035,13 +1043,14 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* uno
 	}
 
 	if (!(parser->settings.behavior & PARSER_UNSORTED_VARIABLES) &&
-	    !leave_unsorted(token_variable(t0))) {
+	    !leave_unsorted(parser, token_variable(t0))) {
 		arr = parser_output_sort_opt_use(parser, arr);
-		array_sort(arr, compare_tokens);
+		_compare_tokens_parser = parser;
+		array_sort(arr, compare_tokens_wrapper);
 	}
 
 	t0 = array_get(arr, 0);
-	if (print_as_newlines(token_variable(t0))) {
+	if (print_as_newlines(parser, token_variable(t0))) {
 		print_newline_array(parser, arr);
 	} else {
 		print_token_array(parser, arr);
@@ -1674,6 +1683,87 @@ parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
 struct ParserSettings parser_settings(struct Parser *parser)
 {
 	return parser->settings;
+}
+
+static void
+parser_lookup_port_options_add_from_group(struct Parser *parser, struct Array *options, const char *groupname)
+{
+	struct Array *optmulti = NULL;
+	if (parser_lookup_variable_all(parser, groupname, &optmulti, NULL)) {
+		for (size_t i = 0; i < array_len(optmulti); i++) {
+			const char *optgroupname = array_get(optmulti, i);
+			char *optgroupvar;
+			xasprintf(&optgroupvar, "%s_%s", groupname, optgroupname);
+			struct Array *opts = NULL;
+			if (parser_lookup_variable_all(parser, optgroupvar, &opts, NULL)) {
+				for (size_t i = 0; i < array_len(opts); i++) {
+					array_append(options, array_get(opts, i));
+				}
+				array_free(opts);
+			}
+			free(optgroupvar);
+		}
+		array_free(optmulti);
+	}
+}
+
+static void
+parser_lookup_port_options_add_from_var(struct Parser *parser, struct Array *options, const char *var)
+{
+	struct Array *optdefine = NULL;
+	if (parser_lookup_variable_all(parser, var, &optdefine, NULL)) {
+		for (size_t i = 0; i < array_len(optdefine); i++) {
+			array_append(options, array_get(optdefine, i));
+		}
+		array_free(optdefine);
+	}
+
+}
+
+struct Array *
+parser_lookup_port_options(struct Parser *parser)
+{
+	struct Array *options = array_new(sizeof(char *));
+
+#define FOR_EACH_ARCH(f, var) \
+	f(parser, options, var "_" "aarch64"); \
+	f(parser, options, var "_" "amd64"); \
+	f(parser, options, var "_" "arm"); \
+	f(parser, options, var "_" "armv6"); \
+	f(parser, options, var "_" "armv7"); \
+	f(parser, options, var "_" "i386"); \
+	f(parser, options, var "_" "mips"); \
+	f(parser, options, var "_" "mips64"); \
+	f(parser, options, var "_" "mips64el"); \
+	f(parser, options, var "_" "mips64elhf"); \
+	f(parser, options, var "_" "mips64hf"); \
+	f(parser, options, var "_" "mipsel"); \
+	f(parser, options, var "_" "mipselhf"); \
+	f(parser, options, var "_" "mipsn32"); \
+	f(parser, options, var "_" "powerpc"); \
+	f(parser, options, var "_" "powerpc64"); \
+	f(parser, options, var "_" "powerpcspe"); \
+	f(parser, options, var "_" "riscv64"); \
+	f(parser, options, var "_" "sparc64")
+
+	parser_lookup_port_options_add_from_var(parser, options, "OPTIONS_DEFINE");
+	FOR_EACH_ARCH(parser_lookup_port_options_add_from_var, "OPTIONS_DEFINE"); 
+
+	parser_lookup_port_options_add_from_group(parser, options, "OPTIONS_GROUP");
+	FOR_EACH_ARCH(parser_lookup_port_options_add_from_group, "OPTIONS_GROUP"); 
+
+	parser_lookup_port_options_add_from_group(parser, options, "OPTIONS_MULTI");
+	FOR_EACH_ARCH(parser_lookup_port_options_add_from_group, "OPTIONS_MULTI"); 
+
+	parser_lookup_port_options_add_from_group(parser, options, "OPTIONS_RADIO");
+	FOR_EACH_ARCH(parser_lookup_port_options_add_from_group, "OPTIONS_RADIO"); 
+
+	parser_lookup_port_options_add_from_group(parser, options, "OPTIONS_SINGLE");
+	FOR_EACH_ARCH(parser_lookup_port_options_add_from_group, "OPTIONS_SINGLE"); 
+
+#undef FOR_EACH_ARCH
+
+	return options;
 }
 
 struct Target *

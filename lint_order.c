@@ -167,6 +167,12 @@ compare_order_wrapper(const void *ap, const void *bp)
 	return compare_order(_compare_order_parser, ap, bp);
 }
 
+static int
+compare_target_order_wrapper(const void *ap, const void *bp)
+{
+	return compare_target_order(_compare_order_parser, ap, bp);
+}
+
 int
 check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 {
@@ -261,14 +267,16 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	array_append(origin, xstrdup("# Out of order targets"));
 	for (size_t i = 0; i < array_len(targets); i++) {
 		char *name = array_get(targets, i);
-		if (is_known_target(name)) {
+		if (is_known_target(parser, name)) {
 			char *buf;
 			xasprintf(&buf, "%s:", name);
 			array_append(origin, buf);
 		}
 	}
 
-	array_sort(targets, compare_target_order);
+	_compare_order_parser = parser;
+	array_sort(targets, compare_target_order_wrapper);
+	_compare_order_parser = NULL;
 
 	struct Array *target = array_new(sizeof(char *));
 	if (status_var) {
@@ -277,7 +285,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	array_append(target, xstrdup("# Out of order targets"));
 	for (size_t i = 0; i < array_len(targets); i++) {
 		char *name = array_get(targets, i);
-		if (is_known_target(name)) {
+		if (is_known_target(parser, name)) {
 			char *buf;
 			xasprintf(&buf, "%s:", name);
 			array_append(target, buf);
@@ -287,7 +295,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	struct Array *unknowns = array_new(sizeof(char *));
 	for (size_t i = 0; i< array_len(targets); i++) {
 		char *name = array_get(targets, i);
-		if (!is_known_target(name) && name[0] != '_') {
+		if (!is_known_target(parser, name) && name[0] != '_') {
 			char *buf;
 			xasprintf(&buf, "%s:", name);
 			array_append(unknowns, buf);

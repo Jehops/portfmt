@@ -199,6 +199,8 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 int
 merge(struct ParserSettings *settings, int argc, char *argv[])
 {
+	settings->behavior |= PARSER_DYNAMIC_PORT_OPTIONS;
+
 	if (argc < 2) {
 		merge_usage();
 	}

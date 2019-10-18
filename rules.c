@@ -52,11 +52,11 @@
 static int case_sensitive_sort(struct Variable *);
 static int compare_rel(const char *[], size_t, const char *, const char *);
 static int compare_license_perms(struct Variable *, const char *, const char *, int *);
-static int compare_plist_files(struct Variable *, const char *, const char *, int *);
+static int compare_plist_files(struct Parser *, struct Variable *, const char *, const char *, int *);
 static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static int is_flavors_helper(const char *, char **, char **);
-static void target_extract_opt(const char *, char **, char **, int *);
+static void target_extract_opt(struct Parser *, const char *, char **, char **, int *);
 
 static struct {
 	const char *pattern;
@@ -1968,7 +1968,7 @@ static struct VariableOrderEntry variable_order_[] = {
 static volatile int rules_initialized = 0;
 
 int
-ignore_wrap_col(struct Variable *var)
+ignore_wrap_col(struct Parser *parser, struct Variable *var)
 {
 	if (variable_modifier(var) == MODIFIER_SHELL ||
 	    matches(RE_LICENSE_NAME, variable_name(var))) {
@@ -1976,7 +1976,7 @@ ignore_wrap_col(struct Variable *var)
 	}
 
 	char *helper;
-	if (is_options_helper(variable_name(var), NULL, &helper)) {
+	if (is_options_helper(parser, variable_name(var), NULL, &helper)) {
 		for (size_t i = 0; i < nitems(ignore_wrap_col_opthelpers_); i++) {
 			if (strcmp(helper, ignore_wrap_col_opthelpers_[i]) == 0) {
 				free(helper);
@@ -2075,10 +2075,10 @@ leave_unformatted(struct Variable *var)
 }
 
 int
-leave_unsorted(struct Variable *var)
+leave_unsorted(struct Parser *parser, struct Variable *var)
 {
 	char *helper;
-	if (is_options_helper(variable_name(var), NULL, &helper)) {
+	if (is_options_helper(parser, variable_name(var), NULL, &helper)) {
 		for (size_t i = 0; i < nitems(leave_unsorted_opthelpers_); i++) {
 			if (strcmp(helper, leave_unsorted_opthelpers_[i]) == 0) {
 				free(helper);
@@ -2141,10 +2141,10 @@ preserve_eol_comment(struct Token *t)
 }
 
 int
-print_as_newlines(struct Variable *var)
+print_as_newlines(struct Parser *parser, struct Variable *var)
 {
 	char *helper;
-	if (is_options_helper(variable_name(var), NULL, &helper)) {
+	if (is_options_helper(parser, variable_name(var), NULL, &helper)) {
 		for (size_t i = 0; i < nitems(print_as_newlines_opthelpers_); i++) {
 			if (strcmp(helper, print_as_newlines_opthelpers_[i]) == 0) {
 				free(helper);
@@ -2173,10 +2173,10 @@ print_as_newlines(struct Variable *var)
 }
 
 int
-skip_dedup(struct Variable *var)
+skip_dedup(struct Parser *parser, struct Variable *var)
 {
 	// XXX: skip_dedup is probably a super set of leave_unsorted
-	return leave_unsorted(var);
+	return leave_unsorted(parser, var);
 }
 
 int
@@ -2222,7 +2222,7 @@ compare_rel(const char *rel[], size_t rellen, const char *a, const char *b)
 }
 
 int
-compare_tokens(const void *ap, const void *bp)
+compare_tokens(struct Parser *parser, const void *ap, const void *bp)
 {
 	struct Token *a = *(struct Token**)ap;
 	struct Token *b = *(struct Token**)bp;
@@ -2245,7 +2245,7 @@ compare_tokens(const void *ap, const void *bp)
 
 	int result;
 	if (compare_license_perms(var, token_data(a), token_data(b), &result) ||
-	    compare_plist_files(var, token_data(a), token_data(b), &result) ||
+	    compare_plist_files(parser, var, token_data(a), token_data(b), &result) ||
 	    compare_use_pyqt(var, token_data(a), token_data(b), &result) ||
 	    compare_use_qt(var, token_data(a), token_data(b), &result)) {
 		return result;
@@ -2272,12 +2272,12 @@ compare_license_perms(struct Variable *var, const char *a, const char *b, int *r
 }
 
 int
-compare_plist_files(struct Variable *var, const char *a, const char *b, int *result)
+compare_plist_files(struct Parser *parser, struct Variable *var, const char *a, const char *b, int *result)
 {
 	assert(result != NULL);
 
 	char *helper = NULL;
-	if (is_options_helper(variable_name(var), NULL, &helper)) {
+	if (is_options_helper(parser, variable_name(var), NULL, &helper)) {
 		if (strcmp(helper, "PLIST_FILES_OFF") != 0 &&
 		    strcmp(helper, "PLIST_FILES") != 0 &&
 		    strcmp(helper, "PLIST_DIRS_OFF") != 0 &&
@@ -2373,7 +2373,7 @@ is_flavors_helper(const char *var, char **prefix, char **helper)
 }
 
 int
-is_options_helper(const char *var, char **prefix, char **helper)
+is_options_helper(struct Parser *parser, const char *var, char **prefix_ret, char **helper_ret)
 {
 	const char *suffix = NULL;
 	if (str_endswith(var, "DESC")) {
@@ -2411,11 +2411,33 @@ is_options_helper(const char *var, char **prefix, char **helper)
 		}
 	}
 
-	if (prefix) {
-		*prefix = xstrndup(var, len);
+	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS ||
+	    strcmp(suffix, "DESC") == 0) {
+		goto done;
 	}
-	if (helper) {
-		*helper = xstrdup(suffix);
+
+	char *prefix = xstrndup(var, len - 1);
+	struct Array *options = parser_lookup_port_options(parser);
+	int found = 0;
+	for (size_t i = 0; i < array_len(options); i++) {
+		const char *option = array_get(options, i);
+		if (strcmp(prefix, option) == 0) {
+			found = 1;
+			break;
+		}
+	}
+	array_free(options);
+	free(prefix);
+	if (!found) {
+		return 0;
+	}
+
+done:
+	if (prefix_ret) {
+		*prefix_ret = xstrndup(var, len);
+	}
+	if (helper_ret) {
+		*helper_ret = xstrdup(suffix);
 	}
 
 	return 1;
@@ -2454,7 +2476,7 @@ variable_order_block(struct Parser *parser, const char *var)
 		return BLOCK_FLAVORS_HELPER;
 	}
 
-	if (is_options_helper(var, NULL, NULL)) {
+	if (is_options_helper(parser, var, NULL, NULL)) {
 		if (str_endswith(var, "_DESC")) {
 			return BLOCK_OPTDESC;
 		} else {
@@ -2577,8 +2599,8 @@ compare_order(struct Parser *parser, const void *ap, const void *bp)
 		char *aprefix = NULL;
 		char *bhelper = NULL;
 		char *bprefix = NULL;
-		if (!is_options_helper(a, &aprefix, &ahelper) ||
-		    !is_options_helper(b, &bprefix, &bhelper)) {
+		if (!is_options_helper(parser, a, &aprefix, &ahelper) ||
+		    !is_options_helper(parser, b, &bprefix, &bhelper)) {
 			abort();
 		}
 		assert(ahelper != NULL && aprefix != NULL);
@@ -2657,7 +2679,7 @@ compare_order(struct Parser *parser, const void *ap, const void *bp)
 }
 
 void
-target_extract_opt(const char *target, char **target_out, char **opt_out, int *state)
+target_extract_opt(struct Parser *parser, const char *target, char **target_out, char **opt_out, int *state)
 {
 	*opt_out = NULL;
 	*target_out = NULL;
@@ -2676,7 +2698,7 @@ target_extract_opt(const char *target, char **target_out, char **opt_out, int *s
 		}
 		char *tmp;
 		xasprintf(&tmp, "%s_USES", *opt_out);
-		if (is_options_helper(tmp, NULL, NULL)) {
+		if (is_options_helper(parser, tmp, NULL, NULL)) {
 			*target_out = xstrndup(target, strlen(target) - strlen(p) - 1);
 		} else {
 			*target_out = xstrdup(target);
@@ -2690,11 +2712,11 @@ target_extract_opt(const char *target, char **target_out, char **opt_out, int *s
 }
 
 int
-is_known_target(const char *target)
+is_known_target(struct Parser *parser, const char *target)
 {
 	char *root, *opt;
 	int state;
-	target_extract_opt(target, &root, &opt, &state);
+	target_extract_opt(parser, target, &root, &opt, &state);
 	free(opt);
 
 	for (size_t i = 0; i < nitems(target_order_); i++) {
@@ -2722,7 +2744,7 @@ is_special_target(const char *target)
 
 
 int
-compare_target_order(const void *ap, const void *bp)
+compare_target_order(struct Parser *parser, const void *ap, const void *bp)
 {
 	int retval = 0;
 	const char *a_ = *(const char **)ap;
@@ -2734,8 +2756,8 @@ compare_target_order(const void *ap, const void *bp)
 
 	char *a, *b, *aopt, *bopt;
 	int aoptstate, boptstate;
-	target_extract_opt(a_, &a, &aopt, &aoptstate);
-	target_extract_opt(b_, &b, &bopt, &boptstate);
+	target_extract_opt(parser, a_, &a, &aopt, &aoptstate);
+	target_extract_opt(parser, b_, &b, &bopt, &boptstate);
 
 	ssize_t aindex = -1;
 	ssize_t bindex = -1;

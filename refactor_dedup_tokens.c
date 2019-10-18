@@ -52,7 +52,7 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 		case VARIABLE_START:
 			array_truncate(seen);
 			always_append = 0;
-			skip = skip_dedup(token_variable(t));
+			skip = skip_dedup(parser, token_variable(t));
 			array_append(tokens, t);
 			break;
 		case VARIABLE_TOKEN:
