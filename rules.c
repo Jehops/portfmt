@@ -2427,7 +2427,6 @@ is_options_helper(struct Parser *parser, const char *var, char **prefix_ret, cha
 			break;
 		}
 	}
-	array_free(options);
 	free(prefix);
 	if (!found) {
 		return 0;

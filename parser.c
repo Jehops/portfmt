@@ -75,6 +75,9 @@ struct Parser {
 	struct Array *result;
 	struct Array *rawlines;
 
+	struct Array *port_options;
+	int port_options_looked_up;
+
 	int read_finished;
 };
 
@@ -264,6 +267,7 @@ parser_new(struct ParserSettings *settings)
 	parser->rawlines = array_new(sizeof(char *));
 	parser->result = array_new(sizeof(char *));
 	parser->tokens = array_new(sizeof(struct Token *));
+	parser->port_options = array_new(sizeof(char *));
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
 	parser->lines.start = 1;
@@ -302,6 +306,7 @@ parser_free(struct Parser *parser)
 	array_free(parser->tokengc);
 	array_free(parser->edited);
 	array_free(parser->tokens);
+	array_free(parser->port_options);
 
 	free(parser->error_msg);
 	free(parser->inbuf);
@@ -1714,8 +1719,11 @@ parser_lookup_port_options_add_from_var(struct Parser *parser, struct Array *opt
 struct Array *
 parser_lookup_port_options(struct Parser *parser)
 {
-	struct Array *options = array_new(sizeof(char *));
+	if (parser->port_options_looked_up) {
+		return parser->port_options;
+	}
 
+	struct Array *options = parser->port_options;
 #define FOR_EACH_ARCH(f, var) \
 	f(parser, options, var "_" "aarch64"); \
 	f(parser, options, var "_" "amd64"); \
@@ -1754,6 +1762,7 @@ parser_lookup_port_options(struct Parser *parser)
 
 #undef FOR_EACH_ARCH
 
+	parser->port_options_looked_up = 1;
 	return options;
 }
 
