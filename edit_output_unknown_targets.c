@@ -58,7 +58,7 @@ edit_output_unknown_targets(struct Parser *parser, struct Array *tokens, enum Pa
 		}
 		char *name = target_name(token_target(t));
 		if (!is_special_target(name) && !is_known_target(parser, name)) {
-			if (array_find(targets, name, str_compare) == -1) {
+			if (array_find(targets, name, str_compare, NULL) == -1) {
 				parser_enqueue_output(parser, name);
 				parser_enqueue_output(parser, "\n");
 				array_append(targets, name);

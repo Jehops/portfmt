@@ -109,13 +109,6 @@ static enum ParserError print_newline_array(struct Parser *, struct Array *);
 static enum ParserError print_token_array(struct Parser *, struct Array *);
 static char *range_tostring(struct Range *);
 
-static struct Parser *_compare_tokens_parser = NULL;
-static int
-compare_tokens_wrapper(const void *ap, const void *bp)
-{
-	return compare_tokens(_compare_tokens_parser, ap, bp);
-}
-
 size_t
 consume_comment(const char *buf)
 {
@@ -863,7 +856,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	if (!(parser->settings.behavior & PARSER_FORMAT_TARGET_COMMANDS) ||
 	    complexity > parser->settings.target_command_format_threshold) {
 		struct Token *t = array_get(tokens, 0);
-		if (array_find(parser->edited, t, NULL) == -1) {
+		if (array_find(parser->edited, t, NULL, NULL) == -1) {
 			parser_output_print_rawlines(parser, token_lines(t));
 			goto cleanup;
 		}
@@ -877,7 +870,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		if (wrapped) {
 			parser_enqueue_output(parser, startlv2);
 		}
-		wrapped = array_find(wraps, (void*)i, NULL) > -1;
+		wrapped = array_find(wraps, (void*)i, NULL, NULL) > -1;
 
 		parser_enqueue_output(parser, word);
 		if (wrapped) {
@@ -995,8 +988,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 			free(var);
 			tmp = var = NULL;
 
-			_compare_tokens_parser = parser;
-			array_sort(values, compare_tokens_wrapper);
+			array_sort(values, compare_tokens, parser);
 			for (size_t j = 0; j < array_len(values); j++) {
 				struct Token *t2 = array_get(values, j);
 				xstrlcat(buf, token_data(t2), bufsz);
@@ -1032,12 +1024,12 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* uno
 	/* Leave variables unformatted that have $\ in them. */
 	if ((array_len(arr) == 1 && strstr(token_data(t0), "$\001") != NULL) ||
 	    (leave_unformatted(token_variable(t0)) &&
-	     array_find(parser->edited, t0, NULL) == -1)) {
+	     array_find(parser->edited, t0, NULL, NULL) == -1)) {
 		parser_output_print_rawlines(parser, token_lines(t0));
 		goto cleanup;
 	}
 
-	if (array_find(parser->edited, t0, NULL) == -1 && (parser->settings.behavior & PARSER_OUTPUT_EDITED)) {
+	if (array_find(parser->edited, t0, NULL, NULL) == -1 && (parser->settings.behavior & PARSER_OUTPUT_EDITED)) {
 		parser_output_print_rawlines(parser, token_lines(t0));
 		goto cleanup;
 	}
@@ -1045,8 +1037,7 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* uno
 	if (!(parser->settings.behavior & PARSER_UNSORTED_VARIABLES) &&
 	    !leave_unsorted(parser, token_variable(t0))) {
 		arr = parser_output_sort_opt_use(parser, arr);
-		_compare_tokens_parser = parser;
-		array_sort(arr, compare_tokens_wrapper);
+		array_sort(arr, compare_tokens, parser);
 	}
 
 	t0 = array_get(arr, 0);
@@ -1111,7 +1102,7 @@ parser_output_reformatted(struct Parser *parser)
 	struct Token *prev = NULL;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
-		int edited = array_find(parser->edited, o, NULL) != -1;
+		int edited = array_find(parser->edited, o, NULL, NULL) != -1;
 		switch (token_type(o)) {
 		case CONDITIONAL_END:
 			if (edited) {
@@ -1637,7 +1628,7 @@ parser_read_from_buffer(struct Parser *parser, const char *input, size_t len)
 void
 parser_mark_for_gc(struct Parser *parser, struct Token *t)
 {
-	if (array_find(parser->tokengc, t, NULL) == -1) {
+	if (array_find(parser->tokengc, t, NULL, NULL) == -1) {
 		array_append(parser->tokengc, t);
 	}
 }

@@ -63,7 +63,7 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 					always_append = 1;
 				}
 				// XXX: This is naive and does not dedup composite tokens like USES=mod:args or *_DEPENDS in a good way.
-				if (always_append || array_find(seen, token_data(t), str_compare) == -1) {
+				if (always_append || array_find(seen, token_data(t), str_compare, NULL) == -1) {
 					array_append(tokens, t);
 					array_append(seen, token_data(t));
 				} else {

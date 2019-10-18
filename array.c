@@ -48,6 +48,14 @@ struct Array {
 };
 
 static const size_t INITIAL_ARRAY_CAP = 1024;
+static ArrayCompareFn _array_compare_fn = NULL;
+static void *_array_compare_userdata = NULL;
+
+static int
+array_compare_wrapper(const void *ap, const void *bp)
+{
+	return _array_compare_fn(ap, bp, _array_compare_userdata);
+}
 
 struct Array *
 array_new(size_t value_size)
@@ -88,12 +96,18 @@ array_append(struct Array *array, void *v)
 }
 
 int
-array_diff(struct Array *base1, struct Array *base2, struct diff *d, ArrayCompareFn cmp)
+array_diff(struct Array *base1, struct Array *base2, struct diff *d, ArrayCompareFn cmp, void *userdata)
 {
 	assert(base1->value_size == base2->value_size);
 
-	return diff(d, cmp, base1->value_size,
-		    base1->buf, base1->len, base2->buf, base2->len);
+	_array_compare_fn = cmp;
+	_array_compare_userdata = userdata;
+	int retval = diff(d, array_compare_wrapper, base1->value_size,
+			  base1->buf, base1->len, base2->buf, base2->len);
+	_array_compare_fn = NULL;
+	_array_compare_userdata = NULL;
+
+	return retval;
 }
 
 void
@@ -107,14 +121,20 @@ array_free(struct Array *array)
 }
 
 ssize_t
-array_find(struct Array *array, void *k, ArrayCompareFn compar)
+array_find(struct Array *array, void *k, ArrayCompareFn compar, void *userdata)
 {
 	if (compar) {
 		for (size_t i = 0; i < array_len(array); i++) {
 			void *v = array_get(array, i);
-			if (compar(&v, &k) == 0) {
+			_array_compare_fn = compar;
+			_array_compare_userdata = userdata;
+			if (array_compare_wrapper(&v, &k) == 0) {
+				_array_compare_fn = NULL;
+				_array_compare_userdata = NULL;
 				return i;
 			}
+			_array_compare_fn = NULL;
+			_array_compare_userdata = NULL;
 		}
 	} else {
 		for (size_t i = 0; i < array_len(array); i++) {
@@ -171,9 +191,13 @@ array_set(struct Array *array, size_t i, void *v)
 }
 
 void
-array_sort(struct Array *array, ArrayCompareFn compar)
+array_sort(struct Array *array, ArrayCompareFn compar, void *userdata)
 {
-	qsort(array->buf, array->len, array->value_size, compar);
+	_array_compare_fn = compar;
+	_array_compare_userdata = userdata;
+	qsort(array->buf, array->len, array->value_size, array_compare_wrapper);
+	_array_compare_fn = NULL;
+	_array_compare_userdata = NULL;
 }
 
 void

@@ -29,16 +29,16 @@
 
 struct Array;
 struct diff;
-typedef int (*ArrayCompareFn)(const void *, const void *);
+typedef int (*ArrayCompareFn)(const void *, const void *, void *);
 
 struct Array *array_new(size_t);
 void array_append(struct Array *, void *);
-int array_diff(struct Array *, struct Array *, struct diff *, ArrayCompareFn);
+int array_diff(struct Array *, struct Array *, struct diff *, ArrayCompareFn, void *);
 void array_free(struct Array *);
 void *array_get(struct Array *, size_t);
 char *array_join(struct Array *, const char *);
-ssize_t array_find(struct Array *, void *, ArrayCompareFn);
+ssize_t array_find(struct Array *, void *, ArrayCompareFn, void *);
 size_t array_len(struct Array *);
 void array_set(struct Array *, size_t, void *);
-void array_sort(struct Array *, ArrayCompareFn);
+void array_sort(struct Array *, ArrayCompareFn, void *);
 void array_truncate(struct Array *);

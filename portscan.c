@@ -422,7 +422,7 @@ lookup_origins(int portsdir)
 
 	// Get consistent output even when category Makefiles are
 	// not sorted correctly
-	array_sort(retval, str_compare);
+	array_sort(retval, str_compare, NULL);
 
 	return retval;
 }
@@ -465,7 +465,7 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors)
 		for (size_t j = 0; j < array_len(result); j++) {
 			struct ScanResult *r = array_get(result, j);
 
-			array_sort(r->unknown_variables, str_compare);
+			array_sort(r->unknown_variables, str_compare, NULL);
 			for (size_t k = 0; k < array_len(r->unknown_variables); k++) {
 				char *var = array_get(r->unknown_variables, k);
 				char *buf;
@@ -482,7 +482,7 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors)
 			}
 			array_free(r->unknown_variables);
 
-			array_sort(r->unknown_targets, str_compare);
+			array_sort(r->unknown_targets, str_compare, NULL);
 			for (size_t k = 0; k < array_len(r->unknown_targets); k++) {
 				char *target = array_get(r->unknown_targets, k);
 				char *buf;

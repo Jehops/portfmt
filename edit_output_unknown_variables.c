@@ -61,7 +61,7 @@ edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum 
 		}
 		char *name = variable_name(token_variable(t));
 		if (variable_order_block(parser, name) == BLOCK_UNKNOWN) {
-			if (array_find(vars, name, str_compare) == -1) {
+			if (array_find(vars, name, str_compare, NULL) == -1) {
 				parser_enqueue_output(parser, name);
 				parser_enqueue_output(parser, "\n");
 				array_append(vars, name);

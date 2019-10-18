@@ -78,7 +78,7 @@ refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptoken
 
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
-		if (array_find(ignored_tokens, t, NULL) == -1) {
+		if (array_find(ignored_tokens, t, NULL, NULL) == -1) {
 			array_append(tokens, t);
 		} else {
 			parser_mark_for_gc(parser, t);

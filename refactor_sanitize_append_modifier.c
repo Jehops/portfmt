@@ -54,7 +54,7 @@ refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, 
 			break;
 		case VARIABLE_END: {
 			array_append(tokens, t);
-			if (array_find(seen, token_variable(t), variable_compare) == -1) {
+			if (array_find(seen, token_variable(t), variable_compare, NULL) == -1) {
 				array_append(seen, token_variable(t));
 			} else {
 				array_truncate(tokens);

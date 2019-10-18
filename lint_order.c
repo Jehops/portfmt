@@ -50,8 +50,6 @@ static int check_target_order(struct Parser *, struct Array *, int, int);
 static int check_variable_order(struct Parser *, struct Array *, int);
 static int output_diff(struct Parser *, struct Array *, struct Array *, int);
 
-static struct Parser *_compare_order_parser = NULL;
-
 enum SkipDeveloperState {
 	SKIP_DEVELOPER_INIT,
 	SKIP_DEVELOPER_IF,
@@ -109,7 +107,7 @@ variable_list(struct Parser *parser, struct Array *tokens)
 		}
 		char *var = variable_name(token_variable(t));
 		// Ignore port local variables that start with an _
-		if (var[0] != '_' && array_find(vars, var, str_compare) == -1) {
+		if (var[0] != '_' && array_find(vars, var, str_compare, NULL) == -1) {
 			array_append(vars, var);
 		}
 	}
@@ -153,24 +151,12 @@ target_list(struct Array *tokens)
 		char *target = target_name(token_target(t));
 		// Ignore port local targets that start with an _
 		if (target[0] != '_' && !is_special_target(target) &&
-		    array_find(targets, target, str_compare) == -1) {
+		    array_find(targets, target, str_compare, NULL) == -1) {
 			array_append(targets, target);
 		}
 	}
 
 	return targets;
-}
-
-static int
-compare_order_wrapper(const void *ap, const void *bp)
-{
-	return compare_order(_compare_order_parser, ap, bp);
-}
-
-static int
-compare_target_order_wrapper(const void *ap, const void *bp)
-{
-	return compare_target_order(_compare_order_parser, ap, bp);
 }
 
 int
@@ -192,14 +178,12 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 		}
 		char *var = variable_name(token_variable(t));
 		// Ignore port local variables that start with an _
-		if (var[0] != '_' && array_find(vars, var, str_compare) == -1) {
+		if (var[0] != '_' && array_find(vars, var, str_compare, NULL) == -1) {
 			array_append(vars, var);
 		}
 	}
 
-	_compare_order_parser = parser;
-	array_sort(vars, compare_order_wrapper);
-	_compare_order_parser = NULL;
+	array_sort(vars, compare_order, parser);
 
 	struct Array *target = array_new(sizeof(char *));
 	struct Array *unknowns = array_new(sizeof(char *));
@@ -226,7 +210,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 		}
 	}
 
-	array_sort(unknowns, str_compare);
+	array_sort(unknowns, str_compare, NULL);
 	if (array_len(vars) > 0 && array_len(unknowns) > 0) {
 		array_append(target, xstrdup(""));
 		char *buf;
@@ -274,9 +258,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 		}
 	}
 
-	_compare_order_parser = parser;
-	array_sort(targets, compare_target_order_wrapper);
-	_compare_order_parser = NULL;
+	array_sort(targets, compare_target_order, parser);
 
 	struct Array *target = array_new(sizeof(char *));
 	if (status_var) {
@@ -342,7 +324,7 @@ output_diff(struct Parser *parser, struct Array *origin, struct Array *target, i
 {
 	int status = 0;
 	struct diff p;
-	int rc = array_diff(origin, target, &p, str_compare);
+	int rc = array_diff(origin, target, &p, str_compare, NULL);
 	if (rc <= 0) {
 		status = -1;
 		goto cleanup;
