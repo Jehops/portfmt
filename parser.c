@@ -76,6 +76,7 @@ struct Parser {
 	struct Array *rawlines;
 
 	struct Array *port_options;
+	struct Array *port_options_groups;
 	int port_options_looked_up;
 
 	int read_finished;
@@ -268,6 +269,7 @@ parser_new(struct ParserSettings *settings)
 	parser->result = array_new(sizeof(char *));
 	parser->tokens = array_new(sizeof(struct Token *));
 	parser->port_options = array_new(sizeof(char *));
+	parser->port_options_groups = array_new(sizeof(char *));
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
 	parser->lines.start = 1;
@@ -307,6 +309,7 @@ parser_free(struct Parser *parser)
 	array_free(parser->edited);
 	array_free(parser->tokens);
 	array_free(parser->port_options);
+	array_free(parser->port_options_groups);
 
 	free(parser->error_msg);
 	free(parser->inbuf);
@@ -1682,18 +1685,19 @@ struct ParserSettings parser_settings(struct Parser *parser)
 }
 
 static void
-parser_lookup_port_options_add_from_group(struct Parser *parser, struct Array *options, const char *groupname)
+parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 {
 	struct Array *optmulti = NULL;
 	if (parser_lookup_variable_all(parser, groupname, &optmulti, NULL)) {
 		for (size_t i = 0; i < array_len(optmulti); i++) {
-			const char *optgroupname = array_get(optmulti, i);
+			char *optgroupname = array_get(optmulti, i);
+			array_append(parser->port_options_groups, optgroupname);
 			char *optgroupvar;
 			xasprintf(&optgroupvar, "%s_%s", groupname, optgroupname);
 			struct Array *opts = NULL;
 			if (parser_lookup_variable_all(parser, optgroupvar, &opts, NULL)) {
 				for (size_t i = 0; i < array_len(opts); i++) {
-					array_append(options, array_get(opts, i));
+					array_append(parser->port_options, array_get(opts, i));
 				}
 				array_free(opts);
 			}
@@ -1704,66 +1708,76 @@ parser_lookup_port_options_add_from_group(struct Parser *parser, struct Array *o
 }
 
 static void
-parser_lookup_port_options_add_from_var(struct Parser *parser, struct Array *options, const char *var)
+parser_port_options_add_from_var(struct Parser *parser, const char *var)
 {
 	struct Array *optdefine = NULL;
 	if (parser_lookup_variable_all(parser, var, &optdefine, NULL)) {
 		for (size_t i = 0; i < array_len(optdefine); i++) {
-			array_append(options, array_get(optdefine, i));
+			array_append(parser->port_options, array_get(optdefine, i));
 		}
 		array_free(optdefine);
 	}
 
 }
 
-struct Array *
-parser_lookup_port_options(struct Parser *parser)
+void
+parser_port_options(struct Parser *parser, struct Array **groups, struct Array **options)
 {
 	if (parser->port_options_looked_up) {
-		return parser->port_options;
+		if (groups) {
+			*groups = parser->port_options_groups;
+		}
+		if (options) {
+			*options = parser->port_options;
+		}
+		return;
 	}
 
-	struct Array *options = parser->port_options;
 #define FOR_EACH_ARCH(f, var) \
-	f(parser, options, var "_" "aarch64"); \
-	f(parser, options, var "_" "amd64"); \
-	f(parser, options, var "_" "arm"); \
-	f(parser, options, var "_" "armv6"); \
-	f(parser, options, var "_" "armv7"); \
-	f(parser, options, var "_" "i386"); \
-	f(parser, options, var "_" "mips"); \
-	f(parser, options, var "_" "mips64"); \
-	f(parser, options, var "_" "mips64el"); \
-	f(parser, options, var "_" "mips64elhf"); \
-	f(parser, options, var "_" "mips64hf"); \
-	f(parser, options, var "_" "mipsel"); \
-	f(parser, options, var "_" "mipselhf"); \
-	f(parser, options, var "_" "mipsn32"); \
-	f(parser, options, var "_" "powerpc"); \
-	f(parser, options, var "_" "powerpc64"); \
-	f(parser, options, var "_" "powerpcspe"); \
-	f(parser, options, var "_" "riscv64"); \
-	f(parser, options, var "_" "sparc64")
+	f(parser, var "_" "aarch64"); \
+	f(parser, var "_" "amd64"); \
+	f(parser, var "_" "arm"); \
+	f(parser, var "_" "armv6"); \
+	f(parser, var "_" "armv7"); \
+	f(parser, var "_" "i386"); \
+	f(parser, var "_" "mips"); \
+	f(parser, var "_" "mips64"); \
+	f(parser, var "_" "mips64el"); \
+	f(parser, var "_" "mips64elhf"); \
+	f(parser, var "_" "mips64hf"); \
+	f(parser, var "_" "mipsel"); \
+	f(parser, var "_" "mipselhf"); \
+	f(parser, var "_" "mipsn32"); \
+	f(parser, var "_" "powerpc"); \
+	f(parser, var "_" "powerpc64"); \
+	f(parser, var "_" "powerpcspe"); \
+	f(parser, var "_" "riscv64"); \
+	f(parser, var "_" "sparc64")
 
-	parser_lookup_port_options_add_from_var(parser, options, "OPTIONS_DEFINE");
-	FOR_EACH_ARCH(parser_lookup_port_options_add_from_var, "OPTIONS_DEFINE"); 
+	parser_port_options_add_from_var(parser, "OPTIONS_DEFINE");
+	FOR_EACH_ARCH(parser_port_options_add_from_var, "OPTIONS_DEFINE");
 
-	parser_lookup_port_options_add_from_group(parser, options, "OPTIONS_GROUP");
-	FOR_EACH_ARCH(parser_lookup_port_options_add_from_group, "OPTIONS_GROUP"); 
+	parser_port_options_add_from_group(parser, "OPTIONS_GROUP");
+	FOR_EACH_ARCH(parser_port_options_add_from_group, "OPTIONS_GROUP");
 
-	parser_lookup_port_options_add_from_group(parser, options, "OPTIONS_MULTI");
-	FOR_EACH_ARCH(parser_lookup_port_options_add_from_group, "OPTIONS_MULTI"); 
+	parser_port_options_add_from_group(parser, "OPTIONS_MULTI");
+	FOR_EACH_ARCH(parser_port_options_add_from_group, "OPTIONS_MULTI");
 
-	parser_lookup_port_options_add_from_group(parser, options, "OPTIONS_RADIO");
-	FOR_EACH_ARCH(parser_lookup_port_options_add_from_group, "OPTIONS_RADIO"); 
+	parser_port_options_add_from_group(parser, "OPTIONS_RADIO");
+	FOR_EACH_ARCH(parser_port_options_add_from_group, "OPTIONS_RADIO");
 
-	parser_lookup_port_options_add_from_group(parser, options, "OPTIONS_SINGLE");
-	FOR_EACH_ARCH(parser_lookup_port_options_add_from_group, "OPTIONS_SINGLE"); 
+	parser_port_options_add_from_group(parser, "OPTIONS_SINGLE");
+	FOR_EACH_ARCH(parser_port_options_add_from_group, "OPTIONS_SINGLE");
 
 #undef FOR_EACH_ARCH
 
 	parser->port_options_looked_up = 1;
-	return options;
+	if (groups) {
+		*groups = parser->port_options_groups;
+	}
+	if (options) {
+		*options = parser->port_options;
+	}
 }
 
 struct Target *

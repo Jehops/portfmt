@@ -2472,13 +2472,23 @@ is_options_helper(struct Parser *parser, const char *var, char **prefix_ret, cha
 		}
 	}
 
-	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS ||
-	    strcmp(suffix, "DESC") == 0) {
+	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS) {
 		goto done;
 	}
 
 	char *prefix = xstrndup(var, len - 1);
-	struct Array *options = parser_lookup_port_options(parser);
+	struct Array *groups = NULL;
+	struct Array *options = NULL;
+	parser_port_options(parser, &groups, &options);
+	if (strcmp(suffix, "DESC") == 0) {
+		for (size_t i = 0; i < array_len(groups); i++) {
+			const char *group = array_get(groups, i);
+			if (strcmp(prefix, group) == 0) {
+				free(prefix);
+				goto done;
+			}
+		}
+	}
 	int found = 0;
 	for (size_t i = 0; i < array_len(options); i++) {
 		const char *option = array_get(options, i);

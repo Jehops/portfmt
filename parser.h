@@ -94,7 +94,7 @@ struct Target *parser_lookup_target(struct Parser *, const char *, struct Array 
 struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_all(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
-struct Array *parser_lookup_port_options(struct Parser *);
+void parser_port_options(struct Parser *, struct Array **, struct Array **);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
 enum ParserError parser_merge(struct Parser *, struct Parser *, enum ParserMergeBehavior);
