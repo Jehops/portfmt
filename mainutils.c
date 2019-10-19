@@ -32,6 +32,7 @@
 # include <sys/capsicum.h>
 # include "capsicum_helpers.h"
 #endif
+#include <sys/stat.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -43,6 +44,7 @@
 
 #include "mainutils.h"
 #include "parser.h"
+#include "util.h"
 
 int
 can_use_colors(FILE *fp)
@@ -127,12 +129,25 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 	if (*argc > 1 || ((settings->behavior & PARSER_OUTPUT_INPLACE) && *argc == 0)) {
 		return 0;
 	} else if (*argc == 1) {
+		struct stat sb;
+		if (stat(*argv[0], &sb) == -1) {
+			return 0;
+		}
+		char *filename;
+		if (S_ISDIR(sb.st_mode)) {
+			xasprintf(&filename, "%s/Makefile", *argv[0]);
+		} else {
+			filename = xstrdup(*argv[0]);
+		}
 		if (settings->behavior & PARSER_OUTPUT_INPLACE) {
 			if (!keep_stdin_open) {
 				close(STDIN_FILENO);
 			}
 			close(STDOUT_FILENO);
-			*fp_in = fopen(*argv[0], "r+");
+
+			*fp_in = fopen(filename, "r+");
+			free(filename);
+			filename = NULL;
 			*fp_out = *fp_in;
 			if (*fp_in == NULL) {
 				return 0;
@@ -146,7 +161,9 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 			if (!keep_stdin_open) {
 				close(STDIN_FILENO);
 			}
-			*fp_in = fopen(*argv[0], "r");
+			*fp_in = fopen(filename, "r");
+			free(filename);
+			filename = NULL;
 			if (*fp_in == NULL) {
 				return 0;
 			}
