@@ -55,7 +55,7 @@ static int compare_license_perms(struct Variable *, const char *, const char *, 
 static int compare_plist_files(struct Parser *, struct Variable *, const char *, const char *, int *);
 static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
-static int is_flavors_helper(const char *, char **, char **);
+static int is_flavors_helper(struct Parser *, const char *, char **, char **);
 static void target_extract_opt(struct Parser *, const char *, char **, char **, int *);
 
 static struct {
@@ -1114,6 +1114,22 @@ static const char *special_targets_[] = {
 	".WAIT",
 };
 
+static const char *static_flavors_[] = {
+	// lazarus
+	"gtk2",
+	"qt5",
+	// php
+	"php71",
+	"php72",
+	"php73",
+	"php74",
+	// python
+	"py27",
+	"py35",
+	"py36",
+	"py37",
+};
+
 struct VariableOrderEntry {
 	enum BlockType block;
 	const char *var;
@@ -1993,7 +2009,7 @@ ignore_wrap_col(struct Parser *parser, struct Variable *var)
 	}
 
 	char *varname;
-	if (is_flavors_helper(variable_name(var), NULL, &helper)) {
+	if (is_flavors_helper(parser, variable_name(var), NULL, &helper)) {
 		varname = helper;
 	} else {
 		varname = xstrdup(variable_name(var));
@@ -2095,7 +2111,7 @@ leave_unsorted(struct Parser *parser, struct Variable *var)
 	}
 
 	char *varname;
-	if (is_flavors_helper(variable_name(var), NULL, &helper)) {
+	if (is_flavors_helper(parser, variable_name(var), NULL, &helper)) {
 		varname = helper;
 	} else {
 		varname = xstrdup(variable_name(var));
@@ -2161,7 +2177,7 @@ print_as_newlines(struct Parser *parser, struct Variable *var)
 	}
 
 	char *varname;
-	if (is_flavors_helper(variable_name(var), NULL, &helper)) {
+	if (is_flavors_helper(parser, variable_name(var), NULL, &helper)) {
 		varname = helper;
 	} else {
 		varname = xstrdup(variable_name(var));
@@ -2335,7 +2351,7 @@ compare_use_qt(struct Variable *var, const char *a, const char *b, int *result)
 }
 
 int
-is_flavors_helper(const char *var, char **prefix, char **helper)
+is_flavors_helper(struct Parser *parser, const char *var, char **prefix_ret, char **helper_ret)
 {
 	const char *suffix = NULL;
 	for (size_t i = 0; i < nitems(variable_order_); i++) {
@@ -2369,11 +2385,47 @@ is_flavors_helper(const char *var, char **prefix, char **helper)
 		}
 	}
 
-	if (prefix) {
-		*prefix = xstrndup(var, len);
+	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS) {
+		goto done;
 	}
-	if (helper) {
-		*helper = xstrdup(suffix);
+
+	char *prefix = xstrndup(var, len - 1);
+	int found = 0;
+	// XXX: This can still be made a lot more strict
+	for (size_t i = 0; i < nitems(static_flavors_); i++) {
+		const char *flavor = static_flavors_[i];
+		if (strcmp(prefix, flavor) == 0) {
+			found = 1;
+			break;
+		}
+	}
+	if (!found) {
+		struct Array *flavors = NULL;
+		if (!parser_lookup_variable_all(parser, "FLAVORS", &flavors, NULL)) {
+			free(prefix);
+			return 0;
+		}
+		for (size_t i = 0; i < array_len(flavors); i++) {
+			const char *flavor = array_get(flavors, i);
+			if (strcmp(prefix, flavor) == 0) {
+				found = 1;
+				break;
+			}
+		}
+		array_free(flavors);
+		if (!found) {
+			free(prefix);
+			return 0;
+		}
+	}
+	free(prefix);
+
+done:
+	if (prefix_ret) {
+		*prefix_ret = xstrndup(var, len);
+	}
+	if (helper_ret) {
+		*helper_ret = xstrdup(suffix);
 	}
 
 	return 1;
@@ -2478,7 +2530,7 @@ variable_order_block(struct Parser *parser, const char *var)
 		}
 	}
 
-	if (is_flavors_helper(var, NULL, NULL)) {
+	if (is_flavors_helper(parser, var, NULL, NULL)) {
 		return BLOCK_FLAVORS_HELPER;
 	}
 
@@ -2562,8 +2614,8 @@ compare_order(const void *ap, const void *bp, void *userdata)
 		char *aprefix = NULL;
 		char *bhelper = NULL;
 		char *bprefix = NULL;
-		if (!is_flavors_helper(a, &aprefix, &ahelper) ||
-		    !is_flavors_helper(b, &bprefix, &bhelper)) {
+		if (!is_flavors_helper(parser, a, &aprefix, &ahelper) ||
+		    !is_flavors_helper(parser, b, &bprefix, &bhelper)) {
 			abort();
 		}
 		assert(ahelper != NULL && aprefix != NULL);
