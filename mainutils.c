@@ -131,6 +131,7 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 	} else if (*argc == 1) {
 		struct stat sb;
 		if (stat(*argv[0], &sb) == -1) {
+			*fp_in = NULL;
 			return 0;
 		}
 		char *filename;
