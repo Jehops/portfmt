@@ -2634,7 +2634,8 @@ compare_order(const void *ap, const void *bp, void *userdata)
 		assert(bhelper != NULL && bprefix != NULL);
 
 		// Only compare if common prefix (helper for the same flavor)
-		if (strcmp(aprefix, bprefix) == 0) {
+		int prefix_score = strcmp(aprefix, bprefix);
+		if (prefix_score == 0) {
 			for (size_t i = 0; i < nitems(variable_order_); i++) {
 				if (variable_order_[i].block != BLOCK_FLAVORS_HELPER) {
 					continue;
@@ -2653,7 +2654,9 @@ compare_order(const void *ap, const void *bp, void *userdata)
 		free(bprefix);
 		free(bhelper);
 
-		if (ascore < bscore) {
+		if (prefix_score != 0) {
+			return prefix_score;
+		} else if (ascore < bscore) {
 			return -1;
 		} else if (ascore > bscore) {
 			return 1;
@@ -2678,7 +2681,8 @@ compare_order(const void *ap, const void *bp, void *userdata)
 		assert(bhelper != NULL && bprefix != NULL);
 
 		// Only compare if common prefix (helper for the same option)
-		if (strcmp(aprefix, bprefix) == 0) {
+		int prefix_score = strcmp(aprefix, bprefix);
+		if (prefix_score == 0) {
 			for (size_t i = 0; i < nitems(variable_order_); i++) {
 				if (variable_order_[i].block != BLOCK_OPTHELPER) {
 					continue;
@@ -2697,7 +2701,9 @@ compare_order(const void *ap, const void *bp, void *userdata)
 		free(bprefix);
 		free(bhelper);
 
-		if (ascore < bscore) {
+		if (prefix_score != 0) {
+			return prefix_score;
+		} else if (ascore < bscore) {
 			return -1;
 		} else if (ascore > bscore) {
 			return 1;
