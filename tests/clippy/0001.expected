@@ -1,0 +1,7 @@
+# Options definitions
+OPTIONS_DEFINE
+
+# Options helpers
++GIT_RUN_DEPENDS
+GIT_LITE_RUN_DEPENDS
+-GIT_RUN_DEPENDS

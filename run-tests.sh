@@ -2,6 +2,7 @@
 set -u
 ROOT="${PWD}"
 MANDOC="mandoc"
+PORTCLIPPY="${ROOT}/portclippy"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
 
@@ -56,6 +57,20 @@ for test in bump-epoch/*.sh bump-revision/*.sh get/*.sh merge/*.sh set-version/*
 		tests_failed=$((tests_failed + 1))
 	fi
 done
+
+cd "${ROOT}/tests/clippy" || exit 1
+for test in *.in; do
+	t=${test%*.in}
+	echo "clippy/${t}"
+	${PORTCLIPPY} <"${t}.in" >"${t}.actual"
+	tests_run=$((tests_run + 1))
+	if ! diff -L "${t}.expected" -L "${t}.actual" -u "${t}.expected" "${t}.actual"; then
+		echo
+		tests_failed=$((tests_failed + 1))
+		continue
+	fi
+done
+rm -f ./*.actual
 
 cd "${ROOT}/tests" || exit 1
 for t in reject/*.in; do
