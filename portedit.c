@@ -244,7 +244,7 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 
 	error = parser_read_finish(subparser);
 	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
+		errx(1, "%s", parser_error_tostring(subparser));
 	}
 	error = parser_merge(parser, subparser, PARSER_MERGE_SHELL_IS_DELETE | PARSER_MERGE_COMMENTS);
 	if (error != PARSER_ERROR_OK) {
