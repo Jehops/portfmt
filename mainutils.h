@@ -27,9 +27,10 @@
  */
 #pragma once
 
+struct Array;
 struct ParserSettings;
 
 int can_use_colors(FILE *);
 void enter_sandbox(void);
 int open_file(int *, char ***, struct ParserSettings *, FILE **, FILE **, int);
-int read_common_args(int *, char ***, struct ParserSettings *, const char *);
+int read_common_args(int *, char ***, struct ParserSettings *, const char *, struct Array *);

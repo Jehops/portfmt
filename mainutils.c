@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "array.h"
 #include "mainutils.h"
 #include "parser.h"
 #include "util.h"
@@ -81,13 +82,20 @@ enter_sandbox()
 }
 
 int
-read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const char *optstr)
+read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const char *optstr, struct Array *expressions)
 {
 	int ch;
 	while ((ch = getopt(*argc, *argv, optstr)) != -1) {
 		switch (ch) {
 		case 'd':
 			settings->behavior |= PARSER_OUTPUT_DUMP_TOKENS;
+			break;
+		case 'e':
+			if (expressions) {
+				array_append(expressions, xstrdup(optarg));
+			} else {
+				return 0;
+			}
 			break;
 		case 'i':
 			settings->behavior |= PARSER_OUTPUT_INPLACE;

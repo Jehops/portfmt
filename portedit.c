@@ -89,7 +89,7 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:")) {
+	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
 		bump_epoch_usage();
 	}
 
@@ -128,7 +128,7 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:")) {
+	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
 		bump_revision_usage();
 	}
 
@@ -207,7 +207,8 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:")) {
+	struct Array *expressions = array_new(sizeof(char *));
+	if (!read_common_args(&argc, &argv, settings, "e:iuw:", expressions)) {
 		merge_usage();
 	}
 	if (argc == 0) {
@@ -222,10 +223,25 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	}
 
 	struct Parser *subparser = parser_new(settings);
-	int error = parser_read_from_file(subparser, stdin);
-	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
+	int error = PARSER_ERROR_OK;
+	if (array_len(expressions) > 0) {
+		for (size_t i = 0; i < array_len(expressions); i++) {
+			char *expr = array_get(expressions, i);
+			error = parser_read_from_buffer(subparser, expr, strlen(expr));
+			if (error != PARSER_ERROR_OK) {
+				errx(1, "%s", parser_error_tostring(subparser));
+			}
+			free(expr);
+		}
+	} else {
+		error = parser_read_from_file(subparser, stdin);
+		if (error != PARSER_ERROR_OK) {
+			errx(1, "%s", parser_error_tostring(subparser));
+		}
 	}
+	array_free(expressions);
+	expressions = NULL;
+
 	error = parser_read_finish(subparser);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
@@ -261,7 +277,7 @@ sanitize_append(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:")) {
+	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
 		sanitize_append_usage();
 	}
 
@@ -300,7 +316,7 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:")) {
+	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
 		set_version_usage();
 	}
 
@@ -443,7 +459,7 @@ get_variable_usage()
 void
 merge_usage()
 {
-	fprintf(stderr, "usage: portedit merge [-iu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit merge [-iu] [-w wrapcol] [-e expr] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
