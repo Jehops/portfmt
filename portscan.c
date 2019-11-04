@@ -130,18 +130,17 @@ lookup_subdirs(int portsdir, const char *path)
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, in);
 	if (error != PARSER_ERROR_OK) {
-		warnx("%s", parser_error_tostring(parser));
+		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
-		warnx("%s", parser_error_tostring(parser));
+		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
 
 	struct Array *tmp;
 	if (parser_lookup_variable_all(parser, "SUBDIR", &tmp, NULL) == NULL) {
-		warnx("%s", parser_error_tostring(parser));
 		goto cleanup;
 	}
 
