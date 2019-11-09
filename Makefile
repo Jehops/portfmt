@@ -96,7 +96,7 @@ debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \
 		LDFLAGS="-g" portfmt
 
-test: portedit portfmt
+test: all
 	@/bin/sh run-tests.sh
 
 .PHONY: clean debug install install-symlinks test
