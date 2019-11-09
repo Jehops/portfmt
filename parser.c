@@ -579,12 +579,12 @@ parser_find_goalcols(struct Parser *parser)
 		case TARGET_START:
 		case CONDITIONAL_END:
 		case CONDITIONAL_START:
+		case CONDITIONAL_TOKEN:
 		case TARGET_COMMAND_END:
 		case TARGET_COMMAND_START:
 		case TARGET_COMMAND_TOKEN:
 			break;
 		case COMMENT:
-		case CONDITIONAL_TOKEN:
 			/* Ignore comments in between variables and
 			 * treat variables after them as part of the
 			 * same block, i.e., indent them the same way.
