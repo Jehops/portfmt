@@ -587,6 +587,7 @@ static const char *leave_unformatted_[] = {
 // Sanitize whitespace but do *not* sort tokens; more complicated
 // patterns below in leave_unsorted()
 static const char *leave_unsorted_[] = {
+
 	"_ALL_EXCLUDE",
 	"_BUILD_SEQ",
 	"_BUILD_SETUP",
@@ -764,6 +765,7 @@ static const char *leave_unsorted_[] = {
 	"PASTE",
 	"PATCH_ARGS",
 	"PATCH_DIST_ARGS",
+	"PATCH_SITES",
 	"PATCHFILES",
 	"PAX",
 	"PKG_ADD",
@@ -825,6 +827,7 @@ static const char *leave_unsorted_[] = {
 	"XZ",
 	"XZCAT",
 	"YACC",
+
 	FOR_EACH_ARCH("BROKEN_"),
 	FOR_EACH_ARCH("BROKEN_FreeBSD_"),
 	FOR_EACH_ARCH("BROKEN_FreeBSD_11_"),
@@ -857,11 +860,13 @@ static const char *leave_unsorted_opthelpers_[] = {
 
 // Don't indent with the rest of the variables in a paragraph
 static const char *skip_goalcol_[] = {
+
 	"BINARY_WRAPPERS",
 	"CARGO_CRATES",
 	"CMAKE_BUILD_TYPE",
 	"CMAKE_INSTALL_PREFIX",
 	"CMAKE_SOURCE_PATH",
+	"DESKTOP_ENTRIES",
 	"DISTVERSIONPREFIX",
 	"DISTVERSIONSUFFIX",
 	"EXPIRATION_DATE",
@@ -882,8 +887,8 @@ static const char *skip_goalcol_[] = {
 	"LICENSE_TEXT",
 	"LICENSE",
 	"MAKE_JOBS_UNSAFE",
-	"MASTER_SITE_SUBDIR",
 	"MANUAL_PACKAGE_BUILD",
+	"MASTER_SITE_SUBDIR",
 	"NO_OCAML_BUILDDEPENDS",
 	"NO_OCAML_RUNDEPENDS",
 	"NO_OCAMLTK_BUILDDEPENDS",
@@ -905,6 +910,8 @@ static const char *skip_goalcol_[] = {
 	"OPTIONS_DEFINE_FreeBSD_12",
 	"OPTIONS_DEFINE_FreeBSD_13",
 	"OPTIONS_DEFINE_FreeBSD",
+	"PATHFIX_CMAKELISTSTXT",
+	"PATHFIX_MAKEFILEIN",
 	"PYDISTUTILS_BUILD_TARGET",
 	"PYDISTUTILS_BUILDARGS",
 	"PYDISTUTILS_CONFIGURE_TARGET",
@@ -925,6 +932,7 @@ static const char *skip_goalcol_[] = {
 	"RUBY_REQUIRE",
 	"USE_CABAL",
 	"USE_GENERIC_PKGMESSAGE",
+	"USE_HORDE_BUILD",
 	"USE_LINUX_RPM_BAD_PERMS",
 	"USE_OCAML_CAMLP4",
 	"USE_OCAML_FINDLIB",
@@ -939,6 +947,7 @@ static const char *skip_goalcol_[] = {
 	"WANT_OPENLDAP_SASL",
 	"WANT_OPENLDAP_VER",
 	"WITHOUT_FBSD10_FIX",
+
 	FOR_EACH_ARCH("BUILD_DEPENDS_"),
 	FOR_EACH_ARCH("DISTFILES_"),
 	FOR_EACH_ARCH("EXTRACT_DEPENDS_"),
@@ -959,6 +968,7 @@ static const char *skip_goalcol_[] = {
  */
 
 static const char *ignore_wrap_col_[] = {
+
 	"BROKEN_DragonFly",
 	"BROKEN_FreeBSD_11",
 	"BROKEN_FreeBSD_12",
@@ -993,7 +1003,10 @@ static const char *ignore_wrap_col_[] = {
 	"NO_CCACHE",
 	"NO_CDROM",
 	"NO_PACKAGE",
+	"NOT_FOR_ARCHS_REASON",
+	"ONLY_FOR_ARCHS_REASON",
 	"RESTRICTED",
+
 	FOR_EACH_ARCH("BROKEN_"),
 	FOR_EACH_ARCH("BROKEN_FreeBSD_"),
 	FOR_EACH_ARCH("BROKEN_FreeBSD_11_"),
@@ -1005,6 +1018,9 @@ static const char *ignore_wrap_col_[] = {
 	FOR_EACH_ARCH("IGNORE_FreeBSD_11_"),
 	FOR_EACH_ARCH("IGNORE_FreeBSD_12_"),
 	FOR_EACH_ARCH("IGNORE_FreeBSD_13_"),
+	FOR_EACH_ARCH("NOT_FOR_ARCHS_REASON_"),
+	FOR_EACH_ARCH("ONLY_FOR_ARCHS_REASON_"),
+
 };
 
 static const char *ignore_wrap_col_opthelpers_[] = {
