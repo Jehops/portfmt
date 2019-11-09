@@ -6,6 +6,7 @@ PORTCLIPPY="${ROOT}/portclippy"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
 
+export PORTCLIPPY
 export PORTEDIT
 export PORTFMT
 export ROOT
