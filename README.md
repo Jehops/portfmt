@@ -94,7 +94,9 @@ Add this to `~/.emacs.d/init.el` to format the current region with
   (interactive "r")
   (shell-command-on-region b e "portfmt " (current-buffer) t
                            "*portfmt errors*" t))
-(define-key makefile-bsdmake-mode-map (kbd "C-c p") 'portfmt)
+
+(with-eval-after-load 'make-mode
+  (define-key makefile-bsdmake-mode-map (kbd "C-c p") 'portfmt))
 ```
 
 ### Kakoune
