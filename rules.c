@@ -1720,7 +1720,6 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_CONFLICTS, "CONFLICTS_BUILD" },
 	{ BLOCK_CONFLICTS, "CONFLICTS_INSTALL" },
 
-	{ BLOCK_STANDARD, "ARCH" },
 	{ BLOCK_STANDARD, "AR" },
 	{ BLOCK_STANDARD, "AS" },
 	{ BLOCK_STANDARD, "CC" },
