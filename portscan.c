@@ -58,6 +58,9 @@ struct ScanResult {
 	char *origin;
 	struct Array *unknown_variables;
 	struct Array *unknown_targets;
+	struct Array *option_groups;
+	struct Array *options;
+	int include_options;
 };
 
 struct CategoryReaderData {
@@ -72,6 +75,7 @@ struct PortReaderData {
 	struct Array *origins;
 	size_t start;
 	size_t end;
+	int include_options;
 };
 
 // Ignore these ports when processing .include
@@ -89,7 +93,7 @@ static struct Array *extract_includes(struct Parser *, struct Array *, enum Pars
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int);
-static struct Array *scan_ports(int, struct Array *, int);
+static struct Array *scan_ports(int, struct Array *, int, int);
 static void usage(void);
 
 FILE *
@@ -240,6 +244,8 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 {
 	retval->unknown_targets = array_new(sizeof(char *));
 	retval->unknown_variables = array_new(sizeof(char *));
+	retval->option_groups = array_new(sizeof(char *));
+	retval->options = array_new(sizeof(char *));
 
 	struct ParserSettings settings;
 	parser_init_settings(&settings);
@@ -288,13 +294,13 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
+
 	struct Array *tmp = NULL;
 	error = parser_edit(parser, edit_output_unknown_variables, &tmp);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
-
 	for (size_t i = 0; i < array_len(tmp); i++) {
 		array_append(retval->unknown_variables, xstrdup(array_get(tmp, i)));
 	}
@@ -305,11 +311,21 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
-
 	for (size_t i = 0; i < array_len(tmp); i++) {
 		array_append(retval->unknown_targets, xstrdup(array_get(tmp, i)));
 	}
 	array_free(tmp);
+
+	if (retval->include_options) {
+		parser_port_options(parser, &tmp, NULL);
+		for (size_t i = 0; i < array_len(tmp); i++) {
+			array_append(retval->option_groups, xstrdup(array_get(tmp, i)));
+		}
+		parser_port_options(parser, NULL, &tmp);
+		for (size_t i = 0; i < array_len(tmp); i++) {
+			array_append(retval->options, xstrdup(array_get(tmp, i)));
+		}
+	}
 
 cleanup:
 	parser_free(parser);
@@ -334,6 +350,7 @@ scan_ports_worker(void *userdata)
 		xasprintf(&path, "%s/Makefile", origin);
 		struct ScanResult *result = xmalloc(sizeof(struct ScanResult));
 		result->origin = xstrdup(origin);
+		result->include_options = data->include_options;
 		lookup_unknowns(data->portsdir, path, result);
 		free(path);
 		array_append(retval, result);
@@ -427,7 +444,7 @@ lookup_origins(int portsdir)
 }
 
 struct Array *
-scan_ports(int portsdir, struct Array *origins, int can_use_colors)
+scan_ports(int portsdir, struct Array *origins, int can_use_colors, int include_options)
 {
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
@@ -447,6 +464,7 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors)
 		data->origins = origins;
 		data->start = start;
 		data->end = end;
+		data->include_options = include_options;
 		if (pthread_create(&tid[i], NULL, scan_ports_worker, data) != 0) {
 			err(1, "pthread_create");
 		}
@@ -498,6 +516,40 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors)
 			}
 			array_free(r->unknown_targets);
 
+			array_sort(r->option_groups, str_compare, NULL);
+			for (size_t k = 0; k < array_len(r->option_groups); k++) {
+				char *var = array_get(r->option_groups, k);
+				char *buf;
+				if (can_use_colors) {
+					xasprintf(&buf, "%s%-7s%s %-40s %s%s%s\n",
+						ANSI_COLOR_YELLOW, "OG", ANSI_COLOR_RESET,
+						r->origin,
+						ANSI_COLOR_YELLOW, var, ANSI_COLOR_RESET);
+				} else {
+					xasprintf(&buf, "%-7s %-40s %s\n", "OG", r->origin, var);
+				}
+				array_append(retval, buf);
+				free(var);
+			}
+			array_free(r->option_groups);
+
+			array_sort(r->options, str_compare, NULL);
+			for (size_t k = 0; k < array_len(r->options); k++) {
+				char *var = array_get(r->options, k);
+				char *buf;
+				if (can_use_colors) {
+					xasprintf(&buf, "%s%-7c%s %-40s %s%s%s\n",
+						ANSI_COLOR_GREEN, 'O', ANSI_COLOR_RESET,
+						r->origin,
+						ANSI_COLOR_GREEN, var, ANSI_COLOR_RESET);
+				} else {
+					xasprintf(&buf, "%-7c %-40s %s\n", 'O', r->origin, var);
+				}
+				array_append(retval, buf);
+				free(var);
+			}
+			array_free(r->options);
+
 			free(r->origin);
 			free(r);
 		}
@@ -510,7 +562,7 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors)
 void
 usage()
 {
-	fprintf(stderr, "usage: portscan -p <portsdir> [<origin1> ...]\n");
+	fprintf(stderr, "usage: portscan [-o] -p <portsdir> [<origin1> ...]\n");
 	exit(EX_USAGE);
 }
 
@@ -519,8 +571,12 @@ main(int argc, char *argv[])
 {
 	const char *portsdir_path = NULL;
 	int ch;
-	while ((ch = getopt(argc, argv, "p:")) != -1) {
+	int oflag = 0;
+	while ((ch = getopt(argc, argv, "op:")) != -1) {
 		switch (ch) {
+		case 'o':
+			oflag = 1;
+			break;
 		case 'p':
 			portsdir_path = optarg;
 			break;
@@ -571,7 +627,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-	struct Array *result = scan_ports(portsdir, origins, can_use_colors(stdout));
+	struct Array *result = scan_ports(portsdir, origins, can_use_colors(stdout), oflag);
 	for (size_t i = 0; i < array_len(result); i++) {
 		char *line = array_get(result, i);
 		if (write(STDOUT_FILENO, line, strlen(line)) == -1) {

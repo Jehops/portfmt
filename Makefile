@@ -90,7 +90,7 @@ install-symlinks:
 
 clean:
 	@rm -f ${OBJS} portclippy portclippy.o portedit portedit.o portfmt \
-		portfmt.o ${LIBNAME}.${LIBSUFFIX} config.*.old
+		portfmt.o portscan portscan.o ${LIBNAME}.${LIBSUFFIX} config.*.old
 
 debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \

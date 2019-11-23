@@ -1691,13 +1691,18 @@ parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 	if (parser_lookup_variable_all(parser, groupname, &optmulti, NULL)) {
 		for (size_t i = 0; i < array_len(optmulti); i++) {
 			char *optgroupname = array_get(optmulti, i);
-			array_append(parser->port_options_groups, optgroupname);
+			if (array_find(parser->port_options_groups, optgroupname, str_compare, NULL) == -1) {
+				array_append(parser->port_options_groups, optgroupname);
+			}
 			char *optgroupvar;
 			xasprintf(&optgroupvar, "%s_%s", groupname, optgroupname);
 			struct Array *opts = NULL;
 			if (parser_lookup_variable_all(parser, optgroupvar, &opts, NULL)) {
 				for (size_t i = 0; i < array_len(opts); i++) {
-					array_append(parser->port_options, array_get(opts, i));
+					char *opt = array_get(opts, i);
+					if (array_find(parser->port_options, opt, str_compare, NULL) == -1) {
+						array_append(parser->port_options, opt);
+					}
 				}
 				array_free(opts);
 			}
@@ -1713,11 +1718,13 @@ parser_port_options_add_from_var(struct Parser *parser, const char *var)
 	struct Array *optdefine = NULL;
 	if (parser_lookup_variable_all(parser, var, &optdefine, NULL)) {
 		for (size_t i = 0; i < array_len(optdefine); i++) {
-			array_append(parser->port_options, array_get(optdefine, i));
+			char *opt = array_get(optdefine, i);
+			if (array_find(parser->port_options, opt, str_compare, NULL) == -1) {
+				array_append(parser->port_options, opt);
+			}
 		}
 		array_free(optdefine);
 	}
-
 }
 
 void
