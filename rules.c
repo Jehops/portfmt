@@ -1155,6 +1155,7 @@ static const char *static_flavors_[] = {
 	"py35",
 	"py36",
 	"py37",
+	"py38",
 };
 
 struct VariableOrderEntry {
