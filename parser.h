@@ -95,6 +95,7 @@ struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Ar
 struct Variable *parser_lookup_variable_all(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
 void parser_port_options(struct Parser *, struct Array **, struct Array **);
+struct Array *parser_subpackages(struct Parser *);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
 enum ParserError parser_merge(struct Parser *, struct Parser *, enum ParserMergeBehavior);

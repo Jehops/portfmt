@@ -38,6 +38,7 @@ enum BlockType {
 	BLOCK_DEPENDS,
 	BLOCK_FLAVORS,
 	BLOCK_FLAVORS_HELPER,
+	BLOCK_SUBPACKAGES,
 	BLOCK_USES,
 	BLOCK_SHEBANGFIX,
 	BLOCK_UNIQUEFILES,
@@ -96,8 +97,8 @@ int is_comment(struct Token *);
 int is_include_bsd_port_mk(struct Token *);
 int is_known_target(struct Parser *, const char *);
 int is_special_target(const char *);
-int is_options_helper(struct Parser *, const char *, char **, char **);
-int leave_unformatted(struct Variable *);
+int is_options_helper(struct Parser *, const char *, char **, char **, char **);
+int leave_unformatted(struct Parser *, struct Variable *);
 int leave_unsorted(struct Parser *, struct Variable *);
 regex_t *regex(enum RegularExpression);
 int matches(enum RegularExpression, const char *);
@@ -105,7 +106,7 @@ int preserve_eol_comment(struct Token *);
 int print_as_newlines(struct Parser *, struct Variable *);
 void rules_init(void);
 int skip_dedup(struct Parser *, struct Variable *);
-int skip_goalcol(struct Variable *);
+int skip_goalcol(struct Parser *, struct Variable *);
 char *sub(enum RegularExpression, const char *, const char *);
 int target_command_wrap_after_each_token(const char *);
 int target_command_should_wrap(const char *);

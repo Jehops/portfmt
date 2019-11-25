@@ -79,6 +79,9 @@ struct Parser {
 	struct Array *port_options_groups;
 	int port_options_looked_up;
 
+	struct Array *subpackages;
+	int subpackages_looked_up;
+
 	int read_finished;
 };
 
@@ -270,12 +273,16 @@ parser_new(struct ParserSettings *settings)
 	parser->tokens = array_new();
 	parser->port_options = array_new();
 	parser->port_options_groups = array_new();
+	parser->subpackages = array_new();
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
 	parser->lines.start = 1;
 	parser->lines.end = 1;
 	parser->inbuf = xmalloc(INBUF_SIZE);
 	parser->settings = *settings;
+
+	// There is always a main subpackage
+	array_append(parser->subpackages, xstrdup("main"));
 
 	if (parser->settings.behavior & PARSER_OUTPUT_EDITED) {
 		parser->settings.behavior &= ~PARSER_COLLAPSE_ADJACENT_VARIABLES;
@@ -290,6 +297,21 @@ parser_free(struct Parser *parser)
 	if (parser == NULL) {
 		return;
 	}
+
+	for (size_t i = 0; i < array_len(parser->port_options); i++) {
+		free(array_get(parser->port_options, i));
+	}
+	array_free(parser->port_options);
+
+	for (size_t i = 0; i < array_len(parser->port_options_groups); i++) {
+		free(array_get(parser->port_options_groups, i));
+	}
+	array_free(parser->port_options_groups);
+
+	for (size_t i = 0; i < array_len(parser->subpackages); i++) {
+		free(array_get(parser->subpackages, i));
+	}
+	array_free(parser->subpackages);
 
 	for (size_t i = 0; i < array_len(parser->result); i++) {
 		free(array_get(parser->result, i));
@@ -308,8 +330,6 @@ parser_free(struct Parser *parser)
 	array_free(parser->tokengc);
 	array_free(parser->edited);
 	array_free(parser->tokens);
-	array_free(parser->port_options);
-	array_free(parser->port_options_groups);
 
 	free(parser->error_msg);
 	free(parser->inbuf);
@@ -543,7 +563,7 @@ parser_propagate_goalcol(struct Parser *parser, size_t start, size_t end,
 	moving_goalcol = MAX(16, moving_goalcol);
 	for (size_t k = start; k <= end; k++) {
 		struct Token *t = array_get(parser->tokens, k);
-		if (token_variable(t) && !skip_goalcol(token_variable(t))) {
+		if (token_variable(t) && !skip_goalcol(parser, token_variable(t))) {
 			token_set_goalcol(t, moving_goalcol);
 		}
 	}
@@ -569,7 +589,7 @@ parser_find_goalcols(struct Parser *parser)
 			tokens_end = i;
 
 			struct Variable *var = token_variable(t);
-			if (var && skip_goalcol(var)) {
+			if (var && skip_goalcol(parser, var)) {
 				token_set_goalcol(t, indent_goalcol(var));
 			} else {
 				moving_goalcol = MAX(indent_goalcol(var), moving_goalcol);
@@ -942,7 +962,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 	assert(token_type(t) == VARIABLE_TOKEN);
 	int opt_use = 0;
 	char *helper = NULL;
-	if (is_options_helper(parser, variable_name(token_variable(t)), NULL, &helper)) {
+	if (is_options_helper(parser, variable_name(token_variable(t)), NULL, &helper, NULL)) {
 		if (strcmp(helper, "USE") == 0 || strcmp(helper, "USE_OFF") == 0)  {
 			opt_use = 1;
 		} else if (strcmp(helper, "VARS") == 0 || strcmp(helper, "VARS_OFF") == 0) {
@@ -1031,7 +1051,7 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* uno
 
 	/* Leave variables unformatted that have $\ in them. */
 	if ((array_len(arr) == 1 && strstr(token_data(t0), "$\001") != NULL) ||
-	    (leave_unformatted(token_variable(t0)) &&
+	    (leave_unformatted(parser, token_variable(t0)) &&
 	     array_find(parser->edited, t0, NULL, NULL) == -1)) {
 		parser_output_print_rawlines(parser, token_lines(t0));
 		goto cleanup;
@@ -1692,7 +1712,7 @@ parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 		for (size_t i = 0; i < array_len(optmulti); i++) {
 			char *optgroupname = array_get(optmulti, i);
 			if (array_find(parser->port_options_groups, optgroupname, str_compare, NULL) == -1) {
-				array_append(parser->port_options_groups, optgroupname);
+				array_append(parser->port_options_groups, xstrdup(optgroupname));
 			}
 			char *optgroupvar;
 			xasprintf(&optgroupvar, "%s_%s", groupname, optgroupname);
@@ -1701,7 +1721,7 @@ parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 				for (size_t i = 0; i < array_len(opts); i++) {
 					char *opt = array_get(opts, i);
 					if (array_find(parser->port_options, opt, str_compare, NULL) == -1) {
-						array_append(parser->port_options, opt);
+						array_append(parser->port_options, xstrdup(opt));
 					}
 				}
 				array_free(opts);
@@ -1720,7 +1740,7 @@ parser_port_options_add_from_var(struct Parser *parser, const char *var)
 		for (size_t i = 0; i < array_len(optdefine); i++) {
 			char *opt = array_get(optdefine, i);
 			if (array_find(parser->port_options, opt, str_compare, NULL) == -1) {
-				array_append(parser->port_options, opt);
+				array_append(parser->port_options, xstrdup(opt));
 			}
 		}
 		array_free(optdefine);
@@ -1785,6 +1805,46 @@ parser_port_options(struct Parser *parser, struct Array **groups, struct Array *
 	if (options) {
 		*options = parser->port_options;
 	}
+}
+
+struct Array *
+parser_subpackages(struct Parser *parser)
+{
+	if (parser->subpackages_looked_up) {
+		return parser->subpackages;
+	}
+
+	struct Array *subpkgs = NULL;
+	if (parser_lookup_variable_all(parser, "SUBPACKAGES", &subpkgs, NULL)) {
+		for (size_t i = 0; i < array_len(subpkgs); i++) {
+			char *subpkg = array_get(subpkgs, i);
+			if (array_find(parser->subpackages, subpkg, str_compare, NULL) == -1) {
+				array_append(parser->subpackages, xstrdup(subpkg));
+			}
+		}
+		array_free(subpkgs);
+		subpkgs = NULL;
+	}
+
+	struct Array *options = NULL;
+	parser_port_options(parser, NULL, &options);
+	for (size_t i = 0; i < array_len(options); i++) {
+		char *opt = array_get(options, i);
+		char *var;
+		xasprintf(&var, "%s_SUBPACKAGES", opt);
+		if (parser_lookup_variable_all(parser, var, &subpkgs, NULL)) {
+			for (size_t j = 0; j < array_len(subpkgs); j++) {
+				char *subpkg = array_get(subpkgs, j);
+				if (array_find(parser->subpackages, subpkg, str_compare, NULL) == -1) {
+					array_append(parser->subpackages, xstrdup(subpkg));
+				}
+			}
+			array_free(subpkgs);
+		}
+		free(var);
+	}
+
+	return parser->subpackages;
 }
 
 struct Target *
