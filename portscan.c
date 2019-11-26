@@ -120,7 +120,7 @@ fileopenat(int root, const char *path)
 struct Array *
 lookup_subdirs(int portsdir, const char *path)
 {
-	struct Array *subdirs = array_new(sizeof(char *));
+	struct Array *subdirs = array_new();
 
 	FILE *in = fileopenat(portsdir, path);
 	if (in == NULL) {
@@ -203,7 +203,7 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 {
 	struct Array **retval = (struct Array **)userdata;
 
-	struct Array *includes = array_new(sizeof(char *));
+	struct Array *includes = array_new();
 	int found = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
@@ -242,10 +242,10 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 void
 lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 {
-	retval->unknown_targets = array_new(sizeof(char *));
-	retval->unknown_variables = array_new(sizeof(char *));
-	retval->option_groups = array_new(sizeof(char *));
-	retval->options = array_new(sizeof(char *));
+	retval->unknown_targets = array_new();
+	retval->unknown_variables = array_new();
+	retval->option_groups = array_new();
+	retval->options = array_new();
 
 	struct ParserSettings settings;
 	parser_init_settings(&settings);
@@ -336,7 +336,7 @@ void *
 scan_ports_worker(void *userdata)
 {
 	struct PortReaderData *data = userdata;
-	struct Array *retval = array_new(sizeof(char *));
+	struct Array *retval = array_new();
 
 	if (data->start == data->end) {
 		return retval;
@@ -363,7 +363,7 @@ void *
 lookup_origins_worker(void *userdata)
 {
 	struct CategoryReaderData *data = userdata;
-	struct Array *origins = array_new(sizeof(char *));
+	struct Array *origins = array_new();
 
 	for (size_t i = data->start; i < data->end; i++) {
 		char *category = array_get(data->categories, i);
@@ -388,7 +388,7 @@ lookup_origins_worker(void *userdata)
 struct Array *
 lookup_origins(int portsdir)
 {
-	struct Array *retval = array_new(sizeof(char *));
+	struct Array *retval = array_new();
 
 	struct Array *categories = lookup_subdirs(portsdir, "Makefile");
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
@@ -472,7 +472,7 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors, int include_
 		end = MIN(end + step, array_len(origins));
 	}
 
-	struct Array *retval = array_new(sizeof(struct iovec*));
+	struct Array *retval = array_new();
 	for (ssize_t i = 0; i < n_threads; i++) {
 		void *data;
 		if (pthread_join(tid[i], &data) != 0) {
@@ -621,7 +621,7 @@ main(int argc, char *argv[])
 	if (argc == 0) {
 		origins = lookup_origins(portsdir);
 	} else {
-		origins = array_new(sizeof(char *));
+		origins = array_new();
 		for (int i = 0; i < argc; i++) {
 			array_append(origins, xstrdup(argv[i]));
 		}

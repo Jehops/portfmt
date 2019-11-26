@@ -263,13 +263,13 @@ parser_new(struct ParserSettings *settings)
 
 	struct Parser *parser = xmalloc(sizeof(struct Parser));
 
-	parser->edited = array_new(sizeof(void *));
-	parser->tokengc = array_new(sizeof(void *));
-	parser->rawlines = array_new(sizeof(char *));
-	parser->result = array_new(sizeof(char *));
-	parser->tokens = array_new(sizeof(struct Token *));
-	parser->port_options = array_new(sizeof(char *));
-	parser->port_options_groups = array_new(sizeof(char *));
+	parser->edited = array_new();
+	parser->tokengc = array_new();
+	parser->rawlines = array_new();
+	parser->result = array_new();
+	parser->tokens = array_new();
+	parser->port_options = array_new();
+	parser->port_options_groups = array_new();
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
 	parser->lines.start = 1;
@@ -676,7 +676,7 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 		return print_newline_array(parser, tokens);
 	}
 
-	struct Array *arr = array_new(sizeof(struct Token *));
+	struct Array *arr = array_new();
 	struct Token *o = array_get(tokens, 0);
 	size_t wrapcol;
 	if (token_variable(o) && ignore_wrap_col(parser, token_variable(o))) {
@@ -753,8 +753,8 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		return;
 	}
 
-	struct Array *commands = array_new(sizeof(char *));
-	struct Array *merge = array_new(sizeof(char *));
+	struct Array *commands = array_new();
+	struct Array *merge = array_new();
 	char *command = NULL;
 	int wrap_after = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
@@ -812,7 +812,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	const char *start = startlv0;
 
 	// Find the places we need to wrap to the next line.
-	struct Array *wraps = array_new(sizeof(int));
+	struct Array *wraps = array_new();
 	size_t column = 8;
 	int complexity = 0;
 	size_t command_i = 0;
@@ -956,7 +956,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 		return arr;
 	}
 
-	struct Array *up = array_new(sizeof(struct Token *));
+	struct Array *up = array_new();
 	for (size_t i = 0; i < array_len(arr); i++) {
 		t = array_get(arr, i);
 		assert(token_type(t) == VARIABLE_TOKEN);
@@ -978,7 +978,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 		size_t bufsz = strlen(token_data(t)) + 1;
 		char *buf = xmalloc(bufsz);
 		if (opt_use) {
-			struct Array *values = array_new(sizeof(char *));
+			struct Array *values = array_new();
 			char *var;
 			xasprintf(&var, "USE_%s", prefix);
 			xstrlcpy(buf, prefix, bufsz);
@@ -1105,8 +1105,8 @@ parser_output_reformatted(struct Parser *parser)
 		return parser->error;
 	}
 
-	struct Array *target_arr = array_new(sizeof(struct Token *));
-	struct Array *variable_arr = array_new(sizeof(struct Token *));
+	struct Array *target_arr = array_new();
+	struct Array *variable_arr = array_new();
 	struct Token *prev = NULL;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
@@ -1791,7 +1791,7 @@ struct Target *
 parser_lookup_target(struct Parser *parser, const char *name, struct Array **retval)
 {
 	struct Target *target = NULL;
-	struct Array *tokens = array_new(sizeof(char *));
+	struct Array *tokens = array_new();
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
 		switch (token_type(t)) {
@@ -1838,8 +1838,8 @@ struct Variable *
 parser_lookup_variable_internal(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment, int cont)
 {
 	struct Variable *var = NULL;
-	struct Array *tokens = array_new(sizeof(char *));
-	struct Array *comments = array_new(sizeof(char *));
+	struct Array *tokens = array_new();
+	struct Array *comments = array_new();
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
 		switch (token_type(t)) {

@@ -42,8 +42,8 @@
 struct Array *
 refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	struct Array *tokens = array_new(sizeof(struct Token *));
-	struct Array *seen = array_new(sizeof(const char *));
+	struct Array *tokens = array_new();
+	struct Array *seen = array_new();
 	int always_append = 0;
 	int skip = 0;
 	for (size_t i = 0; i < array_len(ptokens); i++) {

@@ -50,15 +50,15 @@ struct Array {
 static const size_t INITIAL_ARRAY_CAP = 1024;
 
 struct Array *
-array_new(size_t value_size)
+array_new(void)
 {
 	struct Array *array = xmalloc(sizeof(struct Array));
 
 	array->cap = INITIAL_ARRAY_CAP;
 	array->len = 0;
-	array->value_size = value_size;
+	array->value_size = sizeof(void *);
 
-	array->buf = recallocarray(NULL, 0, array->cap, value_size);
+	array->buf = recallocarray(NULL, 0, array->cap, array->value_size);
 	if (array->buf == NULL) {
 		warn("recallocarray");
 		abort();

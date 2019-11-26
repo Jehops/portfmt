@@ -207,7 +207,7 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	struct Array *expressions = array_new(sizeof(char *));
+	struct Array *expressions = array_new();
 	if (!read_common_args(&argc, &argv, settings, "e:iuw:", expressions)) {
 		merge_usage();
 	}

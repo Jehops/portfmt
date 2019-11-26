@@ -53,7 +53,7 @@ edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum 
 	if (unknowns) {
 		*unknowns = NULL;
 	}
-	struct Array *vars = array_new(sizeof(char *));
+	struct Array *vars = array_new();
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (token_type(t) != VARIABLE_START) {

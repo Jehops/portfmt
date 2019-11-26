@@ -50,7 +50,7 @@ edit_output_unknown_targets(struct Parser *parser, struct Array *tokens, enum Pa
 		return NULL;
 	}
 
-	struct Array *targets = array_new(sizeof(char *));
+	struct Array *targets = array_new();
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (token_type(t) != TARGET_START) {

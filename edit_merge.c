@@ -190,7 +190,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 		// No variable found where we could insert our new
 		// var.  Insert it before any conditional or target
 		// if there are any.
-		struct Array *tokens = array_new(sizeof(struct Token *));
+		struct Array *tokens = array_new();
 		int added = 0;
 		for (ssize_t i = 0; i < ptokenslen; i++) {
 			struct Token *t = array_get(ptokens, i);
@@ -227,7 +227,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 	assert(insert_after > -1);
 	assert(insert_after < ptokenslen);
 
-	struct Array *tokens = array_new(sizeof(struct Token *));
+	struct Array *tokens = array_new();
 	int insert_flag = 0;
 	int added = 0;
 	for (ssize_t i = 0; i < ptokenslen; i++) {
@@ -282,7 +282,7 @@ struct Array *
 merge_existent_var(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	const struct VariableMergeParameter *params = userdata;
-	struct Array *tokens = array_new(sizeof(struct Token *));
+	struct Array *tokens = array_new();
 
 	int found = 0;
 	enum VariableModifier mod = variable_modifier(params->var);
@@ -360,8 +360,8 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 
 	struct Variable *var = NULL;
 	int merge = 0;
-	struct Array *mergetokens = array_new(sizeof(struct Token *));
-	struct Array *nonvars = array_new(sizeof(struct Token *));
+	struct Array *mergetokens = array_new();
+	struct Array *nonvars = array_new();
 	for (size_t i = 0; i < array_len(subtokens); i++) {
 		struct Token *t = array_get(subtokens, i);
 		switch (token_type(t)) {

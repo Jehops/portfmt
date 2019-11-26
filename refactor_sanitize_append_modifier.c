@@ -43,8 +43,8 @@ struct Array *
 refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	/* Sanitize += before bsd.options.mk */
-	struct Array *seen = array_new(sizeof(struct Variable *));
-	struct Array *tokens = array_new(sizeof(struct Variable *));
+	struct Array *seen = array_new();
+	struct Array *tokens = array_new();
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {

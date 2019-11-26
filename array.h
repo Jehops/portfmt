@@ -31,7 +31,7 @@ struct Array;
 struct diff;
 typedef int (*ArrayCompareFn)(void *, const void *, const void *);
 
-struct Array *array_new(size_t);
+struct Array *array_new(void);
 void array_append(struct Array *, void *);
 int array_diff(struct Array *, struct Array *, struct diff *, ArrayCompareFn, void *);
 void array_free(struct Array *);

@@ -92,8 +92,8 @@ skip_developer_only(enum SkipDeveloperState state, struct Token *t)
 static struct Array *
 variable_list(struct Parser *parser, struct Array *tokens)
 {
-	struct Array *output = array_new(sizeof(char *));
-	struct Array *vars = array_new(sizeof(char *));
+	struct Array *output = array_new();
+	struct Array *vars = array_new();
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
@@ -139,7 +139,7 @@ variable_list(struct Parser *parser, struct Array *tokens)
 static struct Array *
 target_list(struct Array *tokens)
 {
-	struct Array *targets = array_new(sizeof(char *));
+	struct Array *targets = array_new();
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
@@ -164,7 +164,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 {
 	struct Array *origin = variable_list(parser, tokens);
 
-	struct Array *vars = array_new(sizeof(char *));
+	struct Array *vars = array_new();
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
@@ -185,8 +185,8 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 
 	array_sort(vars, compare_order, parser);
 
-	struct Array *target = array_new(sizeof(char *));
-	struct Array *unknowns = array_new(sizeof(char *));
+	struct Array *target = array_new();
+	struct Array *unknowns = array_new();
 	enum BlockType block = BLOCK_UNKNOWN;
 	enum BlockType last_block = BLOCK_UNKNOWN;
 	int flag = 0;
@@ -243,7 +243,7 @@ int
 check_target_order(struct Parser *parser, struct Array *tokens, int no_color, int status_var)
 {
 	struct Array *targets = target_list(tokens);
-	struct Array *origin = array_new(sizeof(char *));
+	struct Array *origin = array_new();
 
 	if (status_var) {
 		array_append(origin, xstrdup(""));
@@ -260,7 +260,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 
 	array_sort(targets, compare_target_order, parser);
 
-	struct Array *target = array_new(sizeof(char *));
+	struct Array *target = array_new();
 	if (status_var) {
 		array_append(target, xstrdup(""));
 	}
@@ -274,7 +274,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 		}
 	}
 
-	struct Array *unknowns = array_new(sizeof(char *));
+	struct Array *unknowns = array_new();
 	for (size_t i = 0; i< array_len(targets); i++) {
 		char *name = array_get(targets, i);
 		if (!is_known_target(parser, name) && name[0] != '_') {
