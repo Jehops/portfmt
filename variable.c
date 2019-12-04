@@ -121,7 +121,7 @@ variable_cmp(struct Variable *a, struct Variable *b)
 }
 
 int
-variable_compare(const void *ap, const void *bp, void *userdata)
+variable_compare(void *userdata, const void *ap, const void *bp)
 {
 	struct Variable *a = *(struct Variable **)ap;
 	struct Variable *b = *(struct Variable **)bp;

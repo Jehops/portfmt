@@ -25,7 +25,7 @@
 #ifndef DIFF_H
 #define DIFF_H
 
-typedef	int (*diff_cmp)(const void *, const void *);
+typedef	int (*diff_cmp)(void *, const void *, const void *);
 
 enum 	difft {
 	DIFF_ADD,
@@ -48,7 +48,7 @@ struct	diff {
 	size_t		  editdist; /* edit distance */
 };
 
-int	diff(struct diff *, diff_cmp, size_t, 
+int	diff(struct diff *, diff_cmp, void *, size_t, 
 		const void *, size_t, const void *, size_t);
 
 #endif /* ! DIFF_H */

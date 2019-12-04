@@ -42,6 +42,7 @@ struct 	onp_diff {
 	size_t		  m; /* length of "a" */
 	size_t	 	  n; /* length of "b" */
 	diff_cmp	  cmp; /* comparison function */
+	void		 *cmp_userdata;
 	int		 *path;
 	size_t	 	  delta;
 	size_t	 	  offset;
@@ -54,7 +55,8 @@ struct 	onp_diff {
 };
 
 #define ONP_CMP(_d, _o1, _o2) \
-	((_d)->cmp((_d)->a + (_d)->sz * (_o1), \
+	((_d)->cmp((_d)->cmp_userdata, \
+		   (_d)->a + (_d)->sz * (_o1), \
 	           (_d)->b + (_d)->sz * (_o2)))
 
 /*
@@ -209,7 +211,7 @@ onp_genseq(struct onp_diff *diff, const struct onp_coord* v, size_t vsz)
 }
 
 static struct onp_diff *
-onp_alloc(diff_cmp cmp, size_t sz,
+onp_alloc(diff_cmp cmp, void *cmp_userdata, size_t sz,
 	const void *a, size_t alen, 
 	const void *b, size_t blen) 
 {
@@ -236,6 +238,7 @@ onp_alloc(diff_cmp cmp, size_t sz,
 
 	assert(diff->n >= diff->m);
 	diff->cmp = cmp;
+	diff->cmp_userdata = cmp_userdata;
 	diff->sz = sz;
 	diff->delta = diff->n - diff->m;
 	diff->offset = diff->m + 1;
@@ -347,7 +350,7 @@ out:
 }
 
 int
-diff(struct diff *d, diff_cmp cmp, size_t size,
+diff(struct diff *d, diff_cmp cmp, void *cmp_userdata, size_t size,
 	const void *base1, size_t nmemb1, 
 	const void *base2, size_t nmemb2)
 {
@@ -359,7 +362,7 @@ diff(struct diff *d, diff_cmp cmp, size_t size,
 
 	memset(d, 0, sizeof(struct diff));
 
-	p = onp_alloc(cmp, size, base1, nmemb1, base2, nmemb2);
+	p = onp_alloc(cmp, cmp_userdata, size, base1, nmemb1, base2, nmemb2);
 	if (NULL == p)
 		return -1;
 

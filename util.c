@@ -72,7 +72,7 @@ str_common_prefix(const char *a, const char *b)
 }
 
 int
-str_compare(const void *ap, const void *bp, void *userdata)
+str_compare(void *userdata, const void *ap, const void *bp)
 {
 	const char *a = *(const char **)ap;
 	const char *b = *(const char **)bp;
