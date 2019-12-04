@@ -1632,7 +1632,7 @@ static struct VariableOrderEntry variable_order_[] = {
 
 	{ BLOCK_QMAKE, "QMAKE_ARGS" },
 	{ BLOCK_QMAKE, "QMAKE_ENV" },
-	{ BLOCK_QMAKE, "QMAKE_CONFIGUIRE_ARGS" },
+	{ BLOCK_QMAKE, "QMAKE_CONFIGURE_ARGS" },
 	{ BLOCK_QMAKE, "QMAKE_SOURCE_PATH" },
 
 	{ BLOCK_MESON, "MESON_ARGS" },
@@ -1672,7 +1672,6 @@ static struct VariableOrderEntry variable_order_[] = {
 
 	{ BLOCK_GO, "GO_PKGNAME" },
 	{ BLOCK_GO, "GO_TARGET" },
-	{ BLOCK_GO, "GO_TEST_TARGET" },
 	{ BLOCK_GO, "GO_BUILDFLAGS" },
 	{ BLOCK_GO, "CGO_ENABLED" },
 	{ BLOCK_GO, "CGO_CFLAGS" },
