@@ -1560,7 +1560,7 @@ parser_read_finish(struct Parser *parser)
 	}
 
 	if (parser->settings.behavior & PARSER_SANITIZE_APPEND &&
-	    PARSER_ERROR_OK != parser_edit(parser, "refactor,sanitize-append-modifier", NULL)) {
+	    PARSER_ERROR_OK != parser_edit(parser, "refactor.sanitize-append-modifier", NULL)) {
 		return parser->error;
 	}
 

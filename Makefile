@@ -96,7 +96,7 @@ install-symlinks:
 		install
 
 clean:
-	@rm -f ${OBJS} ${PLUGINS} plugins/*.o *.o libportfmt.${LIBSUFFIX} portclippy portedit portfmt \
+	@rm -f ${OBJS} ${PLUGINS} parser/*.o *.o libportfmt.${LIBSUFFIX} portclippy portedit portfmt \
 		portscan config.*.old
 
 debug:
