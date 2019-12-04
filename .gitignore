@@ -1,6 +1,7 @@
 .ccls-cache
 *.core
 *.o
+*.so
 config.h
 config.h.old
 config.log

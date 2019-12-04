@@ -51,6 +51,7 @@
 #include "conditional.h"
 #include "mainutils.h"
 #include "parser.h"
+#include "parser/plugin.h"
 #include "token.h"
 #include "util.h"
 
@@ -273,7 +274,7 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 	}
 	if (!ignore_port) {
 		struct Array *includes = NULL;
-		error = parser_edit(parser, extract_includes, &includes);
+		error = parser_edit_with_fn(parser, extract_includes, &includes);
 		if (error != PARSER_ERROR_OK) {
 			warnx("%s: %s", path, parser_error_tostring(parser));
 			goto cleanup;
@@ -296,7 +297,7 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 	}
 
 	struct Array *tmp = NULL;
-	error = parser_edit(parser, edit_output_unknown_variables, &tmp);
+	error = parser_edit(parser, "edit.output-unknown-variables", &tmp);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
@@ -306,7 +307,7 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 	}
 	array_free(tmp);
 
-	error = parser_edit(parser, edit_output_unknown_targets, &tmp);
+	error = parser_edit(parser, "edit.output-unknown-targets", &tmp);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
@@ -592,6 +593,8 @@ main(int argc, char *argv[])
 	if (portsdir_path == NULL) {
 		usage();
 	}
+
+	parser_plugin_load_all();
 
 #if HAVE_CAPSICUM
 	if (caph_limit_stdio() < 0) {

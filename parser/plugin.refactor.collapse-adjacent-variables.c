@@ -28,62 +28,66 @@
 
 #include "config.h"
 
-#include <sys/types.h>
-#include <regex.h>
+#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "array.h"
 #include "parser.h"
-#include "rules.h"
+#include "parser/plugin.h"
 #include "token.h"
+#include "util.h"
 #include "variable.h"
 
-struct Array *
-refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+static struct Array *
+refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	/* Sanitize += before bsd.options.mk */
-	struct Array *seen = array_new();
 	struct Array *tokens = array_new();
+	struct Variable *last_var = NULL;
+	struct Token *last_end = NULL;
+	struct Token *last_token = NULL;
+	struct Array *ignored_tokens = array_new();
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {
 		case VARIABLE_START:
-		case VARIABLE_TOKEN:
-			array_append(tokens, t);
-			break;
-		case VARIABLE_END: {
-			array_append(tokens, t);
-			if (array_find(seen, token_variable(t), variable_compare, NULL) == -1) {
-				array_append(seen, token_variable(t));
-			} else {
-				array_truncate(tokens);
-				continue;
-			}
-			for (size_t j = 0; j < array_len(tokens); j++) {
-				struct Token *o = array_get(tokens, j);
-				if (strcmp(variable_name(token_variable(o)), "CXXFLAGS") != 0 &&
-				    strcmp(variable_name(token_variable(o)), "CFLAGS") != 0 &&
-				    strcmp(variable_name(token_variable(o)), "LDFLAGS") != 0 &&
-				    strcmp(variable_name(token_variable(o)), "RUSTFLAGS") != 0 &&
-				    variable_modifier(token_variable(o)) == MODIFIER_APPEND) {
-					variable_set_modifier(token_variable(o), MODIFIER_ASSIGN);
-					parser_mark_edited(parser, o);
+			if (last_var != NULL &&
+			    variable_cmp(token_variable(t), last_var) == 0 &&
+			    variable_modifier(last_var) != MODIFIER_EXPAND &&
+			    variable_modifier(token_variable(t)) != MODIFIER_EXPAND) {
+				if (last_end) {
+					array_append(ignored_tokens, t);
+					array_append(ignored_tokens, last_end);
+					last_end = NULL;
 				}
 			}
-			array_truncate(tokens);
 			break;
-		} case CONDITIONAL_TOKEN:
-			if (is_include_bsd_port_mk(t)) {
-				goto end;
+		case VARIABLE_TOKEN:
+			last_token = t;
+			break;
+		case VARIABLE_END:
+			if (!last_token || !str_startswith(token_data(last_token), "#")) {
+				last_end = t;
 			}
+			last_token = NULL;
+			last_var = token_variable(t);
+			break;
 		default:
+			last_var = NULL;
 			break;
 		}
 	}
-end:
-	array_free(seen);
-	array_free(tokens);
 
-	return ptokens;
+	for (size_t i = 0; i < array_len(ptokens); i++) {
+		struct Token *t = array_get(ptokens, i);
+		if (array_find(ignored_tokens, t, NULL, NULL) == -1) {
+			array_append(tokens, t);
+		} else {
+			parser_mark_for_gc(parser, t);
+		}
+	}
+
+	array_free(ignored_tokens);
+	return tokens;
 }
+
+PLUGIN("refactor.collapse-adjacent-variables", refactor_collapse_adjacent_variables);

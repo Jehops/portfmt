@@ -28,63 +28,74 @@
 
 #include "config.h"
 
-#include <stdlib.h>
+#include <regex.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "array.h"
 #include "parser.h"
+#include "parser/plugin.h"
+#include "rules.h"
 #include "token.h"
 #include "util.h"
 #include "variable.h"
 
-struct Array *
-refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+static struct Array *
+refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
+	/* Try to push end of line comments out of the way above
+	 * the variable as a way to preserve them.  They clash badly
+	 * with sorting tokens in variables.  We could add more
+	 * special cases for this, but often having them at the top
+	 * is just as good.
+	 */
+
 	struct Array *tokens = array_new();
-	struct Variable *last_var = NULL;
-	struct Token *last_end = NULL;
 	struct Token *last_token = NULL;
-	struct Array *ignored_tokens = array_new();
+	ssize_t last_token_index = -1;
+	ssize_t placeholder_index = -1;
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {
 		case VARIABLE_START:
-			if (last_var != NULL &&
-			    variable_cmp(token_variable(t), last_var) == 0 &&
-			    variable_modifier(last_var) != MODIFIER_EXPAND &&
-			    variable_modifier(token_variable(t)) != MODIFIER_EXPAND) {
-				if (last_end) {
-					array_append(ignored_tokens, t);
-					array_append(ignored_tokens, last_end);
-					last_end = NULL;
-				}
-			}
+			last_token = NULL;
+			last_token_index = -1;
+			placeholder_index = array_len(tokens);
+			array_append(tokens, NULL);
+			array_append(tokens, t);
 			break;
 		case VARIABLE_TOKEN:
 			last_token = t;
+			last_token_index = array_len(tokens);
+			array_append(tokens, t);
 			break;
 		case VARIABLE_END:
-			if (!last_token || !str_startswith(token_data(last_token), "#")) {
-				last_end = t;
+			if (placeholder_index > -1 && last_token_index > -1 &&
+			    !preserve_eol_comment(last_token)) {
+				struct Token *comment = token_as_comment(last_token);
+				parser_mark_for_gc(parser, comment);
+				parser_mark_edited(parser, comment);
+				array_set(tokens, placeholder_index, comment);
+				array_set(tokens, last_token_index, NULL);
 			}
-			last_token = NULL;
-			last_var = token_variable(t);
+			array_append(tokens, t);
 			break;
 		default:
-			last_var = NULL;
+			array_append(tokens, t);
 			break;
 		}
 	}
 
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
-		if (array_find(ignored_tokens, t, NULL, NULL) == -1) {
-			array_append(tokens, t);
-		} else {
-			parser_mark_for_gc(parser, t);
+	ptokens = array_new();
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		if (t != NULL) {
+			array_append(ptokens, t);
 		}
 	}
+	array_free(tokens);
 
-	array_free(ignored_tokens);
-	return tokens;
+	return ptokens;
 }
+
+PLUGIN("refactor.sanitize-eol-comments", refactor_sanitize_eol_comments);

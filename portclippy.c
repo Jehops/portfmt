@@ -41,6 +41,7 @@
 
 #include "mainutils.h"
 #include "parser.h"
+#include "parser/plugin.h"
 
 static void usage(void);
 
@@ -58,6 +59,8 @@ main(int argc, char *argv[])
 
 	parser_init_settings(&settings);
 	settings.behavior = PARSER_OUTPUT_RAWLINES;
+
+	parser_plugin_load_all();
 
 	argc--;
 	argv++;
@@ -87,7 +90,7 @@ main(int argc, char *argv[])
 	}
 
 	int status = 0;
-	error = parser_edit(parser, lint_order, &status);
+	error = parser_edit(parser, "lint.order", &status);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}

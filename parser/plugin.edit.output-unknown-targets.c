@@ -35,52 +35,44 @@
 
 #include "array.h"
 #include "parser.h"
-#include "regexp.h"
+#include "parser/plugin.h"
+#include "rules.h"
+#include "target.h"
 #include "token.h"
-#include "variable.h"
+#include "util.h"
 
-struct Array *
-edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+static struct Array *
+edit_output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
+	struct Array **unknowns = (struct Array **)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 
-	regex_t re;
-	if (regcomp(&re, userdata, REG_EXTENDED) != 0) {
-		*error = PARSER_ERROR_INVALID_REGEXP;
-		return NULL;
-	}
-
-	struct Regexp *regexp = regexp_new(&re);
-	int found = 0;
+	struct Array *targets = array_new();
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			if (regexp_exec(regexp, variable_name(token_variable(t))) == 0) {
-				found = 1;
-			}
-			break;
-		case VARIABLE_TOKEN:
-			if (found && token_data(t) &&
-			    regexp_exec(regexp, variable_name(token_variable(t))) == 0) {
-				parser_enqueue_output(parser, token_data(t));
+		if (token_type(t) != TARGET_START) {
+			continue;
+		}
+		char *name = target_name(token_target(t));
+		if (!is_special_target(name) && !is_known_target(parser, name)) {
+			if (array_find(targets, name, str_compare, NULL) == -1) {
+				parser_enqueue_output(parser, name);
 				parser_enqueue_output(parser, "\n");
+				array_append(targets, name);
 			}
-			break;
-		default:
-			break;
 		}
 	}
-
-	if (!found) {
-		*error = PARSER_ERROR_NOT_FOUND;
+	if (unknowns) {
+		*unknowns = targets;
+	} else {
+		array_free(targets);
 	}
-
-	regexp_free(regexp);
 
 	return NULL;
 }
 
+PLUGIN("edit.output-unknown-targets", edit_output_unknown_targets);

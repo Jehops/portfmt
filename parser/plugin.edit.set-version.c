@@ -40,6 +40,7 @@
 
 #include "array.h"
 #include "parser.h"
+#include "parser/plugin.h"
 #include "rules.h"
 #include "token.h"
 #include "util.h"
@@ -137,7 +138,7 @@ is_git_describe_version(const char *ver, char **distversion, char **prefix, char
 	return 1;
 }
 
-struct Array *
+static struct Array *
 edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (userdata == NULL) {
@@ -278,3 +279,5 @@ cleanup:
 
 	return NULL;
 }
+
+PLUGIN("edit.set-version", edit_set_version);

@@ -28,80 +28,93 @@
 
 #include "config.h"
 
+#include <dirent.h>
+#include <dlfcn.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sysexits.h>
-#include <unistd.h>
 
-#include "mainutils.h"
 #include "parser.h"
-#include "parser/plugin.h"
+#include "util.h"
+#include "plugin.h"
 
-static void usage(void);
+static struct ParserPluginInfo *plugins[256];
+static size_t plugins_len = 0;
 
-void
-usage()
+static void
+parser_plugin_load(const char *filename)
 {
-	fprintf(stderr, "usage: portfmt [-ditu] [-w wrapcol] [Makefile]\n");
-	exit(EX_USAGE);
+	void *handle = dlopen(filename, RTLD_LAZY);
+	if (handle == NULL) {
+		errx(1, "dlopen: %s: %s", filename, dlerror());
+	}
+	void (*register_plugin)(void) = dlsym(handle, "register_plugin");
+	if (register_plugin == NULL) {
+		dlclose(handle);
+		return;
+	}
+	register_plugin();
 }
 
-int
-main(int argc, char *argv[])
+void
+parser_plugin_load_all()
 {
-	int status = 0;
-	struct ParserSettings settings;
-
-	parser_init_settings(&settings);
-	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
-		PARSER_DEDUP_TOKENS | PARSER_OUTPUT_REFORMAT |
-		PARSER_DYNAMIC_PORT_OPTIONS;
-
-	parser_plugin_load_all();
-
-	if (!read_common_args(&argc, &argv, &settings, "dituw:", NULL)) {
-		usage();
+	const char *plugin_dir;
+	if ((plugin_dir = getenv("PORTFMT_PLUGIN_PATH")) == NULL) {
+		plugin_dir = PORTFMT_PLUGIN_PATH;
 	}
 
-	FILE *fp_in = stdin;
-	FILE *fp_out = stdout;
-	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out, 0)) {
-		if (fp_in == NULL) {
-			err(1, "fopen");
-		} else {
-			usage();
+	DIR *dir = opendir(plugin_dir);
+	if (dir == NULL) {
+		err(1, "opendir: %s", plugin_dir);
+	}
+
+	struct dirent *d;
+	while ((d = readdir(dir)) != NULL) {
+		if (str_startswith(d->d_name, PORTFMT_PLUGIN_PREFIX) &&
+		    str_endswith(d->d_name, PORTFMT_PLUGIN_SUFFIX)) {
+			char *filename;
+			xasprintf(&filename, "%s/%s", plugin_dir, d->d_name);
+			parser_plugin_load(filename);
+			free(filename);
 		}
 	}
-	if (!can_use_colors(fp_out)) {
-		settings.behavior |= PARSER_OUTPUT_NO_COLOR;
+	closedir(dir);
+}
+
+struct ParserPluginInfo *
+parser_plugin_info(const char *plugin)
+{
+	for (size_t i = 0; i < plugins_len; i++) {
+		if (strcmp(plugin, plugins[i]->name) == 0) {
+			return plugins[i];
+		}
 	}
 
-	enter_sandbox();
+	return NULL;
+}
 
-	struct Parser *parser = parser_new(&settings);
-	enum ParserError error = parser_read_from_file(parser, fp_in);
-	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
-	}
-	error = parser_read_finish(parser);
-	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
+void
+parser_plugin_register(struct ParserPluginInfo *info)
+{
+	if (info == NULL) {
+		return;
 	}
 
-	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
-	}
-	parser_free(parser);
-
-	fclose(fp_out);
-	if (fp_out != fp_in) {
-		fclose(fp_in);
+	if (plugins_len >= nitems(plugins)) {
+		abort();
 	}
 
-	return status;
+	for (size_t i = 0; i < plugins_len; i++) {
+		if (strcmp(info->name, plugins[i]->name) == 0) {
+			return;
+		}
+	}
+
+	if (info->version == 0) {
+		plugins[plugins_len++] = info;
+	}
 }

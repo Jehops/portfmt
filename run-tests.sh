@@ -5,10 +5,12 @@ MANDOC="mandoc"
 PORTCLIPPY="${ROOT}/portclippy"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
+PORTFMT_PLUGIN_PATH="${ROOT}/parser"
 
 export PORTCLIPPY
 export PORTEDIT
 export PORTFMT
+export PORTFMT_PLUGIN_PATH
 export ROOT
 
 export LD_LIBRARY_PATH="${ROOT}"

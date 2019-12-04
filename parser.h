@@ -88,7 +88,8 @@ char *parser_error_tostring(struct Parser *);
 void parser_free(struct Parser *);
 enum ParserError parser_output_write_to_file(struct Parser *, FILE *);
 
-enum ParserError parser_edit(struct Parser *, ParserEditFn, const void *);
+enum ParserError parser_edit(struct Parser *, const char *, const void *);
+enum ParserError parser_edit_with_fn(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
 struct Target *parser_lookup_target(struct Parser *, const char *, struct Array **);
 struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
@@ -100,15 +101,3 @@ void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
 enum ParserError parser_merge(struct Parser *, struct Parser *, enum ParserMergeBehavior);
 struct ParserSettings parser_settings(struct Parser *);
-
-struct Array *refactor_collapse_adjacent_variables(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *refactor_dedup_tokens(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *refactor_sanitize_append_modifier(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *refactor_sanitize_eol_comments(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *edit_bump_revision(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *edit_merge(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *edit_output_variable_value(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *edit_output_unknown_targets(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *edit_output_unknown_variables(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *edit_set_version(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
-struct Array *lint_order(struct Parser *, struct Array *, enum ParserError *, char **, const void *);

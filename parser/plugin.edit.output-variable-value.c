@@ -29,70 +29,60 @@
 #include "config.h"
 
 #include <regex.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "array.h"
 #include "parser.h"
-#include "rules.h"
+#include "parser/plugin.h"
+#include "regexp.h"
 #include "token.h"
-#include "util.h"
 #include "variable.h"
 
-struct Array *
-refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+static struct Array *
+edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	/* Try to push end of line comments out of the way above
-	 * the variable as a way to preserve them.  They clash badly
-	 * with sorting tokens in variables.  We could add more
-	 * special cases for this, but often having them at the top
-	 * is just as good.
-	 */
-
-	struct Array *tokens = array_new();
-	struct Token *last_token = NULL;
-	ssize_t last_token_index = -1;
-	ssize_t placeholder_index = -1;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			last_token = NULL;
-			last_token_index = -1;
-			placeholder_index = array_len(tokens);
-			array_append(tokens, NULL);
-			array_append(tokens, t);
-			break;
-		case VARIABLE_TOKEN:
-			last_token = t;
-			last_token_index = array_len(tokens);
-			array_append(tokens, t);
-			break;
-		case VARIABLE_END:
-			if (placeholder_index > -1 && last_token_index > -1 &&
-			    !preserve_eol_comment(last_token)) {
-				struct Token *comment = token_as_comment(last_token);
-				parser_mark_for_gc(parser, comment);
-				parser_mark_edited(parser, comment);
-				array_set(tokens, placeholder_index, comment);
-				array_set(tokens, last_token_index, NULL);
-			}
-			array_append(tokens, t);
-			break;
-		default:
-			array_append(tokens, t);
-			break;
-		}
+	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
+		return NULL;
 	}
 
-	ptokens = array_new();
+	regex_t re;
+	if (regcomp(&re, userdata, REG_EXTENDED) != 0) {
+		*error = PARSER_ERROR_INVALID_REGEXP;
+		return NULL;
+	}
+
+	struct Regexp *regexp = regexp_new(&re);
+	int found = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		if (t != NULL) {
-			array_append(ptokens, t);
+
+		switch (token_type(t)) {
+		case VARIABLE_START:
+			if (regexp_exec(regexp, variable_name(token_variable(t))) == 0) {
+				found = 1;
+			}
+			break;
+		case VARIABLE_TOKEN:
+			if (found && token_data(t) &&
+			    regexp_exec(regexp, variable_name(token_variable(t))) == 0) {
+				parser_enqueue_output(parser, token_data(t));
+				parser_enqueue_output(parser, "\n");
+			}
+			break;
+		default:
+			break;
 		}
 	}
-	array_free(tokens);
 
-	return ptokens;
+	if (!found) {
+		*error = PARSER_ERROR_NOT_FOUND;
+	}
+
+	regexp_free(regexp);
+
+	return NULL;
 }
+
+PLUGIN("edit.output-variable-value", edit_output_variable_value);

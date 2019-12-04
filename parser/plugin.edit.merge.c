@@ -40,6 +40,7 @@
 
 #include "array.h"
 #include "parser.h"
+#include "parser/plugin.h"
 #include "rules.h"
 #include "token.h"
 #include "util.h"
@@ -346,7 +347,7 @@ merge_existent_var(struct Parser *parser, struct Array *ptokens, enum ParserErro
 	return tokens;
 }
 
-struct Array *
+static struct Array *
 edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	const struct VariableEditMergeParams *params = userdata;
@@ -356,7 +357,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 	}
 
 	struct Array *subtokens = NULL;
-	parser_edit(params->subparser, extract_tokens, &subtokens);
+	parser_edit_with_fn(params->subparser, extract_tokens, &subtokens);
 
 	struct Variable *var = NULL;
 	int merge = 0;
@@ -382,11 +383,11 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			case MODIFIER_APPEND:
 			case MODIFIER_ASSIGN:
 				if (!parser_lookup_variable(parser, variable_name(var), NULL, NULL)) {
-					*error = parser_edit(parser, insert_variable, var);
+					*error = parser_edit_with_fn(parser, insert_variable, var);
 					if (*error != PARSER_ERROR_OK) {
 						goto cleanup;
 					}
-					parser_edit(parser, extract_tokens, &ptokens);
+					parser_edit_with_fn(parser, extract_tokens, &ptokens);
 				}
 				merge = 1;
 				array_append(mergetokens, t);
@@ -409,11 +410,11 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 				par.var = var;
 				par.nonvars = nonvars;
 				par.values = mergetokens;
-				*error = parser_edit(parser, merge_existent_var, &par);
+				*error = parser_edit_with_fn(parser, merge_existent_var, &par);
 				if (*error != PARSER_ERROR_OK) {
 					goto cleanup;
 				}
-				parser_edit(parser, extract_tokens, &ptokens);
+				parser_edit_with_fn(parser, extract_tokens, &ptokens);
 				array_truncate(nonvars);
 			}
 			var = NULL;
@@ -436,3 +437,5 @@ cleanup:
 	array_free(mergetokens);
 	return NULL;
 }
+
+PLUGIN("edit.merge", edit_merge);

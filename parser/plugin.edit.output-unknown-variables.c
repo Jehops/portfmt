@@ -31,52 +31,51 @@
 #include <regex.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "array.h"
 #include "parser.h"
+#include "parser/plugin.h"
 #include "rules.h"
 #include "token.h"
 #include "util.h"
 #include "variable.h"
 
-struct Array *
-refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+static struct Array *
+edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	struct Array *tokens = array_new();
-	struct Array *seen = array_new();
-	int always_append = 0;
-	int skip = 0;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
-		switch (token_type(t)) {
-		case VARIABLE_START:
-			array_truncate(seen);
-			always_append = 0;
-			skip = skip_dedup(parser, token_variable(t));
-			array_append(tokens, t);
-			break;
-		case VARIABLE_TOKEN:
-			if (skip) {
-				array_append(tokens, t);
-			} else {
-				if (is_comment(t)) {
-					always_append = 1;
-				}
-				// XXX: This is naive and does not dedup composite tokens like USES=mod:args or *_DEPENDS in a good way.
-				if (always_append || array_find(seen, token_data(t), str_compare, NULL) == -1) {
-					array_append(tokens, t);
-					array_append(seen, token_data(t));
-				} else {
-					parser_mark_for_gc(parser, t);
-				}
-			}
-			break;
-		default:
-			array_append(tokens, t);
-			break;
-		}
+	struct Array **unknowns = (struct Array **)userdata;
+	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
+		return NULL;
 	}
 
-	array_free(seen);
-	return tokens;
+	if (unknowns) {
+		*unknowns = NULL;
+	}
+	struct Array *vars = array_new();
+	for (size_t i = 0; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		if (token_type(t) != VARIABLE_START) {
+			continue;
+		}
+		char *name = variable_name(token_variable(t));
+		if (variable_order_block(parser, name) == BLOCK_UNKNOWN) {
+			if (array_find(vars, name, str_compare, NULL) == -1) {
+				parser_enqueue_output(parser, name);
+				parser_enqueue_output(parser, "\n");
+				array_append(vars, name);
+			}
+		}
+	}
+	if (unknowns) {
+		*unknowns = vars;
+	} else {
+		array_free(vars);
+	}
+
+	return NULL;
 }
+
+PLUGIN("edit.output-unknown-variables", edit_output_unknown_variables);

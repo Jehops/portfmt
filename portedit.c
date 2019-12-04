@@ -42,6 +42,7 @@
 #include "array.h"
 #include "mainutils.h"
 #include "parser.h"
+#include "parser/plugin.h"
 #include "util.h"
 
 static int bump_epoch(struct ParserSettings *, int, char *[]);
@@ -100,7 +101,7 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 		bump_epoch_usage();
 	}
 
-	int error = parser_edit(parser, edit_bump_revision, "PORTEPOCH");
+	int error = parser_edit(parser, "edit.bump-revision", "PORTEPOCH");
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -139,7 +140,7 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 		bump_revision_usage();
 	}
 
-	int error = parser_edit(parser, edit_bump_revision, NULL);
+	int error = parser_edit(parser, "edit.bump-revision", NULL);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -177,7 +178,7 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 		get_variable_usage();
 	}
 
-	int error = parser_edit(parser, edit_output_variable_value, var);
+	int error = parser_edit(parser, "edit.output-variable-value", var);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -288,7 +289,7 @@ sanitize_append(struct ParserSettings *settings, int argc, char *argv[])
 		sanitize_append_usage();
 	}
 
-	int error = parser_edit(parser, refactor_sanitize_append_modifier, NULL);
+	int error = parser_edit(parser, "refactor.sanitize-append-modifier", NULL);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -334,7 +335,7 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 		set_version_usage();
 	}
 
-	int error = parser_edit(parser, edit_set_version, version);
+	int error = parser_edit(parser, "edit.set-version", version);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -369,7 +370,7 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 	}
 
 	struct Array *unknowns = NULL;
-	enum ParserError error = parser_edit(parser, edit_output_unknown_targets, &unknowns);
+	enum ParserError error = parser_edit(parser, "edit.output-unknown-targets", &unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -410,7 +411,7 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 	}
 
 	struct Array *unknowns = NULL;
-	enum ParserError error = parser_edit(parser, edit_output_unknown_variables, &unknowns);
+	enum ParserError error = parser_edit(parser, "edit.output-unknown-variables", &unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -549,6 +550,8 @@ main(int argc, char *argv[])
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES | PARSER_DEDUP_TOKENS |
 		PARSER_OUTPUT_REFORMAT | PARSER_OUTPUT_EDITED |
 		PARSER_KEEP_EOL_COMMENTS;
+
+	parser_plugin_load_all();
 
 	for (size_t i = 0; i < nitems(cmds); i++) {
 		if (strcmp(command, cmds[i].name) == 0) {

@@ -306,6 +306,26 @@ runtest __progname	__PROGNAME			  || true
 # You WANT to change this.
 #----------------------------------------------------------------------
 
+[ -z "${LIBDIR}"     ] && LIBDIR="${PREFIX}/lib"
+
+# TODO: This should all be auto-discovered
+case $(uname -s) in
+Darwin)
+	LIBSUFFIX="dylib"
+	PLUGIN_LDFLAGS="-dynamiclib"
+	SHARED_LDFLAGS="-dynamiclib"
+	;;
+OpenBSD)
+	LIBSUFFIX="so"
+	PLUGIN_LDFLAGS="-shared"
+	SHARED_LDFLAGS="-shared"
+	;;
+*)
+	LIBSUFFIX="so"
+	PLUGIN_LDFLAGS="-shared"
+	SHARED_LDFLAGS='-shared -Wl,-soname=${LIBNAME}.${LIBSUFFIX}'
+esac
+
 exec > config.h
 
 # Start with prologue.
@@ -428,6 +448,9 @@ if [ ${HAVE_STRTONUM} -eq 0 ]; then
 	echo "extern long long strtonum(const char *, long long, long long, const char **);"
 fi
 
+echo "#define PORTFMT_PLUGIN_PATH \"${LIBDIR}/portfmt\""
+echo "#define PORTFMT_PLUGIN_PREFIX \"plugin.\""
+echo "#define PORTFMT_PLUGIN_SUFFIX \".${LIBSUFFIX}\""
 echo "config.h: written" 1>&2
 echo "config.h: written" 1>&3
 
@@ -443,7 +466,6 @@ exec > Makefile.configure
 [ -z "${BINDIR}"     ] && BINDIR="${PREFIX}/bin"
 [ -z "${SBINDIR}"    ] && SBINDIR="${PREFIX}/sbin"
 [ -z "${INCLUDEDIR}" ] && INCLUDEDIR="${PREFIX}/include"
-[ -z "${LIBDIR}"     ] && LIBDIR="${PREFIX}/lib"
 [ -z "${MANDIR}"     ] && MANDIR="${PREFIX}/man"
 [ -z "${SHAREDIR}"   ] && SHAREDIR="${PREFIX}/share"
 
@@ -452,21 +474,6 @@ exec > Makefile.configure
 [ -z "${INSTALL_LIB}"     ] && INSTALL_LIB="${INSTALL} -m 0444"
 [ -z "${INSTALL_MAN}"     ] && INSTALL_MAN="${INSTALL} -m 0444"
 [ -z "${INSTALL_DATA}"    ] && INSTALL_DATA="${INSTALL} -m 0444"
-
-# TODO: This should all be auto-discovered
-case $(uname -s) in
-Darwin)
-	LIBSUFFIX="dylib"
-	SHARED_LDFLAGS="-dynamiclib"
-	;;
-OpenBSD)
-	LIBSUFFIX="so"
-	SHARED_LDFLAGS="-shared"
-	;;
-*)
-	LIBSUFFIX="so"
-	SHARED_LDFLAGS='-shared -Wl,-soname=${LIBNAME}.${LIBSUFFIX}'
-esac
 
 cat << __HEREDOC__
 CC		= ${CC}
@@ -488,6 +495,7 @@ INSTALL_SCRIPT	= ${INSTALL_SCRIPT}
 INSTALL_LIB	= ${INSTALL_LIB}
 INSTALL_MAN	= ${INSTALL_MAN}
 INSTALL_DATA	= ${INSTALL_DATA}
+PLUGIN_LDFLAGS	= ${PLUGIN_LDFLAGS}
 SHARED_LDFLAGS	= ${SHARED_LDFLAGS}
 LIBSUFFIX	= ${LIBSUFFIX}
 __HEREDOC__
