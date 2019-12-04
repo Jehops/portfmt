@@ -85,7 +85,7 @@ variable.o: config.h regexp.h rules.h util.h variable.c variable.h
 
 install:
 	${MKDIR} ${DESTDIR}${BINDIR} ${DESTDIR}${LIBDIR}/portfmt ${DESTDIR}${MANDIR}/man1
-	${INSTALL_MAN} portclippy.1 portedit.1 portfmt.1 portscan.1 ${DESTDIR}${MANDIR}/man1
+	${INSTALL_MAN} man/*.1 ${DESTDIR}${MANDIR}/man1
 	${INSTALL_PROGRAM} portclippy portedit portfmt portscan ${DESTDIR}${BINDIR}
 	${INSTALL_LIB} ${LIBNAME}.${LIBSUFFIX} ${DESTDIR}${LIBDIR}
 	${INSTALL_LIB} ${PLUGINS} ${DESTDIR}${LIBDIR}/portfmt
