@@ -2280,6 +2280,11 @@ variable_order_block(struct Parser *parser, const char *var)
 		return BLOCK_OPTDEF;
 	}
 
+	const char *tmp = var;
+	char *var_without_subpkg = extract_subpkg(parser, var, NULL);
+	if (var_without_subpkg) {
+		tmp = var_without_subpkg;
+	}
 	for (size_t i = 0; i < nitems(variable_order_); i++) {
 		switch (variable_order_[i].block) {
 		case BLOCK_FLAVORS_HELPER:
@@ -2293,10 +2298,13 @@ variable_order_block(struct Parser *parser, const char *var)
 		default:
 			break;
 		}
-		if (strcmp(var, variable_order_[i].var) == 0) {
+		if (strcmp(tmp, variable_order_[i].var) == 0) {
+			free(var_without_subpkg);
 			return variable_order_[i].block;
 		}
 	}
+	free(var_without_subpkg);
+
 	return BLOCK_UNKNOWN;
 }
 
@@ -2458,16 +2466,28 @@ compare_order(void *userdata, const void *ap, const void *bp)
 		}
 	}
 
+	const char *atmp = a;
+	char *a_without_subpkg = extract_subpkg(parser, a, NULL);
+	if (a_without_subpkg) {
+		atmp = a;
+	}
+	const char *btmp = b;
+	char *b_without_subpkg = extract_subpkg(parser, b, NULL);
+	if (b_without_subpkg) {
+		btmp = b;
+	}
 	int ascore = -1;
 	int bscore = -1;
 	for (size_t i = 0; i < nitems(variable_order_) && (ascore == -1 || bscore == -1); i++) {
-		if (strcmp(a, variable_order_[i].var) == 0) {
+		if (strcmp(atmp, variable_order_[i].var) == 0) {
 			ascore = i;
 		}
-		if (strcmp(b, variable_order_[i].var) == 0) {
+		if (strcmp(btmp, variable_order_[i].var) == 0) {
 			bscore = i;
 		}
 	}
+	free(a_without_subpkg);
+	free(b_without_subpkg);
 
 	if (ascore < bscore) {
 		return -1;
