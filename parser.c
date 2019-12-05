@@ -80,8 +80,10 @@ struct Parser {
 	struct Array *port_options_groups;
 	int port_options_looked_up;
 
+#if PORTFMT_SUBPACKAGES
 	struct Array *subpackages;
 	int subpackages_looked_up;
+#endif
 
 	int read_finished;
 };
@@ -274,16 +276,18 @@ parser_new(struct ParserSettings *settings)
 	parser->tokens = array_new();
 	parser->port_options = array_new();
 	parser->port_options_groups = array_new();
-	parser->subpackages = array_new();
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
 	parser->lines.start = 1;
 	parser->lines.end = 1;
 	parser->inbuf = xmalloc(INBUF_SIZE);
 	parser->settings = *settings;
+#if PORTFMT_SUBPACKAGES
+	parser->subpackages = array_new();
 
 	// There is always a main subpackage
 	array_append(parser->subpackages, xstrdup("main"));
+#endif
 
 	if (parser->settings.behavior & PARSER_OUTPUT_EDITED) {
 		parser->settings.behavior &= ~PARSER_COLLAPSE_ADJACENT_VARIABLES;
@@ -309,10 +313,12 @@ parser_free(struct Parser *parser)
 	}
 	array_free(parser->port_options_groups);
 
+#if PORTFMT_SUBPACKAGES
 	for (size_t i = 0; i < array_len(parser->subpackages); i++) {
 		free(array_get(parser->subpackages, i));
 	}
 	array_free(parser->subpackages);
+#endif
 
 	for (size_t i = 0; i < array_len(parser->result); i++) {
 		free(array_get(parser->result, i));
@@ -1821,6 +1827,7 @@ parser_port_options(struct Parser *parser, struct Array **groups, struct Array *
 	}
 }
 
+#if PORTFMT_SUBPACKAGES
 struct Array *
 parser_subpackages(struct Parser *parser)
 {
@@ -1860,6 +1867,7 @@ parser_subpackages(struct Parser *parser)
 
 	return parser->subpackages;
 }
+#endif
 
 struct Target *
 parser_lookup_target(struct Parser *parser, const char *name, struct Array **retval)

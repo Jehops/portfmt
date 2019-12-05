@@ -687,12 +687,16 @@ static struct VariableOrderEntry variable_order_[] = {
 	VAR_FOR_EACH_ARCH(BLOCK_DEPENDS, "RUN_DEPENDS_", VAR_PRINT_AS_NEWLINES | VAR_SKIP_GOALCOL),
 	{ BLOCK_DEPENDS, "TEST_DEPENDS", VAR_PRINT_AS_NEWLINES },
 	VAR_FOR_EACH_ARCH(BLOCK_DEPENDS, "TEST_DEPENDS_", VAR_PRINT_AS_NEWLINES | VAR_SKIP_GOALCOL),
+#if PORTFMT_SUBPACKAGES
 	{ BLOCK_DEPENDS, "SELF_DEPENDS", VAR_SUBPKG_HELPER },
+#endif
 
 	{ BLOCK_FLAVORS, "FLAVORS", VAR_LEAVE_UNSORTED },
 	{ BLOCK_FLAVORS, "FLAVOR", VAR_DEFAULT },
 
+#if PORTFMT_SUBPACKAGES
 	{ BLOCK_SUBPACKAGES, "SUBPACKAGES", VAR_DEFAULT },
+#endif
 
 	{ BLOCK_FLAVORS_HELPER, "PKGNAMEPREFIX", VAR_PRINT_AS_NEWLINES },
 	{ BLOCK_FLAVORS_HELPER, "PKGNAMESUFFIX", VAR_PRINT_AS_NEWLINES },
@@ -2066,11 +2070,15 @@ extract_subpkg(struct Parser *parser, const char *var_, char **subpkg_ret)
 	}
 
 	if (var == NULL) {
+		if (subpkg_ret) {
+			*subpkg_ret = NULL;
+		}
 		return NULL;
 	}
 
 	if (subpkg && !(parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS)) {
 		int found = 0;
+#if PORTFMT_SUBPACKAGES
 		struct Array *subpkgs = parser_subpackages(parser);
 		for (size_t i = 0; i < array_len(subpkgs); i++) {
 			const char *pkg = array_get(subpkgs, i);
@@ -2079,7 +2087,11 @@ extract_subpkg(struct Parser *parser, const char *var_, char **subpkg_ret)
 				break;
 			}
 		}
+#endif
 		if (!found) {
+			if (subpkg_ret) {
+				*subpkg_ret = NULL;
+			}
 			free(var);
 			return NULL;
 		}
@@ -2130,6 +2142,7 @@ is_options_helper(struct Parser *parser, const char *var_, char **prefix_ret, ch
 
 	if (subpkg) {
 		int found = 0;
+#if PORTFMT_SUBPACKAGES
 		for (size_t i = 0; i < nitems(variable_order_); i++) {
 			if (variable_order_[i].block != BLOCK_OPTHELPER ||
 			    !(variable_order_[i].flags & VAR_SUBPKG_HELPER)) {
@@ -2139,6 +2152,7 @@ is_options_helper(struct Parser *parser, const char *var_, char **prefix_ret, ch
 				found = 1;
 			}
 		}
+#endif
 		if (!found) {
 			free(subpkg);
 			free(var);
@@ -2681,8 +2695,10 @@ blocktype_tostring(enum BlockType block)
 		return "USES=shebangfix related variables";
 	case BLOCK_STANDARD:
 		return "Standard bsd.port.mk variables";
+#if PORTFMT_SUBPACKAGES
 	case BLOCK_SUBPACKAGES:
 		return "Subpackages block";
+#endif
 	case BLOCK_UNIQUEFILES:
 		return "USES=uniquefiles block";
 	case BLOCK_UNKNOWN:
