@@ -2467,35 +2467,47 @@ compare_order(void *userdata, const void *ap, const void *bp)
 	}
 
 	const char *atmp = a;
-	char *a_without_subpkg = extract_subpkg(parser, a, NULL);
+	char *asubpkg = NULL;
+	char *a_without_subpkg = extract_subpkg(parser, a, &asubpkg);
 	if (a_without_subpkg) {
 		atmp = a;
 	}
 	const char *btmp = b;
-	char *b_without_subpkg = extract_subpkg(parser, b, NULL);
+	char *bsubpkg = NULL;
+	char *b_without_subpkg = extract_subpkg(parser, b, &bsubpkg);
 	if (b_without_subpkg) {
 		btmp = b;
 	}
 	int ascore = -1;
 	int bscore = -1;
 	for (size_t i = 0; i < nitems(variable_order_) && (ascore == -1 || bscore == -1); i++) {
-		if (strcmp(atmp, variable_order_[i].var) == 0) {
+		if (strcmp(a_without_subpkg, variable_order_[i].var) == 0) {
 			ascore = i;
 		}
-		if (strcmp(btmp, variable_order_[i].var) == 0) {
+		if (strcmp(b_without_subpkg, variable_order_[i].var) == 0) {
 			bscore = i;
 		}
 	}
-	free(a_without_subpkg);
-	free(b_without_subpkg);
 
-	if (ascore < bscore) {
-		return -1;
-	} else if (ascore > bscore) {
-		return 1;
+	int retval = 0;
+	if (strcmp(a_without_subpkg, b_without_subpkg) == 0 && asubpkg && bsubpkg) {
+		retval = strcmp(asubpkg, bsubpkg);
 	} else {
-		return strcmp(a, b);
+		if (ascore < bscore) {
+			retval = -1;
+		} else if (ascore > bscore) {
+			retval = 1;
+		} else {
+			retval = strcmp(a_without_subpkg, a_without_subpkg);
+		}
 	}
+
+	free(a_without_subpkg);
+	free(asubpkg);
+	free(b_without_subpkg);
+	free(bsubpkg);
+
+	return retval;
 }
 
 void
