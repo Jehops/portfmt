@@ -48,7 +48,7 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 	}
 
 	regex_t re;
-	if (regcomp(&re, userdata, REG_EXTENDED) != 0) {
+	if (userdata == NULL || regcomp(&re, userdata, REG_EXTENDED) != 0) {
 		*error = PARSER_ERROR_INVALID_REGEXP;
 		return NULL;
 	}
