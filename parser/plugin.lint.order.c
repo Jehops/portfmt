@@ -433,7 +433,7 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 		return NULL;
 	}
 
-	if (status_var > 0 || status_target > 0) {
+	if (status != NULL && (status_var > 0 || status_target > 0)) {
 		*status = 1;
 	}
 
