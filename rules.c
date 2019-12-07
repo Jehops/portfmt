@@ -1306,7 +1306,9 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_OPTHELPER, "IMPLIES", VAR_DEFAULT },
 	{ BLOCK_OPTHELPER, "PREVENTS", VAR_DEFAULT },
 	{ BLOCK_OPTHELPER, "PREVENTS_MSG", VAR_DEFAULT },
+#if PORTFMT_SUBPACKAGES
 	{ BLOCK_OPTHELPER, "SUBPACKAGES", VAR_DEFAULT },
+#endif
 	{ BLOCK_OPTHELPER, "CATEGORIES_OFF", VAR_DEFAULT },
 	{ BLOCK_OPTHELPER, "CATEGORIES", VAR_DEFAULT },
 	{ BLOCK_OPTHELPER, "MASTER_SITES_OFF", VAR_IGNORE_WRAPCOL | VAR_LEAVE_UNSORTED | VAR_PRINT_AS_NEWLINES },
@@ -2466,17 +2468,15 @@ compare_order(const void *ap, const void *bp, void *userdata)
 		}
 	}
 
-	const char *atmp = a;
 	char *asubpkg = NULL;
 	char *a_without_subpkg = extract_subpkg(parser, a, &asubpkg);
-	if (a_without_subpkg) {
-		atmp = a;
+	if (a_without_subpkg == NULL) {
+		a_without_subpkg = xstrdup(a);
 	}
-	const char *btmp = b;
 	char *bsubpkg = NULL;
 	char *b_without_subpkg = extract_subpkg(parser, b, &bsubpkg);
-	if (b_without_subpkg) {
-		btmp = b;
+	if (b_without_subpkg == NULL) {
+		b_without_subpkg = xstrdup(b);
 	}
 	int ascore = -1;
 	int bscore = -1;
@@ -2492,16 +2492,17 @@ compare_order(const void *ap, const void *bp, void *userdata)
 	int retval = 0;
 	if (strcmp(a_without_subpkg, b_without_subpkg) == 0 && asubpkg && bsubpkg) {
 		retval = strcmp(asubpkg, bsubpkg);
+	} else if (asubpkg && !bsubpkg) {
+		retval = 1;
+	} else if (!asubpkg && bsubpkg) {
+		retval = -1;
+	} else if (ascore < bscore) {
+		retval = -1;
+	} else if (ascore > bscore) {
+		retval = 1;
 	} else {
-		if (ascore < bscore) {
-			retval = -1;
-		} else if (ascore > bscore) {
-			retval = 1;
-		} else {
-			retval = strcmp(a_without_subpkg, a_without_subpkg);
-		}
+		retval = strcmp(a_without_subpkg, b_without_subpkg);
 	}
-
 	free(a_without_subpkg);
 	free(asubpkg);
 	free(b_without_subpkg);

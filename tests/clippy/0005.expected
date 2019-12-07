@@ -1,0 +1,42 @@
+# Maintainer block
+MAINTAINER
+COMMENT
++COMMENT.gdbm
+COMMENT.sndio
+-COMMENT.gdbm
+
+# Subpackages block
+SUBPACKAGES
+
+# Options definitions
+OPTIONS_DEFINE
+
+-GITWEB_IMPLIES.gitweb
+
+# Options helpers
++GITWEB_SUBPACKAGES
++GITWEB_BUILD_DEPENDS
++GITWEB_BUILD_DEPENDS.gitweb
++GITWEB_BUILD_DEPENDS.sndio
++GITWEB_RUN_DEPENDS
+GITWEB_RUN_DEPENDS.gitweb
+-GITWEB_RUN_DEPENDS
+-GITWEB_BUILD_DEPENDS.sndio
+-GITWEB_BUILD_DEPENDS.gitweb
+-GITWEB_BUILD_DEPENDS
+-GITWEB_SUBPACKAGES
+SNDIO_LIB_DEPENDS.sndio
+
+# Unknown variables
+# WARNING:
+# Portclippy did not recognize the following variables.
+# They could be local variables only, misspellings of
+# framework variables, or Portclippy needs to be made aware
+# of them.  Please double check them.
+#
+# Prefix them with an _ to tell Portclippy to ignore them.
+# This is also an important signal for other contributors
+# who are working on your port.  It removes any doubt of
+# whether they are framework variables or not and whether
+# they are safe to remove/rename or not.
++GITWEB_IMPLIES.gitweb

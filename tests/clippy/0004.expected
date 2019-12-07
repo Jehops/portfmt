@@ -1,0 +1,9 @@
+# Maintainer block
++COMMENT
++COMMENT.gdbm
+
+# Subpackages block
+SUBPACKAGES
+
+-COMMENT.gdbm
+-COMMENT

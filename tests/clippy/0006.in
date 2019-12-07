@@ -1,0 +1,3 @@
+SUBPACKAGES=gdbm foo
+COMMENT.gdbm=
+COMMENT.foo=
