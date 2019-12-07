@@ -463,6 +463,11 @@ fi
 echo "#define PORTFMT_PLUGIN_PATH \"${LIBDIR}/portfmt\""
 echo "#define PORTFMT_PLUGIN_PREFIX \"plugin.\""
 echo "#define PORTFMT_PLUGIN_SUFFIX \".${LIBSUFFIX}\""
+cat <<__HEREDOC__
+#if !defined(PORTFMT_SUBPACKAGES)
+# define PORTFMT_SUBPACKAGES 1
+#endif
+__HEREDOC__
 echo "config.h: written" 1>&2
 echo "config.h: written" 1>&3
 
