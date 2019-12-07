@@ -45,6 +45,7 @@
 #include "parser/plugin.h"
 #include "util.h"
 
+static int apply(struct ParserSettings *, int, char *[]);
 static int bump_epoch(struct ParserSettings *, int, char *[]);
 static int bump_revision(struct ParserSettings *, int, char *[]);
 static int get_variable(struct ParserSettings *, int, char *[]);
@@ -53,6 +54,7 @@ static int sanitize_append(struct ParserSettings *, int, char *[]);
 static int set_version(struct ParserSettings *, int, char *[]);
 static int unknown_targets(struct ParserSettings *, int, char *[]);
 static int unknown_vars(struct ParserSettings *, int, char *[]);
+static void apply_usage(void);
 static void bump_epoch_usage(void);
 static void bump_revision_usage(void);
 static void get_variable_usage(void);
@@ -71,6 +73,7 @@ struct PorteditCommand {
 };
 
 static struct PorteditCommand cmds[] = {
+	{ "apply", apply },
 	{ "bump-epoch", bump_epoch },
 	{ "bump-revision", bump_revision },
 	{ "get", get_variable },
@@ -80,6 +83,54 @@ static struct PorteditCommand cmds[] = {
 	{ "sanitize-append", sanitize_append },
 	{ "set-version", set_version },
 };
+
+int
+apply(struct ParserSettings *settings, int argc, char *argv[])
+{
+	settings->behavior |= PARSER_DYNAMIC_PORT_OPTIONS;
+
+	if (argc < 3) {
+		merge_usage();
+	}
+	argv++;
+	argc--;
+
+	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
+		apply_usage();
+	}
+	if (argc < 1) {
+		apply_usage();
+	}
+
+	const char *apply_edit = argv[0];
+	argv++;
+	argc--;
+
+	FILE *fp_in = stdin;
+	FILE *fp_out = stdout;
+	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 1);
+	if (parser == NULL) {
+		apply_usage();
+	}
+
+	int error = parser_edit(parser, apply_edit, NULL);
+	if (error != PARSER_ERROR_OK) {
+		errx(1, "%s", parser_error_tostring(parser));
+	}
+
+	error = parser_output_write_to_file(parser, fp_out);
+	if (error != PARSER_ERROR_OK) {
+		errx(1, "%s", parser_error_tostring(parser));
+	}
+	parser_free(parser);
+
+	fclose(fp_out);
+	if (fp_out != fp_in) {
+		fclose(fp_in);
+	}
+
+	return 0;
+}
 
 int
 bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
@@ -437,6 +488,13 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 }
 
 void
+apply_usage()
+{
+	fprintf(stderr, "usage: portedit apply [-iu] [-w wrapcol] <edit> [Makefile]\n");
+	exit(EX_USAGE);
+}
+
+void
 bump_epoch_usage()
 {
 	fprintf(stderr, "usage: portedit bump-epoch [-iu] [-w wrapcol] [Makefile]\n");
@@ -497,6 +555,7 @@ usage()
 {
 	fprintf(stderr, "usage: portedit <command> [<args>]\n\n");
 	fprintf(stderr, "Supported commands:\n");
+	fprintf(stderr, "\t%-16s%s\n", "apply", "Call an edit plugin");
 	fprintf(stderr, "\t%-16s%s\n", "bump-epoch", "Bump and sanitize PORTEPOCH");
 	fprintf(stderr, "\t%-16s%s\n", "bump-revision", "Bump and sanitize PORTREVISION");
 	fprintf(stderr, "\t%-16s%s\n", "get", "Get raw variable tokens");
