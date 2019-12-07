@@ -106,6 +106,10 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
+	if (str_startswith(apply_edit, "output.")) {
+		settings->behavior |= PARSER_OUTPUT_RAWLINES;
+	}
+
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
 	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 1);
@@ -115,7 +119,7 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 
 	int error = parser_edit(parser, apply_edit, NULL);
 	if (error != PARSER_ERROR_OK) {
-		errx(1, "%s", parser_error_tostring(parser));
+		errx(1, "%s: %s", apply_edit, parser_error_tostring(parser));
 	}
 
 	error = parser_output_write_to_file(parser, fp_out);
