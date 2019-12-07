@@ -297,7 +297,7 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 	}
 
 	struct Array *tmp = NULL;
-	error = parser_edit(parser, "edit.output-unknown-variables", &tmp);
+	error = parser_edit(parser, "output.unknown-variables", &tmp);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
@@ -307,7 +307,7 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 	}
 	array_free(tmp);
 
-	error = parser_edit(parser, "edit.output-unknown-targets", &tmp);
+	error = parser_edit(parser, "output.unknown-targets", &tmp);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;

@@ -12,15 +12,15 @@ OBJS=		array.o compats.o conditional.o diff.o mainutils.o parser.o \
 		regexp.o rules.o target.o token.o util.o variable.o parser/plugin.o
 PLUGINS=	parser/plugin.edit.bump-revision.${LIBSUFFIX} \
 		parser/plugin.edit.merge.${LIBSUFFIX} \
-		parser/plugin.edit.output-unknown-targets.${LIBSUFFIX} \
-		parser/plugin.edit.output-unknown-variables.${LIBSUFFIX} \
-		parser/plugin.edit.output-variable-value.${LIBSUFFIX} \
 		parser/plugin.edit.set-version.${LIBSUFFIX} \
 		parser/plugin.lint.order.${LIBSUFFIX} \
 		parser/plugin.refactor.collapse-adjacent-variables.${LIBSUFFIX} \
 		parser/plugin.refactor.depup-tokens.${LIBSUFFIX} \
 		parser/plugin.refactor.sanitize-append-modifier.${LIBSUFFIX} \
-		parser/plugin.refactor.sanitize-eol-comments.${LIBSUFFIX}
+		parser/plugin.refactor.sanitize-eol-comments.${LIBSUFFIX} \
+		parser/plugin.output.unknown-targets.${LIBSUFFIX} \
+		parser/plugin.output.unknown-variables.${LIBSUFFIX} \
+		parser/plugin.output.variable-value.${LIBSUFFIX}
 
 .SUFFIXES: .${LIBSUFFIX}
 
@@ -64,18 +64,18 @@ conditional.o: config.h conditional.c conditional.h regexp.h
 diff.o: config.h diff.h
 mainutils.o: config.h array.h mainutils.c mainutils.h parser.h util.h
 parser.o: config.h array.h conditional.h regexp.h parser.c parser.h rules.h target.h token.h util.h variable.h
-parser/plugin.edit-output-variable-value.o: config.h array.h parser.h parser/plugin.h token.h variable.h parser/plugin.edit.output-variable-value.c
 parser/plugin.edit-set-version.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.set-version.c
 parser/plugin.edit.bump-revision.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.bump-revision.c
 parser/plugin.edit.merge.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.merge.c
-parser/plugin.edit.output-unknown-targets.o: config.h array.h parser.h parser/plugin.h regexp.h rules.h target.h token.h util.h parser/plugin.edit.output-unknown-targets.c
-parser/plugin.edit.output-unknown-variables.o: config.h array.h parser.h parser/plugin.h regexp.h rules.h token.h util.h variable.h parser/plugin.edit.output-unknown-variables.c
 parser/plugin.lint.order.o: config.h array.h conditional.h diff.h parser.h parser/plugin.h rules.h target.h token.h util.h variable.h parser/plugin.lint.order.c
 parser/plugin.o: config.h parser.h parser/plugin.h util.h
 parser/plugin.refactor.collapse-adjacent-variables.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h parser/plugin.refactor.collapse-adjacent-variables.c
 parser/plugin.refactor.dedup-tokens.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h parser/plugin.refactor.dedup-tokens.c
 parser/plugin.refactor.sanitize-append-modifier.o: config.h array.h parser.h parser/plugin.h rules.h token.h variable.h parser/plugin.refactor.sanitize-append-modifier.c
 parser/plugin.refactor.sanitize-eol-comments.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.refactor.sanitize-eol-comments.c
+parser/plugin.output.unknown-targets.o: config.h array.h parser.h parser/plugin.h regexp.h rules.h target.h token.h util.h parser/plugin.output.unknown-targets.c
+parser/plugin.output.unknown-variables.o: config.h array.h parser.h parser/plugin.h regexp.h rules.h token.h util.h variable.h parser/plugin.output.unknown-variables.c
+parser/plugin.output.variable-value.o: config.h array.h parser.h parser/plugin.h token.h variable.h parser/plugin.output.variable-value.c
 regexp.o: config.h
 rules.o: config.h array.h conditional.h parser.h rules.c regexp.h rules.h token.h util.h variable.h
 target.o: config.h target.h util.h

@@ -229,7 +229,7 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 		get_variable_usage();
 	}
 
-	int error = parser_edit(parser, "edit.output-variable-value", var);
+	int error = parser_edit(parser, "output.variable-value", var);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -421,7 +421,7 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 	}
 
 	struct Array *unknowns = NULL;
-	enum ParserError error = parser_edit(parser, "edit.output-unknown-targets", &unknowns);
+	enum ParserError error = parser_edit(parser, "output.unknown-targets", &unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -462,7 +462,7 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 	}
 
 	struct Array *unknowns = NULL;
-	enum ParserError error = parser_edit(parser, "edit.output-unknown-variables", &unknowns);
+	enum ParserError error = parser_edit(parser, "output.unknown-variables", &unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}

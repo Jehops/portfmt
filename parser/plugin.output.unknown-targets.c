@@ -37,12 +37,12 @@
 #include "parser.h"
 #include "parser/plugin.h"
 #include "rules.h"
+#include "target.h"
 #include "token.h"
 #include "util.h"
-#include "variable.h"
 
 static struct Array *
-edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	struct Array **unknowns = (struct Array **)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
@@ -51,31 +51,28 @@ edit_output_unknown_variables(struct Parser *parser, struct Array *tokens, enum 
 		return NULL;
 	}
 
-	if (unknowns) {
-		*unknowns = NULL;
-	}
-	struct Array *vars = array_new();
+	struct Array *targets = array_new();
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		if (token_type(t) != VARIABLE_START) {
+		if (token_type(t) != TARGET_START) {
 			continue;
 		}
-		char *name = variable_name(token_variable(t));
-		if (variable_order_block(parser, name) == BLOCK_UNKNOWN) {
-			if (array_find(vars, name, str_compare, NULL) == -1) {
+		char *name = target_name(token_target(t));
+		if (!is_special_target(name) && !is_known_target(parser, name)) {
+			if (array_find(targets, name, str_compare, NULL) == -1) {
 				parser_enqueue_output(parser, name);
 				parser_enqueue_output(parser, "\n");
-				array_append(vars, name);
+				array_append(targets, name);
 			}
 		}
 	}
 	if (unknowns) {
-		*unknowns = vars;
+		*unknowns = targets;
 	} else {
-		array_free(vars);
+		array_free(targets);
 	}
 
 	return NULL;
 }
 
-PLUGIN("edit.output-unknown-variables", edit_output_unknown_variables);
+PLUGIN("output.unknown-targets", output_unknown_targets);

@@ -41,7 +41,7 @@
 #include "variable.h"
 
 static struct Array *
-edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		return NULL;
@@ -85,4 +85,4 @@ edit_output_variable_value(struct Parser *parser, struct Array *tokens, enum Par
 	return NULL;
 }
 
-PLUGIN("edit.output-variable-value", edit_output_variable_value);
+PLUGIN("output.variable-value", output_variable_value);
