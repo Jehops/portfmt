@@ -72,7 +72,7 @@ str_common_prefix(const char *a, const char *b)
 }
 
 int
-str_compare(void *userdata, const void *ap, const void *bp)
+str_compare(const void *ap, const void *bp, void *userdata)
 {
 	const char *a = *(const char **)ap;
 	const char *b = *(const char **)bp;
@@ -124,6 +124,39 @@ str_trim(const char *s)
 	}
 	return xstrndup(s, len);
 }
+
+#if HAVE_GNU_QSORT_R
+
+void
+sort(void *base, size_t nmemb, size_t size, CompareFn compar, void *userdata)
+{
+	qsort_r(base, nmemb, size, compar, userdata);
+}
+
+#else
+
+// c.f. https://reviews.freebsd.org/D17083
+
+struct SortWrapper {
+	CompareFn compar;
+	void *userdata;
+};
+
+static int
+qsort_r_compare_wrapper(void *userdata, const void *a, const void *b)
+{
+	const struct SortWrapper *wrapper = userdata;
+	return wrapper->compar(a, b, wrapper->userdata);
+}
+
+void
+sort(void *base, size_t nmemb, size_t size, CompareFn compar, void *userdata)
+{
+	struct SortWrapper wrapper = { compar, userdata };
+	qsort_r(base, nmemb, size, &wrapper, qsort_r_compare_wrapper);
+}
+
+#endif
 
 int
 xasprintf(char **ret, const char *format, ...)

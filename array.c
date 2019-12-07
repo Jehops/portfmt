@@ -114,7 +114,7 @@ array_find(struct Array *array, void *k, ArrayCompareFn compar, void *userdata)
 	if (compar) {
 		for (size_t i = 0; i < array_len(array); i++) {
 			void *v = array_get(array, i);
-			if (compar(userdata, &v, &k) == 0) {
+			if (compar(&v, &k, userdata) == 0) {
 				return i;
 			}
 		}
@@ -175,7 +175,7 @@ array_set(struct Array *array, size_t i, void *v)
 void
 array_sort(struct Array *array, ArrayCompareFn compar, void *userdata)
 {
-	qsort_r(array->buf, array->len, array->value_size, userdata, compar);
+	sort(array->buf, array->len, array->value_size, compar, userdata);
 }
 
 void

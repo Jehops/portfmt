@@ -29,7 +29,7 @@
 
 struct Array;
 struct diff;
-typedef int (*ArrayCompareFn)(void *, const void *, const void *);
+typedef int (*ArrayCompareFn)(const void *, const void *, void *);
 
 struct Array *array_new(void);
 void array_append(struct Array *, void *);

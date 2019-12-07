@@ -186,6 +186,54 @@ main(void)
 	return !program_invocation_short_name;
 }
 #endif /* TEST_PROGRAM_INVOCATION_SHORT_NAME */
+#if TEST_BSD_QSORT_R
+#define _GNU_SOURCE
+#include <stdlib.h>
+void (qsort_r)(void *base, size_t nmemb, size_t size, void *arg, int (*compar)(void *, const void *, const void *));
+
+static int
+int_cmp(void *arg, const void *p1, const void *p2)
+{
+	int left = *(const int *)p1;
+	int right = *(const int *)p2;
+	int *flag = arg;
+	*flag = 42;
+	return ((left > right) - (left < right));
+}
+
+int
+main(void)
+{
+	int xs[] = { 3, 2, 1 };
+	int flag = -1;
+	qsort_r(&xs, 3, sizeof(xs[0]), &flag, int_cmp);
+	return !(xs[0] == 1 && xs[1] == 2 && xs[2] == 3 && flag == 42);
+}
+#endif /* TEST_BSD_QSORT_R */
+#if TEST_GNU_QSORT_R
+#define _GNU_SOURCE
+#include <stdlib.h>
+void (qsort_r)(void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *, void *), void *arg);
+
+static int
+int_cmp(const void *p1, const void *p2, void *arg)
+{
+	int left = *(const int *)p1;
+	int right = *(const int *)p2;
+	int *flag = arg;
+	*flag = 42;
+	return ((left > right) - (left < right));
+}
+
+int
+main(void)
+{
+	int xs[] = { 3, 2, 1 };
+	int flag = -1;
+	qsort_r(&xs, 3, sizeof(xs[0]), int_cmp, &flag);
+	return !(xs[0] == 1 && xs[1] == 2 && xs[2] == 3 && flag == 42);
+}
+#endif /* TEST_GNU_QSORT_R */
 #if TEST_REALLOCARRAY
 #include <stdlib.h>
 

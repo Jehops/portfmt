@@ -55,9 +55,9 @@ struct 	onp_diff {
 };
 
 #define ONP_CMP(_d, _o1, _o2) \
-	((_d)->cmp((_d)->cmp_userdata, \
-		   (_d)->a + (_d)->sz * (_o1), \
-	           (_d)->b + (_d)->sz * (_o2)))
+	((_d)->cmp((_d)->a + (_d)->sz * (_o1), \
+	           (_d)->b + (_d)->sz * (_o2), \
+		   (_d)->cmp_userdata))
 
 /*
  * Search shortest path and record the path.

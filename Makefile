@@ -6,7 +6,7 @@ MKDIR?=		mkdir -p
 LN?=		ln
 
 CFLAGS+=	-std=c99 -I.
-LDADD+=		-ldl -lm
+LDADD+=		${LIBDL} -lm
 
 OBJS=		array.o compats.o conditional.o diff.o mainutils.o parser.o \
 		regexp.o rules.o target.o token.o util.o variable.o parser/plugin.o

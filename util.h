@@ -39,16 +39,19 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+typedef int (*CompareFn)(const void *, const void *, void *);
+
 char *repeat(char, size_t);
 
 char *str_common_prefix(const char *, const char *);
-int str_compare(void *, const void *, const void *);
+int str_compare(const void *, const void *, void *);
 int str_endswith(const char *, const char *);
 int str_startswith(const char *, const char *);
 char *str_strip_dup(const char *);
 char *str_substr_dup(const char *, size_t, size_t);
 char *str_trim(const char *);
 
+void sort(void *, size_t, size_t, CompareFn, void *);
 int xasprintf(char **, const char *, ...);
 void *xmalloc(size_t);
 char *xstrdup(const char *);

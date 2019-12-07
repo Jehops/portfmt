@@ -25,7 +25,7 @@
 #ifndef DIFF_H
 #define DIFF_H
 
-typedef	int (*diff_cmp)(void *, const void *, const void *);
+typedef	int (*diff_cmp)(const void *, const void *, void *);
 
 enum 	difft {
 	DIFF_ADD,

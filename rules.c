@@ -1864,7 +1864,7 @@ compare_rel(const char *rel[], size_t rellen, const char *a, const char *b)
 }
 
 int
-compare_tokens(void *userdata, const void *ap, const void *bp)
+compare_tokens(const void *ap, const void *bp, void *userdata)
 {
 	struct Parser *parser = userdata;
 	struct Token *a = *(struct Token**)ap;
@@ -2309,7 +2309,7 @@ variable_order_block(struct Parser *parser, const char *var)
 }
 
 int
-compare_order(void *userdata, const void *ap, const void *bp)
+compare_order(const void *ap, const void *bp, void *userdata)
 {
 	struct Parser *parser = userdata;
 	const char *a = *(const char **)ap;
@@ -2575,7 +2575,7 @@ is_special_target(const char *target)
 }
 
 int
-compare_target_order(void *userdata, const void *ap, const void *bp)
+compare_target_order(const void *ap, const void *bp, void *userdata)
 {
 	struct Parser *parser = userdata;
 	int retval = 0;

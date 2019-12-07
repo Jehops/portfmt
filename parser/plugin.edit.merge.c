@@ -179,7 +179,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 
 		char *a = variable_name(token_variable(t));
 		char *b = variable_name(var);
-		int cmp = compare_order(parser, &a, &b);
+		int cmp = compare_order(&a, &b, parser);
 		assert(cmp != 0);
 		if (cmp < 0) {
 			block_before = variable_order_block(parser, a);
