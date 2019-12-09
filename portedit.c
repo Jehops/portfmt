@@ -106,7 +106,8 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (str_startswith(apply_edit, "lint.") ||
+	if (str_startswith(apply_edit, "kakoune.") ||
+	    str_startswith(apply_edit, "lint.") ||
 	    str_startswith(apply_edit, "output.")) {
 		settings->behavior |= PARSER_OUTPUT_RAWLINES;
 	}

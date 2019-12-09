@@ -13,6 +13,7 @@ OBJS=		array.o compats.o conditional.o diff.o mainutils.o parser.o \
 PLUGINS=	parser/plugin.edit.bump-revision.${LIBSUFFIX} \
 		parser/plugin.edit.merge.${LIBSUFFIX} \
 		parser/plugin.edit.set-version.${LIBSUFFIX} \
+		parser/plugin.kakoune.select-object-on-line.${LIBSUFFIX} \
 		parser/plugin.lint.order.${LIBSUFFIX} \
 		parser/plugin.refactor.collapse-adjacent-variables.${LIBSUFFIX} \
 		parser/plugin.refactor.depup-tokens.${LIBSUFFIX} \
@@ -69,6 +70,7 @@ parser/plugin.edit.bump-revision.o: config.h array.h parser.h parser/plugin.h ru
 parser/plugin.edit.merge.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.merge.c
 parser/plugin.lint.order.o: config.h array.h conditional.h diff.h parser.h parser/plugin.h rules.h target.h token.h util.h variable.h parser/plugin.lint.order.c
 parser/plugin.o: config.h parser.h parser/plugin.h util.h
+parser/plugin.kakoune.select-object-on-line.o: config.h array.h parser.h parser/plugin.h token.h util.h parser/plugin.kakoune.select-object-on-line.c
 parser/plugin.refactor.collapse-adjacent-variables.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h parser/plugin.refactor.collapse-adjacent-variables.c
 parser/plugin.refactor.dedup-tokens.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h parser/plugin.refactor.dedup-tokens.c
 parser/plugin.refactor.sanitize-append-modifier.o: config.h array.h parser.h parser/plugin.h rules.h token.h variable.h parser/plugin.refactor.sanitize-append-modifier.c
