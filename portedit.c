@@ -158,7 +158,8 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 		bump_epoch_usage();
 	}
 
-	int error = parser_edit(parser, "edit.bump-revision", "PORTEPOCH");
+	struct ParserPluginEdit params = { NULL, "PORTEPOCH", PARSER_MERGE_DEFAULT };
+	int error = parser_edit(parser, "edit.bump-revision", &params);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -197,7 +198,8 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 		bump_revision_usage();
 	}
 
-	int error = parser_edit(parser, "edit.bump-revision", NULL);
+	struct ParserPluginEdit params = { NULL, NULL, PARSER_MERGE_DEFAULT };
+	int error = parser_edit(parser, "edit.bump-revision", &params);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -392,7 +394,8 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 		set_version_usage();
 	}
 
-	int error = parser_edit(parser, "edit.set-version", version);
+	struct ParserPluginEdit params = { NULL, version, PARSER_MERGE_DEFAULT };
+	int error = parser_edit(parser, "edit.set-version", &params);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}

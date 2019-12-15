@@ -44,7 +44,7 @@ enum ParserBehavior {
 	PARSER_DYNAMIC_PORT_OPTIONS = 8192,
 };
 
-enum ParserMergeBehavior{
+enum ParserMergeBehavior {
 	PARSER_MERGE_DEFAULT = 0,
 	PARSER_MERGE_COMMENTS = 2,
 	PARSER_MERGE_OPTIONAL_LIKE_ASSIGN = 4,

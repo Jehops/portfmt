@@ -33,6 +33,12 @@ struct ParserPluginInfo {
 	ParserEditFn edit_func;
 };
 
+struct ParserPluginEdit {
+	struct Parser *subparser;
+	const char *arg1;
+	enum ParserMergeBehavior merge_behavior;
+};
+
 void parser_plugin_load_all(void);
 struct ParserPluginInfo *parser_plugin_info(const char *name);
 void parser_plugin_register(struct ParserPluginInfo *);

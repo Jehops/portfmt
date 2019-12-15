@@ -53,11 +53,6 @@ struct VariableMergeParameter {
 	struct Array *values;
 };
 
-struct VariableEditMergeParams {
-	struct Parser *subparser;
-	enum ParserMergeBehavior behavior;
-};
-
 static void append_empty_line(struct Parser *, struct Array *, struct Range *);
 static void append_new_variable(struct Parser *, struct Array *, struct Variable *, struct Range *);
 static struct Token *find_next_token(struct Array *, size_t, int);
@@ -350,9 +345,11 @@ merge_existent_var(struct Parser *parser, struct Array *ptokens, enum ParserErro
 static struct Array *
 edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	const struct VariableEditMergeParams *params = userdata;
-	if (params == NULL) {
-		*error = PARSER_ERROR_EDIT_FAILED;
+	const struct ParserPluginEdit *params = userdata;
+	if (params == NULL ||
+	    params->arg1 != NULL ||
+	    params->subparser == NULL) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		return NULL;
 	}
 
@@ -370,13 +367,13 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			var = token_variable(t);
 			switch (variable_modifier(var)) {
 			case MODIFIER_SHELL:
-				if (!(params->behavior & PARSER_MERGE_SHELL_IS_DELETE)) {
+				if (!(params->merge_behavior & PARSER_MERGE_SHELL_IS_DELETE)) {
 					break;
 				}
 				/* fallthrough */
 			case MODIFIER_OPTIONAL:
 				if (variable_modifier(var) == MODIFIER_OPTIONAL &&
-				    !(params->behavior & PARSER_MERGE_OPTIONAL_LIKE_ASSIGN)) {
+				    !(params->merge_behavior & PARSER_MERGE_OPTIONAL_LIKE_ASSIGN)) {
 					break;
 				}
 				/* fallthrough */
@@ -406,7 +403,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			if (merge) {
 				array_append(mergetokens, t);
 				struct VariableMergeParameter par;
-				par.behavior = params->behavior;
+				par.behavior = params->merge_behavior;
 				par.var = var;
 				par.nonvars = nonvars;
 				par.values = mergetokens;
@@ -422,7 +419,7 @@ edit_merge(struct Parser *parser, struct Array *ptokens, enum ParserError *error
 			array_truncate(mergetokens);
 			break;
 		case COMMENT:
-			if ((params->behavior & PARSER_MERGE_COMMENTS) &&
+			if ((params->merge_behavior & PARSER_MERGE_COMMENTS) &&
 			    (array_len(nonvars) > 0 || strcmp(token_data(t), "") != 0)) {
 				array_append(nonvars, t);
 			}

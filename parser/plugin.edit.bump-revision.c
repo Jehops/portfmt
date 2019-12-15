@@ -87,7 +87,15 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 static struct Array *
 edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	const char *variable = userdata;
+	const struct ParserPluginEdit *params = userdata;
+	if (params == NULL ||
+	    params->subparser != NULL ||
+	    params->merge_behavior != PARSER_MERGE_DEFAULT) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		return NULL;
+	}
+	const char *variable = params->arg1;
+
 	if (variable == NULL) {
 		variable = "PORTREVISION";
 	}
@@ -107,7 +115,7 @@ edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserErro
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
-	*error = parser_merge(parser, subparser, PARSER_MERGE_SHELL_IS_DELETE | PARSER_MERGE_OPTIONAL_LIKE_ASSIGN);
+	*error = parser_merge(parser, subparser, params->merge_behavior | PARSER_MERGE_SHELL_IS_DELETE | PARSER_MERGE_OPTIONAL_LIKE_ASSIGN);
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}

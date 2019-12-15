@@ -141,12 +141,16 @@ is_git_describe_version(const char *ver, char **distversion, char **prefix, char
 static struct Array *
 edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	if (userdata == NULL) {
-		*error = PARSER_ERROR_EDIT_FAILED;
+	const struct ParserPluginEdit *params = userdata;
+	if (params == NULL ||
+	    params->subparser != NULL ||
+	    params->arg1 == NULL ||
+	    params->merge_behavior != PARSER_MERGE_DEFAULT) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		*error_msg = xstrdup("missing version");
 		return NULL;
 	}
-	char *newversion_buf = xstrdup(userdata);
+	char *newversion_buf = xstrdup(params->arg1);
 	const char *newversion = newversion_buf;
 
 	const char *ver = "DISTVERSION";
@@ -264,7 +268,7 @@ edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError 
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
-	*error = parser_merge(parser, subparser, PARSER_MERGE_SHELL_IS_DELETE);
+	*error = parser_merge(parser, subparser, params->merge_behavior | PARSER_MERGE_SHELL_IS_DELETE);
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}

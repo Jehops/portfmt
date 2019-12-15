@@ -88,11 +88,6 @@ struct Parser {
 	int read_finished;
 };
 
-struct EditMergeParams {
-	struct Parser *subparser;
-	enum ParserMergeBehavior settings;
-};
-
 #define INBUF_SIZE 131072
 
 static size_t consume_comment(const char *);
@@ -2022,7 +2017,7 @@ parser_lookup_variable_str(struct Parser *parser, const char *name, char **retva
 enum ParserError
 parser_merge(struct Parser *parser, struct Parser *subparser, enum ParserMergeBehavior settings)
 {
-	struct EditMergeParams params = { subparser, settings };
+	struct ParserPluginEdit params = { subparser, NULL, settings };
 	enum ParserError error = parser_edit(parser, "edit.merge", &params);
 
 	if (error == PARSER_ERROR_OK &&
