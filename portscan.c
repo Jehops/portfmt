@@ -59,6 +59,7 @@ struct ScanResult {
 	char *origin;
 	struct Array *unknown_variables;
 	struct Array *unknown_targets;
+	struct Array *clones;
 	struct Array *option_groups;
 	struct Array *options;
 	int include_options;
@@ -245,6 +246,7 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 {
 	retval->unknown_targets = array_new();
 	retval->unknown_variables = array_new();
+	retval->clones = array_new();
 	retval->option_groups = array_new();
 	retval->options = array_new();
 
@@ -317,6 +319,16 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 	}
 	array_free(tmp);
 
+	error = parser_edit(parser, "lint.clones", &tmp);
+	if (error != PARSER_ERROR_OK) {
+		warnx("%s: %s", path, parser_error_tostring(parser));
+		goto cleanup;
+	}
+	for (size_t i = 0; i < array_len(tmp); i++) {
+		array_append(retval->clones, xstrdup(array_get(tmp, i)));
+	}
+
+	array_free(tmp);
 	if (retval->include_options) {
 		parser_port_options(parser, &tmp, NULL);
 		for (size_t i = 0; i < array_len(tmp); i++) {
@@ -516,6 +528,23 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors, int include_
 				free(target);
 			}
 			array_free(r->unknown_targets);
+
+			array_sort(r->clones, str_compare, NULL);
+			for (size_t k = 0; k < array_len(r->clones); k++) {
+				char *name = array_get(r->clones, k);
+				char *buf;
+				if (can_use_colors) {
+					xasprintf(&buf, "%s%-7s%s %-40s %s%s%s\n",
+						ANSI_COLOR_CYAN, "Vc", ANSI_COLOR_RESET,
+						r->origin,
+						ANSI_COLOR_CYAN, name, ANSI_COLOR_RESET);
+				} else {
+					xasprintf(&buf, "%-7s %-40s %s\n", "Vc", r->origin, name);
+				}
+				array_append(retval, buf);
+				free(name);
+			}
+			array_free(r->clones);
 
 			array_sort(r->option_groups, str_compare, NULL);
 			for (size_t k = 0; k < array_len(r->option_groups); k++) {
