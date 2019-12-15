@@ -41,6 +41,11 @@
 static struct Array *
 refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
+	if (userdata != NULL) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		return NULL;
+	}
+
 	struct Array *tokens = array_new();
 	struct Variable *last_var = NULL;
 	struct Token *last_end = NULL;

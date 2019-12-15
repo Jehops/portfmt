@@ -43,6 +43,11 @@
 static struct Array *
 refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
+	if (userdata != NULL) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		return NULL;
+	}
+
 	/* Sanitize += before bsd.options.mk */
 	struct Array *seen = array_new();
 	struct Array *tokens = array_new();

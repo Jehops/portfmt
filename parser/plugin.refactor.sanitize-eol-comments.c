@@ -43,6 +43,11 @@
 static struct Array *
 refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
+	if (userdata != NULL) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		return NULL;
+	}
+
 	/* Try to push end of line comments out of the way above
 	 * the variable as a way to preserve them.  They clash badly
 	 * with sorting tokens in variables.  We could add more

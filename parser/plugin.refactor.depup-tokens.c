@@ -43,6 +43,11 @@
 static struct Array *
 refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
+	if (userdata != NULL) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		return NULL;
+	}
+
 	struct Array *tokens = array_new();
 	struct Array *seen = array_new();
 	int always_append = 0;
