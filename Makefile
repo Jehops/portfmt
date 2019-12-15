@@ -31,7 +31,7 @@ all: portclippy portedit portfmt portscan ${PLUGINS}
 .c.o:
 	${CC} ${CPPFLAGS} -fPIC ${CFLAGS} -o $@ -c $<
 
-.o.${LIBSUFFIX}:
+.o.${LIBSUFFIX}: ${LIBNAME}.${LIBSUFFIX}
 	${CC} ${LDFLAGS} ${PLUGIN_LDFLAGS} -o $@ $< ${LIBNAME}.${LIBSUFFIX}
 
 ${LIBNAME}.${LIBSUFFIX}: ${OBJS}
