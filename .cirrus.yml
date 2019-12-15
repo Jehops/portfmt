@@ -1,6 +1,43 @@
-default_task:
+freebsd_task:
   freebsd_instance:
-    image: freebsd-12-0-release-amd64
-  check_script:
+    image_family: freebsd-12-1
+  matrix:
+    - name: freebsd_clang
+    - name: freebsd_gcc
+      gcc_script: pkg install -y gcc
+      env:
+        CC: gcc
+  test_script:
     - ./configure
+    - make test
+
+linux_task:
+  container:
+    image: gcc:latest
+  mandoc_script:
+    - apt-get update && apt-get -y install mandoc
+  matrix:
+    - name: linux_clang
+      env:
+        CC: clang
+      clang_script:
+        - apt-get -y install clang
+    - name: linux_gcc
+  test_script:
+    - ./configure
+    - make test
+
+macos_task:
+  osx_instance:
+    image: mojave-base
+  matrix:
+    - name: macos_clang
+      env:
+        CC: clang
+    - name: macos_gcc
+  test_script:
+    - ./configure
+    - make
+    - mkdir -p ~/lib
+    - cp libportfmt.dylib ~/lib/
     - make test
