@@ -39,11 +39,16 @@
 #include <time.h>
 #include <unistd.h>
 
-#define	CAPH_IGNORE_EBADF	0x0001
-#define	CAPH_READ		0x0002
-#define	CAPH_WRITE		0x0004
-#define	CAPH_LOOKUP		0x0008
-#define	CAPH_FTRUNCATE		0x0016
+enum CapsicumHelperFlags {
+	CAPH_IGNORE_EBADF = 1,
+	CAPH_READ = 2,
+	CAPH_WRITE = 4,
+	CAPH_LOOKUP = 8,
+	CAPH_FTRUNCATE = 16,
+	CAPH_CREATE = 32,
+	CAPH_READDIR = 64,
+	CAPH_SYMLINK = 128,
+};
 
 __BEGIN_DECLS
 
@@ -64,6 +69,12 @@ caph_limit_stream(int fd, int flags)
 		cap_rights_set(&rights, CAP_LOOKUP);
 	if ((flags & CAPH_FTRUNCATE) != 0)
 		cap_rights_set(&rights, CAP_FTRUNCATE);
+	if ((flags & CAPH_CREATE) != 0)
+		cap_rights_set(&rights, CAP_CREATE, CAP_LOOKUP, CAP_WRITE);
+	if ((flags & CAPH_READDIR) != 0)
+		cap_rights_set(&rights, CAP_FSTATFS, CAP_LOOKUP, CAP_READ);
+	if ((flags & CAPH_SYMLINK) != 0)
+		cap_rights_set(&rights, CAP_SYMLINKAT | CAP_UNLINKAT);
 
 	if (cap_rights_limit(fd, &rights) < 0 && errno != ENOSYS) {
 		if (errno == EBADF && (flags & CAPH_IGNORE_EBADF) != 0)
