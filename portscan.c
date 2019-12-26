@@ -61,6 +61,7 @@
 #define PORTSCAN_LOG_DATE_FORMAT "portscan-%Y%m%d%H%M%S"
 #define PORTSCAN_LOG_LATEST "portscan-latest.log"
 #define PORTSCAN_LOG_PREVIOUS "portscan-previous.log"
+#define PORTSCAN_LOG_INIT "/dev/null"
 
 struct ScanResult {
 	char *origin;
@@ -107,6 +108,7 @@ static int log_compare(struct Array *, struct Array *);
 static char *log_filename(const char *);
 static char *log_revision(int);
 static FILE *log_open(int, const char *);
+static int log_open_dir(const char *);
 struct Array *log_read_all(int, const char *);
 static void log_update_latest(int, const char *);
 static void usage(void);
@@ -638,7 +640,7 @@ log_filename(const char *rev)
 	}
 	struct tm *tm = gmtime(&date);
 
-	char buf[128];
+	char buf[PATH_MAX];
 	if (strftime(buf, sizeof(buf), PORTSCAN_LOG_DATE_FORMAT, tm) == 0) {
 		errx(1, "strftime: buffer too small");
 	}
@@ -702,10 +704,46 @@ log_open(int logdir, const char *log_path)
 	return f;
 }
 
+int
+log_open_dir(const char *logdir_path)
+{
+	int created_dir = 0;
+	int logdir;
+	while ((logdir = open(logdir_path, O_DIRECTORY)) == -1) {
+		if (errno == ENOENT) {
+			if (mkdir(logdir_path, 0777) == -1) {
+				return -1;
+			}
+			created_dir = 1;
+		} else {
+			return -1;
+		}
+	}
+	if (created_dir &&
+	    symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_LATEST) == -1) {
+		return -1;
+	}
+
+	return logdir;
+}
+
 struct Array *
 log_read_all(int logdir, const char *log_path)
 {
 	struct Array *log = array_new();
+
+	char buf[PATH_MAX];
+	ssize_t len = readlinkat(logdir, log_path, buf, sizeof(buf));
+	if (len == -1) {
+		if (errno == ENOENT) {
+			return log;
+		} else if (errno != EINVAL) {
+			err(1, "readlinkat: %s", log_path);
+		}
+	}
+	if (strncmp(buf, PORTSCAN_LOG_INIT, len) == 0) {
+		return log;
+	}
 
 	int fd = openat(logdir, log_path, O_RDONLY);
 	if (fd == -1) {
@@ -806,14 +844,9 @@ main(int argc, char *argv[])
 	FILE *out = stdout;
 	char *log_rev = NULL;
 	if (logdir_path != NULL) {
-		while ((logdir = open(logdir_path, O_DIRECTORY)) == -1) {
-			if (errno == ENOENT) {
-				if (mkdir(logdir_path, 0777) == -1) {
-					err(1, "mkdir: %s", logdir_path);
-				}
-			} else {
-				err(1, "open: %s", logdir_path);
-			}
+		logdir = log_open_dir(logdir_path);
+		if (logdir == -1) {
+			err(1, "log_open_dir: %s", logdir_path);
 		}
 		log_rev = log_revision(portsdir);
 		fclose(out);
