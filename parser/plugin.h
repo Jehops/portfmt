@@ -40,7 +40,7 @@ struct ParserPluginEdit {
 };
 
 void parser_plugin_load_all(void);
-struct ParserPluginInfo *parser_plugin_info(const char *name);
+struct ParserPluginInfo *parser_plugin_info(const char *);
 void parser_plugin_register(struct ParserPluginInfo *);
 
 #define PLUGIN(name, f) \

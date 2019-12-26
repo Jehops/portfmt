@@ -50,8 +50,6 @@ enum CapsicumHelperFlags {
 	CAPH_SYMLINK = 128,
 };
 
-__BEGIN_DECLS
-
 static __inline int
 caph_limit_stream(int fd, int flags)
 {
@@ -177,7 +175,5 @@ caph_fcntls_limit(int fd, uint32_t fcntlrights)
 
 	return (0);
 }
-
-__END_DECLS
 
 #endif /* _CAPSICUM_HELPERS_H_ */

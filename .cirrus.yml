@@ -1,6 +1,8 @@
 freebsd_task:
   freebsd_instance:
     image_family: freebsd-12-1
+  cppcheck_script:
+    - pkg install -y cppcheck
   matrix:
     - name: freebsd_clang
     - name: freebsd_gcc
@@ -16,6 +18,8 @@ linux_task:
     image: gcc:latest
   mandoc_script:
     - apt-get update && apt-get -y install mandoc
+  cppcheck_script:
+    - apt-get -y install cppcheck
   matrix:
     - name: linux_clang
       env:

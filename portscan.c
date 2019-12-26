@@ -728,7 +728,7 @@ log_revision(int portsdir)
 		}
 	}
 	free(line);
-	fclose(fp);
+	pclose(fp);
 
 	if (revision == NULL) {
 		revision = xstrdup("unknown");
@@ -805,8 +805,7 @@ log_read_all(int logdir, const char *log_path)
 		} else if (errno != EINVAL) {
 			err(1, "read_symlink: %s", log_path);
 		}
-	}
-	if (strcmp(buf, PORTSCAN_LOG_INIT) == 0) {
+	} else if (strcmp(buf, PORTSCAN_LOG_INIT) == 0) {
 		free(buf);
 		return log;
 	}
@@ -972,7 +971,9 @@ main(int argc, char *argv[])
 	}
 
 cleanup:
-	close(logdir);
+	if (logdir != -1) {
+		close(logdir);
+	}
 	free(log_path);
 	free(log_rev);
 	array_free(result);

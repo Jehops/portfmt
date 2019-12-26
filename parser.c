@@ -1277,7 +1277,6 @@ parser_output_dump_tokens(struct Parser *parser)
 		case CONDITIONAL_TOKEN:
 			type = "conditional-token";
 			break;
-			break;
 		case COMMENT:
 			type = "comment";
 			break;
