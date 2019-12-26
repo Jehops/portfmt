@@ -35,6 +35,7 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <assert.h>
+#include <ctype.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -88,6 +89,20 @@ struct PortReaderData {
 	int include_options;
 };
 
+enum LogEntryType {
+	LOG_ENTRY_UNKNOWN_VAR,
+	LOG_ENTRY_UNKNOWN_TARGET,
+	LOG_ENTRY_DUPLICATE_VAR,
+	LOG_ENTRY_OPTION_GROUP,
+	LOG_ENTRY_OPTION,
+};
+
+struct LogEntry {
+	enum LogEntryType type;
+	char *origin;
+	char *value;
+};
+
 // Ignore these ports when processing .include
 static const char *ports_include_blacklist_[] = {
 	"devel/llvm",
@@ -103,8 +118,11 @@ static struct Array *extract_includes(struct Parser *, struct Array *, enum Pars
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int);
-static struct Array *scan_ports(int, struct Array *, int, int);
+static struct Array *scan_ports(int, struct Array *, int);
 static int log_compare(struct Array *, struct Array *);
+static void log_add_entry(struct Array *, enum LogEntryType, const char *, struct Array *);
+static int log_entry_compare(const void *, const void *, void *);
+static void log_entry_parse(const char *, struct LogEntry *);
 static char *log_filename(const char *);
 static char *log_revision(int);
 static FILE *log_open(int, const char *);
@@ -472,7 +490,7 @@ lookup_origins(int portsdir)
 }
 
 struct Array *
-scan_ports(int portsdir, struct Array *origins, int can_use_colors, int include_options)
+scan_ports(int portsdir, struct Array *origins, int include_options)
 {
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
@@ -509,99 +527,129 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors, int include_
 		struct Array *result = data;
 		for (size_t j = 0; j < array_len(result); j++) {
 			struct ScanResult *r = array_get(result, j);
-
-			array_sort(r->unknown_variables, str_compare, NULL);
-			for (size_t k = 0; k < array_len(r->unknown_variables); k++) {
-				char *var = array_get(r->unknown_variables, k);
-				char *buf;
-				if (can_use_colors) {
-					xasprintf(&buf, "%s%-7c%s %-40s %s%s%s\n",
-						ANSI_COLOR_CYAN, 'V', ANSI_COLOR_RESET,
-						r->origin,
-						ANSI_COLOR_CYAN, var, ANSI_COLOR_RESET);
-				} else {
-					xasprintf(&buf, "%-7c %-40s %s\n", 'V', r->origin, var);
-				}
-				array_append(retval, buf);
-				free(var);
-			}
-			array_free(r->unknown_variables);
-
-			array_sort(r->unknown_targets, str_compare, NULL);
-			for (size_t k = 0; k < array_len(r->unknown_targets); k++) {
-				char *target = array_get(r->unknown_targets, k);
-				char *buf;
-				if (can_use_colors) {
-					xasprintf(&buf, "%s%-7c%s %-40s %s%s%s\n",
-						ANSI_COLOR_MAGENTA, 'T', ANSI_COLOR_RESET,
-						r->origin,
-						ANSI_COLOR_MAGENTA, target, ANSI_COLOR_RESET);
-				} else {
-					xasprintf(&buf, "%-7c %-40s %s\n", 'T', r->origin, target);
-				}
-				array_append(retval, buf);
-				free(target);
-			}
-			array_free(r->unknown_targets);
-
-			array_sort(r->clones, str_compare, NULL);
-			for (size_t k = 0; k < array_len(r->clones); k++) {
-				char *name = array_get(r->clones, k);
-				char *buf;
-				if (can_use_colors) {
-					xasprintf(&buf, "%s%-7s%s %-40s %s%s%s\n",
-						ANSI_COLOR_CYAN, "Vc", ANSI_COLOR_RESET,
-						r->origin,
-						ANSI_COLOR_CYAN, name, ANSI_COLOR_RESET);
-				} else {
-					xasprintf(&buf, "%-7s %-40s %s\n", "Vc", r->origin, name);
-				}
-				array_append(retval, buf);
-				free(name);
-			}
-			array_free(r->clones);
-
-			array_sort(r->option_groups, str_compare, NULL);
-			for (size_t k = 0; k < array_len(r->option_groups); k++) {
-				char *var = array_get(r->option_groups, k);
-				char *buf;
-				if (can_use_colors) {
-					xasprintf(&buf, "%s%-7s%s %-40s %s%s%s\n",
-						ANSI_COLOR_YELLOW, "OG", ANSI_COLOR_RESET,
-						r->origin,
-						ANSI_COLOR_YELLOW, var, ANSI_COLOR_RESET);
-				} else {
-					xasprintf(&buf, "%-7s %-40s %s\n", "OG", r->origin, var);
-				}
-				array_append(retval, buf);
-				free(var);
-			}
-			array_free(r->option_groups);
-
-			array_sort(r->options, str_compare, NULL);
-			for (size_t k = 0; k < array_len(r->options); k++) {
-				char *var = array_get(r->options, k);
-				char *buf;
-				if (can_use_colors) {
-					xasprintf(&buf, "%s%-7c%s %-40s %s%s%s\n",
-						ANSI_COLOR_GREEN, 'O', ANSI_COLOR_RESET,
-						r->origin,
-						ANSI_COLOR_GREEN, var, ANSI_COLOR_RESET);
-				} else {
-					xasprintf(&buf, "%-7c %-40s %s\n", 'O', r->origin, var);
-				}
-				array_append(retval, buf);
-				free(var);
-			}
-			array_free(r->options);
-
+			log_add_entry(retval, LOG_ENTRY_UNKNOWN_VAR, r->origin, r->unknown_variables);
+			log_add_entry(retval, LOG_ENTRY_UNKNOWN_TARGET, r->origin, r->unknown_targets);
+			log_add_entry(retval, LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);
+			log_add_entry(retval, LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
+			log_add_entry(retval, LOG_ENTRY_OPTION, r->origin, r->options);
 			free(r->origin);
 			free(r);
 		}
 		array_free(result);
 	}
 
-	array_sort(retval, str_compare, NULL);
+	array_sort(retval, log_entry_compare, NULL);
+
+	return retval;
+}
+
+void
+log_add_entry(struct Array *log, enum LogEntryType type, const char *origin, struct Array *values)
+{
+	array_sort(values, str_compare, NULL);
+
+	for (size_t k = 0; k < array_len(values); k++) {
+		char *value = array_get(values, k);
+		char *buf;
+		switch (type) {
+		case LOG_ENTRY_UNKNOWN_VAR:
+			xasprintf(&buf, "%-7c %-40s %s\n", 'V', origin, value);
+			break;
+		case LOG_ENTRY_UNKNOWN_TARGET:
+			xasprintf(&buf, "%-7c %-40s %s\n", 'T', origin, value);
+			break;
+		case LOG_ENTRY_DUPLICATE_VAR:
+			xasprintf(&buf, "%-7s %-40s %s\n", "Vc", origin, value);
+			break;
+		case LOG_ENTRY_OPTION_GROUP:
+			xasprintf(&buf, "%-7s %-40s %s\n", "OG", origin, value);
+			break;
+		case LOG_ENTRY_OPTION:
+			xasprintf(&buf, "%-7c %-40s %s\n", 'O', origin, value);
+			break;
+		default:
+			abort();
+		}
+		array_append(log, buf);
+		free(value);
+	}
+
+	array_free(values);
+}
+
+void
+log_entry_parse(const char *s, struct LogEntry *e)
+{
+	if (str_startswith(s, "V ")) {
+		e->type = LOG_ENTRY_UNKNOWN_VAR;
+		s++;
+	} else if (str_startswith(s, "T ")) {
+		e->type = LOG_ENTRY_UNKNOWN_TARGET;
+		s++;
+	} else if (str_startswith(s, "Vc ")) {
+		e->type = LOG_ENTRY_DUPLICATE_VAR;
+		s += 2;
+	} else if (str_startswith(s, "OG ")) {
+		e->type = LOG_ENTRY_OPTION_GROUP;
+		s += 2;
+	} else if (str_startswith(s, "O ")) {
+		e->type = LOG_ENTRY_OPTION;
+		s++;
+	} else {
+		errx(1, "unable to parse: %s", s);
+	}
+
+	while (*s != 0 && isspace(*s)) {
+		s++;
+	}
+	const char *origin_start = s;
+	while (*s != 0 && !isspace(*s)) {
+		s++;
+	}
+	const char *value = s;
+	while (*value != 0 && isspace(*value)) {
+		value++;
+	}
+	size_t value_len = strlen(value);
+	if (value_len > 0 && value[value_len - 1] == '\n') {
+		value_len--;
+	}
+
+	e->origin = xstrndup(origin_start, s - origin_start);
+	e->value = xstrndup(value, value_len);
+
+	if (strlen(e->origin) == 0 || strlen(value) == 0) {
+		errx(1, "unable to parse: %s", s);
+	}
+}
+
+int
+log_entry_compare(const void *ap, const void *bp, void *userdata)
+{
+	const char *aline = *(const char **)ap;
+	const char *bline = *(const char **)bp;
+
+	struct LogEntry a;
+	log_entry_parse(aline, &a);
+	struct LogEntry b;
+	log_entry_parse(bline, &b);
+
+	int retval = strcmp(a.origin, b.origin);
+
+	if (retval == 0) {
+		if (a.type > b.type) {
+			retval = 1;
+		} else if (a.type < b.type) {
+			retval = -1;
+		} else {
+			retval = strcmp(a.value, b.value);
+		}
+	}
+
+	free(a.origin);
+	free(a.value);
+	free(b.origin);
+	free(b.value);
 
 	return retval;
 }
@@ -787,7 +835,7 @@ log_read_all(int logdir, const char *log_path)
 	free(line);
 	fclose(fp);
 
-	array_sort(log, str_compare, NULL);
+	array_sort(log, log_entry_compare, NULL);
 
 	return log;
 }
@@ -897,11 +945,7 @@ main(int argc, char *argv[])
 	}
 
 	int status = 0;
-	int colors = 0;
-	if (out != NULL) {
-		colors = can_use_colors(out);
-	}
-	struct Array *result = scan_ports(portsdir, origins, colors, oflag);
+	struct Array *result = scan_ports(portsdir, origins, oflag);
 	char *log_path = NULL;
 	if (array_len(result) > 0) {
 		if (logdir != -1) {
