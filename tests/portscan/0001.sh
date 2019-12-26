@@ -1,4 +1,4 @@
-logdir="$(mktemp -dt portscan-test)"
+logdir="$(mktemp -dt portscan-test.XXXXXXX)"
 ${PORTSCAN} -p 0001 -l "${logdir}/log"
 [ -d "${logdir}/log" ]
 [ -L "${logdir}/log/portscan-latest.log" ]
