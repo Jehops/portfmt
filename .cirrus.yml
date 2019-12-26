@@ -1,6 +1,8 @@
 freebsd_task:
   freebsd_instance:
     image_family: freebsd-12-1
+  latest_script:
+    - sed -i.bak -e 's,/quarterly,/latest,' /etc/pkg/FreeBSD.conf
   cppcheck_script:
     - pkg install -y cppcheck
   matrix:
