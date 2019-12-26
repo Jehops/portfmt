@@ -6,11 +6,13 @@ PORTCLIPPY="${ROOT}/portclippy"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
 PORTFMT_PLUGIN_PATH="${ROOT}/parser"
+PORTSCAN="${ROOT}/portscan"
 
 export PORTCLIPPY
 export PORTEDIT
 export PORTFMT
 export PORTFMT_PLUGIN_PATH
+export PORTSCAN
 export ROOT
 
 export LD_LIBRARY_PATH="${ROOT}"
@@ -85,6 +87,15 @@ for t in reject/*.in; do
 		tests_failed=$((tests_failed + 1))
 	else
 		echo "error ok"
+	fi
+done
+
+cd "${ROOT}/tests/portscan" || exit 1
+for t in *.sh; do
+	echo "portscan/${t%*.sh}"
+	tests_run=$((tests_run + 1))
+	if ! /bin/sh -eu "${t}" 2>&1; then
+		tests_failed=$((tests_failed + 1))
 	fi
 done
 

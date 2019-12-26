@@ -43,8 +43,19 @@
 
 #include "util.h"
 
+char *
+read_symlink(int dir, const char *path)
+{
+	char buf[PATH_MAX];
+	ssize_t len = readlinkat(dir, path, buf, sizeof(buf));
+	if (len != -1) {
+		return xstrndup(buf, len);
+	}
+	return NULL;
+}
+
 int
-create_symlink(int dir, const char *path1, const char *path2, char **prev)
+update_symlink(int dir, const char *path1, const char *path2, char **prev)
 {
 	if (prev != NULL) {
 		*prev = NULL;
@@ -52,21 +63,19 @@ create_symlink(int dir, const char *path1, const char *path2, char **prev)
 	while (symlinkat(path1, dir, path2) == -1) {
 		if (errno == EEXIST) {
 			if (prev != NULL) {
-				char buf[128];
-				ssize_t len = readlinkat(dir, path2, buf, sizeof(buf));
-				if (len != -1) {
-					*prev = xstrndup(buf, len);
-				}
+				*prev = read_symlink(dir, path2);
 			}
 			if (unlinkat(dir, path2, 0) == -1) {
 				if (prev != NULL) {
 					free(*prev);
+					*prev = NULL;
 				}
 				return 0;
 			}
 		} else {
 			if (prev != NULL) {
 				free(*prev);
+				*prev = NULL;
 			}
 			return 0;
 		}

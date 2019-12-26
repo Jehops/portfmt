@@ -658,7 +658,7 @@ log_revision(int portsdir)
 		err(1, "fchdir");
 	}
 
-	FILE *fp = popen("svn info --show-item revision --no-newline 2>/dev/null || git rev-parse HEAD 2>/dev/null", "r");
+	FILE *fp = popen("if [ -d .svn ]; then svn info --show-item revision --no-newline 2>/dev/null; exit; fi; if [ -d .git ]; then git rev-parse HEAD 2>/dev/null; fi", "r");
 	if (fp == NULL) {
 		err(1, "popen");
 	}
@@ -719,9 +719,27 @@ log_open_dir(const char *logdir_path)
 			return -1;
 		}
 	}
-	if (created_dir &&
-	    symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_LATEST) == -1) {
-		return -1;
+	if (created_dir) {
+		if (symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_PREVIOUS) == -1) {
+			return -1;
+		}
+		if (symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_LATEST) == -1) {
+			return -1;
+		}
+	} else {
+		char *prev = read_symlink(logdir, PORTSCAN_LOG_PREVIOUS);
+		if (prev == NULL &&
+		    symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_PREVIOUS) == -1) {
+			return -1;
+		}
+		free(prev);
+
+		char *latest = read_symlink(logdir, PORTSCAN_LOG_LATEST);
+		if (latest == NULL &&
+		    symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_LATEST) == -1) {
+			return -1;
+		}
+		free(latest);
 	}
 
 	return logdir;
@@ -732,18 +750,19 @@ log_read_all(int logdir, const char *log_path)
 {
 	struct Array *log = array_new();
 
-	char buf[PATH_MAX];
-	ssize_t len = readlinkat(logdir, log_path, buf, sizeof(buf));
-	if (len == -1) {
+	char *buf = read_symlink(logdir, log_path);
+	if (buf == NULL) {
 		if (errno == ENOENT) {
 			return log;
 		} else if (errno != EINVAL) {
-			err(1, "readlinkat: %s", log_path);
+			err(1, "read_symlink: %s", log_path);
 		}
 	}
-	if (strncmp(buf, PORTSCAN_LOG_INIT, len) == 0) {
+	if (strcmp(buf, PORTSCAN_LOG_INIT) == 0) {
+		free(buf);
 		return log;
 	}
+	free(buf);
 
 	int fd = openat(logdir, log_path, O_RDONLY);
 	if (fd == -1) {
@@ -777,11 +796,11 @@ void
 log_update_latest(int logdir, const char *log_path)
 {
 	char *prev = NULL;
-	if (!create_symlink(logdir, log_path, PORTSCAN_LOG_LATEST, &prev)) {
-		err(1, "create_symlink");
+	if (!update_symlink(logdir, log_path, PORTSCAN_LOG_LATEST, &prev)) {
+		err(1, "update_symlink");
 	}
-	if (prev != NULL && !create_symlink(logdir, prev, PORTSCAN_LOG_PREVIOUS, NULL)) {
-		err(1, "create_symlink");
+	if (prev != NULL && !update_symlink(logdir, prev, PORTSCAN_LOG_PREVIOUS, NULL)) {
+		err(1, "update_symlink");
 	}
 	free(prev);
 }
@@ -889,7 +908,7 @@ main(int argc, char *argv[])
 			struct Array *prev_result = log_read_all(logdir, PORTSCAN_LOG_LATEST);
 			if (log_compare(prev_result, result)) {
 				warnx("no changes compared to previous result");
-				status = 1;
+				status = 2;
 				goto cleanup;
 			}
 			log_path = log_filename(log_rev);

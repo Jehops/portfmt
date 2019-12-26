@@ -8,8 +8,8 @@ config.log
 config.log.old
 libportfmt.*
 Makefile.configure
-portclippy
-portedit
-portfmt
-portscan
+/portclippy
+/portedit
+/portfmt
+/portscan
 TODO

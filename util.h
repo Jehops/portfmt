@@ -41,7 +41,8 @@
 
 typedef int (*CompareFn)(const void *, const void *, void *);
 
-int create_symlink(int, const char *, const char *, char **);
+char *read_symlink(int, const char *);
+int update_symlink(int, const char *, const char *, char **);
 
 char *repeat(char, size_t);
 

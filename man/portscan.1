@@ -113,10 +113,21 @@ If defined will force disable colored output.
 .El
 .Sh EXIT STATUS
 .Nm
-will exit with 0 if it could successfully scan the collection, and
->0 otherwise.
+will exit with one of the following values:
+.Bl -tag -width indent
+.It 0
+The collection was scanned successfully.
 An exit status of 0 does not mean there were no issues in the scanned
 ports.
+.It 1
+An error occurred.
+.It 2
+There were no changes when compared to previous results.
+Only possible when
+.Fl l
+was passed to
+.Nm .
+.El
 .Sh EXAMPLES
 The output can have many lines (approximately 12000 lines at the
 time of writing) and will have many false positives.
