@@ -33,6 +33,7 @@
 # include "capsicum_helpers.h"
 #endif
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <assert.h>
 #if HAVE_ERR
 # include <err.h>
@@ -50,6 +51,7 @@
 
 #include "array.h"
 #include "conditional.h"
+#include "diff.h"
 #include "mainutils.h"
 #include "parser.h"
 #include "parser/plugin.h"
@@ -101,9 +103,11 @@ static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int);
 static struct Array *scan_ports(int, struct Array *, int, int);
+static int log_compare(struct Array *, struct Array *);
 static char *log_filename(const char *);
 static char *log_revision(int);
 static FILE *log_open(int, const char *);
+struct Array *log_read_all(int, const char *);
 static void log_update_latest(int, const char *);
 static void usage(void);
 
@@ -595,7 +599,34 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors, int include_
 		array_free(result);
 	}
 
+	array_sort(retval, str_compare, NULL);
+
 	return retval;
+}
+
+int
+log_compare(struct Array *prev_result, struct Array *result)
+{
+	struct diff p;
+	int rc = array_diff(prev_result, result, &p, str_compare, NULL);
+	if (rc <= 0) {
+		errx(1, "array_diff failed");
+	}
+	int equal = 1;
+	for (size_t i = 0; i < p.sessz; i++) {
+		if (p.ses[i].type != DIFF_COMMON) {
+			equal = 0;
+			break;
+		}
+	}
+	free(p.ses);
+	free(p.lcs);
+	for (size_t i = 0; i < array_len(prev_result); i++) {
+		free(array_get(prev_result, i));
+	}
+	array_free(prev_result);
+
+	return equal;
 }
 
 char *
@@ -635,7 +666,7 @@ log_revision(int portsdir)
 	size_t linecap = 0;
 	ssize_t linelen;
 	if ((linelen = getline(&line, &linecap, fp)) > 0) {
-		if (line[linelen - 1] == '\n') {
+		if (linelen > 0 && line[linelen - 1] == '\n') {
 			line[linelen - 1] = 0;
 		}
 
@@ -669,6 +700,39 @@ log_open(int logdir, const char *log_path)
 	}
 
 	return f;
+}
+
+struct Array *
+log_read_all(int logdir, const char *log_path)
+{
+	struct Array *log = array_new();
+
+	int fd = openat(logdir, log_path, O_RDONLY);
+	if (fd == -1) {
+		if (errno == ENOENT) {
+			return log;
+		}
+		err(1, "openat: %s", log_path);
+	}
+
+	FILE *fp = fdopen(fd, "r");
+	if (fp == NULL) {
+		close(fd);
+		return log;
+	}
+
+	ssize_t linelen;
+	size_t linecap = 0;
+	char *line = NULL;
+	while ((linelen = getline(&line, &linecap, fp)) > 0) {
+		array_append(log, xstrdup(line));
+	}
+	free(line);
+	fclose(fp);
+
+	array_sort(log, str_compare, NULL);
+
+	return log;
 }
 
 void
@@ -742,11 +806,15 @@ main(int argc, char *argv[])
 	FILE *out = stdout;
 	char *log_rev = NULL;
 	if (logdir_path != NULL) {
-		logdir = open(logdir_path, O_DIRECTORY);
-		if (logdir == -1) {
-			err(1, "open: %s", logdir_path);
+		while ((logdir = open(logdir_path, O_DIRECTORY)) == -1) {
+			if (errno == ENOENT) {
+				if (mkdir(logdir_path, 0777) == -1) {
+					err(1, "mkdir: %s", logdir_path);
+				}
+			} else {
+				err(1, "open: %s", logdir_path);
+			}
 		}
-
 		log_rev = log_revision(portsdir);
 		fclose(out);
 		out = NULL;
@@ -757,7 +825,7 @@ main(int argc, char *argv[])
 		err(1, "caph_limit_stream");
 	}
 
-	if (logdir > -1 && caph_limit_stream(logdir, CAPH_CREATE | CAPH_SYMLINK) < 0) {
+	if (logdir > -1 && caph_limit_stream(logdir, CAPH_CREATE | CAPH_READ | CAPH_SYMLINK) < 0) {
 		err(1, "caph_limit_stream");
 	}
 
@@ -776,16 +844,22 @@ main(int argc, char *argv[])
 		}
 	}
 
+	int status = 0;
 	int colors = 0;
 	if (out != NULL) {
 		colors = can_use_colors(out);
 	}
 	struct Array *result = scan_ports(portsdir, origins, colors, oflag);
+	char *log_path = NULL;
 	if (array_len(result) > 0) {
-		char *log_path = NULL;
 		if (logdir != -1) {
+			struct Array *prev_result = log_read_all(logdir, PORTSCAN_LOG_LATEST);
+			if (log_compare(prev_result, result)) {
+				warnx("no changes compared to previous result");
+				status = 1;
+				goto cleanup;
+			}
 			log_path = log_filename(log_rev);
-			free(log_rev);
 			out = log_open(logdir, log_path);
 		}
 		for (size_t i = 0; i < array_len(result); i++) {
@@ -797,11 +871,14 @@ main(int argc, char *argv[])
 		}
 		if (logdir != -1) {
 			log_update_latest(logdir, log_path);
-			free(log_path);
-			close(logdir);
 			logdir = -1;
 		}
 	}
+
+cleanup:
+	close(logdir);
+	free(log_path);
+	free(log_rev);
 	array_free(result);
 
 	for (size_t i = 0; i < array_len(origins); i++) {
@@ -809,5 +886,5 @@ main(int argc, char *argv[])
 	}
 	array_free(origins);
 
-	return 0;
+	return status;
 }
