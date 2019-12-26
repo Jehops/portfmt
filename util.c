@@ -34,12 +34,46 @@
 #if HAVE_ERR
 # include <err.h>
 #endif
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "util.h"
+
+int
+create_symlink(int dir, const char *path1, const char *path2, char **prev)
+{
+	if (prev != NULL) {
+		*prev = NULL;
+	}
+	while (symlinkat(path1, dir, path2) == -1) {
+		if (errno == EEXIST) {
+			if (prev != NULL) {
+				char buf[128];
+				ssize_t len = readlinkat(dir, path2, buf, sizeof(buf));
+				if (len != -1) {
+					*prev = xstrndup(buf, len);
+				}
+			}
+			if (unlinkat(dir, path2, 0) == -1) {
+				if (prev != NULL) {
+					free(*prev);
+				}
+				return 0;
+			}
+		} else {
+			if (prev != NULL) {
+				free(*prev);
+			}
+			return 0;
+		}
+	}
+
+	return 1;
+}
 
 char *
 repeat(char c, size_t n)
@@ -229,4 +263,3 @@ xstrlcpy(char *dst, const char *src, size_t dstsize)
 	}
 	return len;
 }
-

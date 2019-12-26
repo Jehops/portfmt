@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "array.h"
@@ -54,6 +55,10 @@
 #include "parser/plugin.h"
 #include "token.h"
 #include "util.h"
+
+#define PORTSCAN_LOG_DATE_FORMAT "portscan-%Y%m%d%H%M%S"
+#define PORTSCAN_LOG_LATEST "portscan-latest.log"
+#define PORTSCAN_LOG_PREVIOUS "portscan-previous.log"
 
 struct ScanResult {
 	char *origin;
@@ -96,6 +101,10 @@ static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int);
 static struct Array *scan_ports(int, struct Array *, int, int);
+static char *log_filename(const char *);
+static char *log_revision(int);
+static FILE *log_open(int, const char *);
+static void log_update_latest(int, const char *);
 static void usage(void);
 
 FILE *
@@ -589,10 +598,96 @@ scan_ports(int portsdir, struct Array *origins, int can_use_colors, int include_
 	return retval;
 }
 
+char *
+log_filename(const char *rev)
+{
+	time_t date = time(NULL);
+	if (date == -1) {
+		err(1, "time");
+	}
+	struct tm *tm = gmtime(&date);
+
+	char buf[128];
+	if (strftime(buf, sizeof(buf), PORTSCAN_LOG_DATE_FORMAT, tm) == 0) {
+		errx(1, "strftime: buffer too small");
+	}
+
+	char *log_path;
+	xasprintf(&log_path, "%s-%s.log", buf, rev);
+
+	return log_path;
+}
+
+char *
+log_revision(int portsdir)
+{
+	if (fchdir(portsdir) == -1) {
+		err(1, "fchdir");
+	}
+
+	FILE *fp = popen("svn info --show-item revision --no-newline 2>/dev/null || git rev-parse HEAD 2>/dev/null", "r");
+	if (fp == NULL) {
+		err(1, "popen");
+	}
+
+	char *revision = NULL;
+	char *line = NULL;
+	size_t linecap = 0;
+	ssize_t linelen;
+	if ((linelen = getline(&line, &linecap, fp)) > 0) {
+		if (line[linelen - 1] == '\n') {
+			line[linelen - 1] = 0;
+		}
+
+		if (strlen(line) == 40) {
+			// Assume git commit
+			xasprintf(&revision, "%s", line);
+		} else {
+			xasprintf(&revision, "r%s", line);
+		}
+	}
+	free(line);
+	fclose(fp);
+
+	if (revision == NULL) {
+		revision = xstrdup("unknown");
+	}
+	return revision;
+}
+
+FILE *
+log_open(int logdir, const char *log_path)
+{
+	int outfd = openat(logdir, log_path, O_CREAT | O_WRONLY, 0660);
+	if (outfd == -1) {
+		err(1, "openat: %s", log_path);
+	}
+
+	FILE *f = fdopen(outfd, "w");
+	if (f == NULL) {
+		err(1, "fdopen");
+	}
+
+	return f;
+}
+
+void
+log_update_latest(int logdir, const char *log_path)
+{
+	char *prev = NULL;
+	if (!create_symlink(logdir, log_path, PORTSCAN_LOG_LATEST, &prev)) {
+		err(1, "create_symlink");
+	}
+	if (prev != NULL && !create_symlink(logdir, prev, PORTSCAN_LOG_PREVIOUS, NULL)) {
+		err(1, "create_symlink");
+	}
+	free(prev);
+}
+
 void
 usage()
 {
-	fprintf(stderr, "usage: portscan [-o] -p <portsdir> [<origin1> ...]\n");
+	fprintf(stderr, "usage: portscan [-l <logdir>] [-o] -p <portsdir> [<origin1> ...]\n");
 	exit(EX_USAGE);
 }
 
@@ -600,10 +695,14 @@ int
 main(int argc, char *argv[])
 {
 	const char *portsdir_path = NULL;
+	const char *logdir_path = NULL;
 	int ch;
 	int oflag = 0;
-	while ((ch = getopt(argc, argv, "op:")) != -1) {
+	while ((ch = getopt(argc, argv, "l:op:")) != -1) {
 		switch (ch) {
+		case 'l':
+			logdir_path = optarg;
+			break;
 		case 'o':
 			oflag = 1;
 			break;
@@ -636,11 +735,29 @@ main(int argc, char *argv[])
 
 	portsdir = open(portsdir_path, O_DIRECTORY);
 	if (portsdir == -1) {
-		err(1, "open");
+		err(1, "open: %s", portsdir_path);
+	}
+
+	int logdir = -1;
+	FILE *out = stdout;
+	char *log_rev = NULL;
+	if (logdir_path != NULL) {
+		logdir = open(logdir_path, O_DIRECTORY);
+		if (logdir == -1) {
+			err(1, "open: %s", logdir_path);
+		}
+
+		log_rev = log_revision(portsdir);
+		fclose(out);
+		out = NULL;
 	}
 
 #if HAVE_CAPSICUM
 	if (caph_limit_stream(portsdir, CAPH_LOOKUP | CAPH_READ) < 0) {
+		err(1, "caph_limit_stream");
+	}
+
+	if (logdir > -1 && caph_limit_stream(logdir, CAPH_CREATE | CAPH_SYMLINK) < 0) {
 		err(1, "caph_limit_stream");
 	}
 
@@ -659,13 +776,31 @@ main(int argc, char *argv[])
 		}
 	}
 
-	struct Array *result = scan_ports(portsdir, origins, can_use_colors(stdout), oflag);
-	for (size_t i = 0; i < array_len(result); i++) {
-		char *line = array_get(result, i);
-		if (write(STDOUT_FILENO, line, strlen(line)) == -1) {
-			err(1, "write");
+	int colors = 0;
+	if (out != NULL) {
+		colors = can_use_colors(out);
+	}
+	struct Array *result = scan_ports(portsdir, origins, colors, oflag);
+	if (array_len(result) > 0) {
+		char *log_path = NULL;
+		if (logdir != -1) {
+			log_path = log_filename(log_rev);
+			free(log_rev);
+			out = log_open(logdir, log_path);
 		}
-		free(line);
+		for (size_t i = 0; i < array_len(result); i++) {
+			char *line = array_get(result, i);
+			if (write(fileno(out), line, strlen(line)) == -1) {
+				err(1, "write");
+			}
+			free(line);
+		}
+		if (logdir != -1) {
+			log_update_latest(logdir, log_path);
+			free(log_path);
+			close(logdir);
+			logdir = -1;
+		}
 	}
 	array_free(result);
 
