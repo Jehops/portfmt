@@ -55,7 +55,7 @@ struct VariableMergeParameter {
 
 static void append_empty_line(struct Parser *, struct Array *, struct Range *);
 static void append_new_variable(struct Parser *, struct Array *, struct Variable *, struct Range *);
-static struct Token *find_next_token(struct Array *, size_t, int);
+static struct Token *find_next_token(struct Array *, size_t, int, int, int);
 static struct Array *extract_tokens(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 static struct Array *insert_variable(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 static struct Array *merge_existent_var(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
@@ -145,11 +145,12 @@ append_new_variable(struct Parser *parser, struct Array *tokens, struct Variable
 }
 
 struct Token *
-find_next_token(struct Array *tokens, size_t start, int type)
+find_next_token(struct Array *tokens, size_t start, int a1, int a2, int a3)
 {
 	for (size_t i = start; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		if (type & token_type(t)) {
+		int type = token_type(t);
+		if (type == a1 || type == a2 || type == a3) {
 			return t;
 		}
 	}
@@ -234,12 +235,12 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 				append_empty_line(parser, tokens, token_lines(t));
 				append_new_variable(parser, tokens, var, token_lines(t));
 				added = 1;
-				struct Token *next = find_next_token(ptokens, i, CONDITIONAL_START | TARGET_START | VARIABLE_START);
+				struct Token *next = find_next_token(ptokens, i, CONDITIONAL_START, TARGET_START, VARIABLE_START);
 				if (next && token_type(next) != VARIABLE_START) {
 					append_empty_line(parser, tokens, token_lines(t));
 				}
 				if (token_type(t) == COMMENT && strcmp(token_data(t), "") == 0) {
-					next = find_next_token(ptokens, i, VARIABLE_START);
+					next = find_next_token(ptokens, i, VARIABLE_START, -1, -1);
 					if (next) {
 						enum BlockType block_next = variable_order_block(parser, variable_name(token_variable(next)));
 						if (block_next == varblock) {

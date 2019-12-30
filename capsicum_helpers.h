@@ -40,14 +40,14 @@
 #include <unistd.h>
 
 enum CapsicumHelperFlags {
-	CAPH_IGNORE_EBADF = 1,
-	CAPH_READ = 2,
-	CAPH_WRITE = 4,
-	CAPH_LOOKUP = 8,
-	CAPH_FTRUNCATE = 16,
-	CAPH_CREATE = 32,
-	CAPH_READDIR = 64,
-	CAPH_SYMLINK = 128,
+	CAPH_IGNORE_EBADF = 1 << 0,
+	CAPH_READ = 1 << 1,
+	CAPH_WRITE = 1 << 2,
+	CAPH_LOOKUP = 1 << 3,
+	CAPH_FTRUNCATE = 1 << 4,
+	CAPH_CREATE = 1 << 5,
+	CAPH_READDIR = 1 << 6,
+	CAPH_SYMLINK = 1 << 7,
 };
 
 static __inline int
