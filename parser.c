@@ -99,19 +99,19 @@ static int is_empty_line(const char *);
 static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
 static struct Variable *parser_lookup_variable_internal(struct Parser *, const char *, struct Array **, struct Array **, int);
-static enum ParserError parser_output_dump_tokens(struct Parser *);
-static enum ParserError parser_output_prepare(struct Parser *);
+static void parser_output_dump_tokens(struct Parser *);
+static void parser_output_prepare(struct Parser *);
 static void parser_output_print_rawlines(struct Parser *, struct Range *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
 static struct Array *parser_output_sort_opt_use(struct Parser *, struct Array *);
 static struct Array *parser_output_reformatted_helper(struct Parser *, struct Array *);
-static enum ParserError parser_output_reformatted(struct Parser *);
+static void parser_output_reformatted(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
-static enum ParserError parser_read_internal(struct Parser *);
-static enum ParserError parser_read_line(struct Parser *, char *);
-static enum ParserError parser_tokenize(struct Parser *, const char *, enum TokenType, size_t);
-static enum ParserError print_newline_array(struct Parser *, struct Array *);
-static enum ParserError print_token_array(struct Parser *, struct Array *);
+static void parser_read_internal(struct Parser *);
+static void parser_read_line(struct Parser *, char *);
+static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_t);
+static void print_newline_array(struct Parser *, struct Array *);
+static void print_token_array(struct Parser *, struct Array *);
 static char *range_tostring(struct Range *);
 
 size_t
@@ -451,7 +451,7 @@ parser_enqueue_output(struct Parser *parser, const char *s)
 	array_append(parser->result, xstrdup(s));
 }
 
-enum ParserError
+void
 parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, size_t start)
 {
 	int dollar = 0;
@@ -472,7 +472,7 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 				if (c == '(') {
 					i = consume_token(parser, line, i - 2, '(', ')', 0);
 					if (parser->error != PARSER_ERROR_OK) {
-						return parser->error;
+						return;
 					}
 					dollar = 0;
 					continue;
@@ -507,7 +507,7 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 				parser->error_msg = xstrdup("$");
 			}
 			if (parser->error != PARSER_ERROR_OK) {
-				return parser->error;
+				return;
 			}
 		} else {
 			if (c == ' ' || c == '\t') {
@@ -538,10 +538,11 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 
 				free(token);
 				token = NULL;
-				return PARSER_ERROR_OK;
+				parser->error = PARSER_ERROR_OK;
+				return;
 			}
 			if (parser->error != PARSER_ERROR_OK) {
-				return parser->error;
+				return;
 			}
 		}
 	}
@@ -555,7 +556,7 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 	free(token);
 	token = NULL;
 
-	return PARSER_ERROR_OK;
+	parser->error = PARSER_ERROR_OK;
 }
 
 void
@@ -631,7 +632,7 @@ parser_find_goalcols(struct Parser *parser)
 	}
 }
 
-enum ParserError
+void
 print_newline_array(struct Parser *parser, struct Array *arr)
 {
 	struct Token *o = array_get(arr, 0);
@@ -643,7 +644,8 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		char *var = variable_tostring(token_variable(o));
 		parser_enqueue_output(parser, var);
 		parser_enqueue_output(parser, "\n");
-		return PARSER_ERROR_OK;
+		parser->error = PARSER_ERROR_OK;
+		return;
 	}
 
 	char *start = variable_tostring(token_variable(o));
@@ -687,15 +689,14 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	}
 cleanup:
 	free(sep);
-
-	return parser->error;
 }
 
-enum ParserError
+void
 print_token_array(struct Parser *parser, struct Array *tokens)
 {
 	if (array_len(tokens) < 2) {
-		return print_newline_array(parser, tokens);
+		print_newline_array(parser, tokens);
+		return;
 	}
 
 	struct Array *arr = array_new();
@@ -755,8 +756,6 @@ print_token_array(struct Parser *parser, struct Array *tokens)
 cleanup:
 	free(row);
 	array_free(arr);
-
-	return parser->error;
 }
 
 void
@@ -929,7 +928,7 @@ cleanup:
 	array_free(wraps);
 }
 
-enum ParserError
+void
 parser_output_prepare(struct Parser *parser)
 {
 	if (!parser->read_finished) {
@@ -937,7 +936,7 @@ parser_output_prepare(struct Parser *parser)
 	}
 
 	if (parser->error != PARSER_ERROR_OK) {
-		return parser->error;
+		return;
 	}
 
 	if (parser->settings.behavior & PARSER_OUTPUT_DUMP_TOKENS) {
@@ -949,8 +948,6 @@ parser_output_prepare(struct Parser *parser)
 	} else if (parser->settings.behavior & PARSER_OUTPUT_REFORMAT) {
 		parser_output_reformatted(parser);
 	}
-
-	return parser->error;
 }
 
 struct Array *
@@ -1119,12 +1116,12 @@ parser_output_edited_insert_empty(struct Parser *parser, struct Token *prev)
 	}
 }
 
-enum ParserError
+void
 parser_output_reformatted(struct Parser *parser)
 {
 	parser_find_goalcols(parser);
 	if (parser->error != PARSER_ERROR_OK) {
-		return parser->error;
+		return;
 	}
 
 	struct Array *target_arr = array_new();
@@ -1219,15 +1216,13 @@ parser_output_reformatted(struct Parser *parser)
 cleanup:
 	array_free(target_arr);
 	array_free(variable_arr);
-
-	return parser->error;
 }
 
-enum ParserError
+void
 parser_output_dump_tokens(struct Parser *parser)
 {
 	if (parser->error != PARSER_ERROR_OK) {
-		return parser->error;
+		return;
 	}
 
 	size_t maxvarlen = 0;
@@ -1282,7 +1277,7 @@ parser_output_dump_tokens(struct Parser *parser)
 			break;
 		default:
 			parser->error = PARSER_ERROR_UNHANDLED_TOKEN_TYPE;
-			return parser->error;
+			return;
 		}
 		char *var = NULL;
 		ssize_t len;
@@ -1341,14 +1336,14 @@ parser_output_dump_tokens(struct Parser *parser)
 		parser_enqueue_output(parser, "\n");
 	}
 
-	return PARSER_ERROR_OK;
+	parser->error = PARSER_ERROR_OK;
 }
 
-enum ParserError
+void
 parser_read_line(struct Parser *parser, char *line)
 {
 	if (parser->error != PARSER_ERROR_OK) {
-		return parser->error;
+		return;
 	}
 
 	size_t linelen = strlen(line);
@@ -1378,28 +1373,26 @@ parser_read_line(struct Parser *parser, char *line)
 		if (strlen(line) < 1) {
 			if (strlcat(parser->inbuf, " ", INBUF_SIZE) >= INBUF_SIZE) {
 				parser->error = PARSER_ERROR_BUFFER_TOO_SMALL;
-				return parser->error;
+				return;
 			}
 		}
 	}
 
 	if (strlcat(parser->inbuf, line, INBUF_SIZE) >= INBUF_SIZE) {
 		parser->error = PARSER_ERROR_BUFFER_TOO_SMALL;
-		return parser->error;
+		return;
 	}
 
 	if (!will_continue) {
-		enum ParserError error = parser_read_internal(parser);
-		if (error != PARSER_ERROR_OK) {
-			return error;
+		parser_read_internal(parser);
+		if (parser->error != PARSER_ERROR_OK) {
+			return;
 		}
 		parser->lines.start = parser->lines.end;
 		memset(parser->inbuf, 0, INBUF_SIZE);
 	}
 
 	parser->continued = will_continue;
-
-	return PARSER_ERROR_OK;
 }
 
 enum ParserError
@@ -1416,10 +1409,10 @@ parser_read_from_file(struct Parser *parser, FILE *fp)
 		if (linelen > 0 && line[linelen - 1] == '\n') {
 			line[linelen - 1] = 0;
 		}
-		enum ParserError error = parser_read_line(parser, line);
-		if (error != PARSER_ERROR_OK) {
+		parser_read_line(parser, line);
+		if (parser->error != PARSER_ERROR_OK) {
 			free(line);
-			return error;
+			return parser->error;
 		}
 	}
 
@@ -1428,11 +1421,11 @@ parser_read_from_file(struct Parser *parser, FILE *fp)
 	return PARSER_ERROR_OK;
 }
 
-enum ParserError
+void
 parser_read_internal(struct Parser *parser)
 {
 	if (parser->error != PARSER_ERROR_OK) {
-		return parser->error;
+		return;
 	}
 
 	char *buf = str_trim(parser->inbuf);
@@ -1522,8 +1515,6 @@ next:
 		parser->varname = NULL;
 	}
 	free(buf);
-
-	return parser->error;
 }
 
 enum ParserError
@@ -1537,9 +1528,11 @@ parser_read_finish(struct Parser *parser)
 		parser->lines.end++;
 	}
 
-	if (strlen(parser->inbuf) > 0 &&
-	    PARSER_ERROR_OK != parser_read_internal(parser)) {
-		return parser->error;
+	if (strlen(parser->inbuf) > 0) {
+		parser_read_internal(parser);
+		if (parser->error != PARSER_ERROR_OK) {
+			return parser->error;
+		}
 	}
 
 	if (parser->in_target) {
@@ -1641,17 +1634,17 @@ parser_read_from_buffer(struct Parser *parser, const char *input, size_t len)
 		return parser->error;
 	}
 
-	enum ParserError error = PARSER_ERROR_OK;
 	char *buf, *bufp, *line;
 	buf = bufp = xstrndup(input, len);
 	while ((line = strsep(&bufp, "\n")) != NULL) {
-		if ((error = parser_read_line(parser, line)) != PARSER_ERROR_OK) {
+		parser_read_line(parser, line);
+		if (parser->error != PARSER_ERROR_OK) {
 			break;
 		}
 	}
 	free(buf);
 
-	return error;
+	return parser->error;
 }
 
 void
