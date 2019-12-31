@@ -8,8 +8,11 @@ LN?=		ln
 CFLAGS+=	-std=c99 -I.
 LDADD+=		${LIBDL} -lm
 
-OBJS=		array.o compats.o conditional.o diff.o mainutils.o parser.o \
-		regexp.o rules.o target.o token.o util.o variable.o parser/plugin.o
+SHARED_LDFLAGS+=	-Wl,--no-undefined
+
+OBJS=		array.o compats.o conditional.o diff.o diffutil.o mainutils.o \
+		parser.o parser/plugin.o regexp.o rules.o target.o token.o \
+		util.o variable.o
 PLUGINS=	parser/plugin.edit.bump-revision.${LIBSUFFIX} \
 		parser/plugin.edit.merge.${LIBSUFFIX} \
 		parser/plugin.edit.set-version.${LIBSUFFIX} \
@@ -64,8 +67,9 @@ portscan.o: portscan.c config.h array.h conditional.h diff.h mainutils.h parser.
 
 conditional.o: config.h conditional.c conditional.h regexp.h
 diff.o: config.h diff.h
+diffutil.o: config.h array.h diff.h diffutil.h
 mainutils.o: config.h array.h mainutils.c mainutils.h parser.h util.h
-parser.o: config.h array.h conditional.h regexp.h parser.c parser.h rules.h target.h token.h util.h variable.h
+parser.o: config.h array.h conditional.h diffutil.h regexp.h parser.c parser.h rules.h target.h token.h util.h variable.h
 parser/plugin.edit-set-version.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.set-version.c
 parser/plugin.edit.bump-revision.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.bump-revision.c
 parser/plugin.edit.merge.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.merge.c

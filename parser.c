@@ -48,6 +48,8 @@
 
 #include "array.h"
 #include "conditional.h"
+#include "diff.h"
+#include "diffutil.h"
 #include "parser.h"
 #include "parser/plugin.h"
 #include "regexp.h"
@@ -106,6 +108,7 @@ static void parser_output_print_target_command(struct Parser *, struct Array *);
 static struct Array *parser_output_sort_opt_use(struct Parser *, struct Array *);
 static struct Array *parser_output_reformatted_helper(struct Parser *, struct Array *);
 static void parser_output_reformatted(struct Parser *);
+static void parser_output_diff(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read_internal(struct Parser *);
 static void parser_read_line(struct Parser *, char *);
@@ -251,6 +254,7 @@ range_tostring(struct Range *range)
 void
 parser_init_settings(struct ParserSettings *settings)
 {
+	settings->filename = NULL;
 	settings->behavior = PARSER_DEFAULT;
 	settings->target_command_format_threshold = 8;
 	settings->target_command_format_wrapcol = 65;
@@ -277,6 +281,11 @@ parser_new(struct ParserSettings *settings)
 	parser->lines.end = 1;
 	parser->inbuf = xmalloc(INBUF_SIZE);
 	parser->settings = *settings;
+	if (settings->filename) {
+		parser->settings.filename = xstrdup(settings->filename);
+	} else {
+		parser->settings.filename = xstrdup("/dev/stdin");
+	}
 #if PORTFMT_SUBPACKAGES
 	parser->subpackages = array_new();
 
@@ -333,6 +342,7 @@ parser_free(struct Parser *parser)
 	array_free(parser->edited);
 	array_free(parser->tokens);
 
+	free(parser->settings.filename);
 	free(parser->error_msg);
 	free(parser->inbuf);
 	free(parser);
@@ -948,6 +958,10 @@ parser_output_prepare(struct Parser *parser)
 	} else if (parser->settings.behavior & PARSER_OUTPUT_REFORMAT) {
 		parser_output_reformatted(parser);
 	}
+
+	if (parser->settings.behavior & PARSER_OUTPUT_DIFF) {
+		parser_output_diff(parser);
+	}
 }
 
 struct Array *
@@ -1216,6 +1230,45 @@ parser_output_reformatted(struct Parser *parser)
 cleanup:
 	array_free(target_arr);
 	array_free(variable_arr);
+}
+
+void
+parser_output_diff(struct Parser *parser)
+{
+	if (parser->error != PARSER_ERROR_OK) {
+		return;
+	}
+
+	// Normalize result: one element = one line like parser->rawlines
+	struct Array *lines = array_new();
+	char *lines_buf = array_join(parser->result, "");
+	char *token;
+	while ((token = strsep(&lines_buf, "\n")) != NULL) {
+		array_append(lines, token);
+	}
+	array_pop(lines);
+
+	struct diff p;
+	int rc = array_diff(parser->rawlines, lines, &p, str_compare, NULL);
+	if (rc <= 0) {
+		parser->error = PARSER_ERROR_UNSPECIFIED;
+		free(parser->error_msg);
+		xasprintf(&parser->error_msg, "could not create diff");
+		return;
+	}
+
+	struct Array *new_result = diff_to_patch(&p, parser->settings.filename, parser->settings.filename, !(parser->settings.behavior & PARSER_OUTPUT_NO_COLOR));
+	for (size_t i = 0; i < array_len(parser->result); i++) {
+		char *line = array_get(parser->result, i);
+		free(line);
+	}
+	array_free(parser->result);
+	parser->result = new_result;
+
+	free(lines_buf);
+	array_free(lines);
+	free(p.ses);
+	free(p.lcs);
 }
 
 void

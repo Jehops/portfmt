@@ -80,6 +80,8 @@ main(int argc, char *argv[])
 	enter_sandbox();
 
 	struct Parser *parser = parser_new(&settings);
+	free(settings.filename);
+	settings.filename = NULL;
 	enum ParserError error = parser_read_from_file(parser, fp_in);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));

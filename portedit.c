@@ -95,7 +95,7 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "Diuw:", NULL)) {
 		apply_usage();
 	}
 	if (argc < 1) {
@@ -147,7 +147,7 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "Diuw:", NULL)) {
 		bump_epoch_usage();
 	}
 
@@ -187,7 +187,7 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "Diuw:", NULL)) {
 		bump_revision_usage();
 	}
 
@@ -268,7 +268,7 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	argc--;
 
 	struct Array *expressions = array_new();
-	if (!read_common_args(&argc, &argv, settings, "e:iuw:", expressions)) {
+	if (!read_common_args(&argc, &argv, settings, "De:iuw:", expressions)) {
 		merge_usage();
 	}
 	if (argc == 0) {
@@ -337,7 +337,7 @@ sanitize_append(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "Diuw:", NULL)) {
 		sanitize_append_usage();
 	}
 
@@ -376,7 +376,7 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "iuw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "Diuw:", NULL)) {
 		set_version_usage();
 	}
 
@@ -499,21 +499,21 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 void
 apply_usage()
 {
-	fprintf(stderr, "usage: portedit apply [-iu] [-w wrapcol] <edit> [Makefile]\n");
+	fprintf(stderr, "usage: portedit apply [-Diu] [-w wrapcol] <edit> [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 void
 bump_epoch_usage()
 {
-	fprintf(stderr, "usage: portedit bump-epoch [-iu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit bump-epoch [-Diu] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 void
 bump_revision_usage()
 {
-	fprintf(stderr, "usage: portedit bump-revision [-iu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit bump-revision [-Diu] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
@@ -527,21 +527,21 @@ get_variable_usage()
 void
 merge_usage()
 {
-	fprintf(stderr, "usage: portedit merge [-iu] [-w wrapcol] [-e expr] [Makefile]\n");
+	fprintf(stderr, "usage: portedit merge [-Diu] [-w wrapcol] [-e expr] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 void
 sanitize_append_usage()
 {
-	fprintf(stderr, "usage: portedit sanitize-append [-iu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit sanitize-append [-Diu] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 void
 set_version_usage()
 {
-	fprintf(stderr, "usage: portedit set-version [-iu] [-w wrapcol] <version> [Makefile]\n");
+	fprintf(stderr, "usage: portedit set-version [-Diu] [-w wrapcol] <version> [Makefile]\n");
 	exit(EX_USAGE);
 }
 
@@ -593,6 +593,8 @@ read_file(struct ParserSettings *settings, FILE **fp_in, FILE **fp_out, int *arg
 	enter_sandbox();
 
 	struct Parser *parser = parser_new(settings);
+	free(settings->filename);
+	settings->filename = NULL;
 	enum ParserError error = parser_read_from_file(parser, *fp_in);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));

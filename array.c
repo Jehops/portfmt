@@ -165,6 +165,14 @@ array_len(struct Array *array)
 }
 
 void
+array_pop(struct Array *array)
+{
+	if (array->len > 0) {
+		array->len--;
+	}
+}
+
+void
 array_set(struct Array *array, size_t i, void *v)
 {
 	if (i < array->len) {

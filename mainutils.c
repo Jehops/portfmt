@@ -40,6 +40,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "array.h"
@@ -87,6 +88,9 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 	int ch;
 	while ((ch = getopt(*argc, *argv, optstr)) != -1) {
 		switch (ch) {
+		case 'D':
+			settings->behavior |= PARSER_OUTPUT_DIFF;
+			break;
 		case 'd':
 			settings->behavior |= PARSER_OUTPUT_DUMP_TOKENS;
 			break;
@@ -148,6 +152,7 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 		} else {
 			filename = xstrdup(*argv[0]);
 		}
+		settings->filename = filename;
 		if (settings->behavior & PARSER_OUTPUT_INPLACE) {
 			if (!keep_stdin_open) {
 				close(STDIN_FILENO);
@@ -155,8 +160,6 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 			close(STDOUT_FILENO);
 
 			*fp_in = fopen(filename, "r+");
-			free(filename);
-			filename = NULL;
 			*fp_out = *fp_in;
 			if (*fp_in == NULL) {
 				return 0;
@@ -171,8 +174,6 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 				close(STDIN_FILENO);
 			}
 			*fp_in = fopen(filename, "r");
-			free(filename);
-			filename = NULL;
 			if (*fp_in == NULL) {
 				return 0;
 			}

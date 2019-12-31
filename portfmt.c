@@ -46,7 +46,7 @@ static void usage(void);
 void
 usage()
 {
-	fprintf(stderr, "usage: portfmt [-ditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portfmt [-Dditu] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
@@ -63,7 +63,7 @@ main(int argc, char *argv[])
 
 	parser_plugin_load_all();
 
-	if (!read_common_args(&argc, &argv, &settings, "dituw:", NULL)) {
+	if (!read_common_args(&argc, &argv, &settings, "Ddituw:", NULL)) {
 		usage();
 	}
 
@@ -83,6 +83,8 @@ main(int argc, char *argv[])
 	enter_sandbox();
 
 	struct Parser *parser = parser_new(&settings);
+	free(settings.filename);
+	settings.filename = NULL;
 	enum ParserError error = parser_read_from_file(parser, fp_in);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));

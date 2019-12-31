@@ -29,17 +29,5 @@
 
 struct Array;
 struct diff;
-typedef int (*ArrayCompareFn)(const void *, const void *, void *);
 
-struct Array *array_new(void);
-void array_append(struct Array *, void *);
-int array_diff(struct Array *, struct Array *, struct diff *, ArrayCompareFn, void *);
-void array_free(struct Array *);
-void *array_get(struct Array *, size_t);
-char *array_join(struct Array *, const char *);
-ssize_t array_find(struct Array *, void *, ArrayCompareFn, void *);
-size_t array_len(struct Array *);
-void array_pop(struct Array *);
-void array_set(struct Array *, size_t, void *);
-void array_sort(struct Array *, ArrayCompareFn, void *);
-void array_truncate(struct Array *);
+struct Array *diff_to_patch(struct diff *, const char *, const char *, int);
