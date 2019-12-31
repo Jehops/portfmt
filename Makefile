@@ -8,8 +8,6 @@ LN?=		ln
 CFLAGS+=	-std=c99 -I.
 LDADD+=		${LIBDL} -lm
 
-SHARED_LDFLAGS+=	-Wl,--no-undefined
-
 OBJS=		array.o compats.o conditional.o diff.o diffutil.o mainutils.o \
 		parser.o parser/plugin.o regexp.o rules.o target.o token.o \
 		util.o variable.o
