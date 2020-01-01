@@ -591,8 +591,7 @@ struct VariableOrderEntry {
 	{ block, var "base", flags}, \
 	{ block, var "libressl", flags}, \
 	{ block, var "libressl-devel", flags}, \
-	{ block, var "openssl", flags}, \
-	{ block, var "openssl111", flags}
+	{ block, var "openssl", flags}
 // Based on: https://www.freebsd.org/doc/en/books/porters-handbook/porting-order.html
 static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_PORTNAME, "PORTNAME", VAR_DEFAULT },
