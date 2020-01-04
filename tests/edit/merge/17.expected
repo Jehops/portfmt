@@ -1,5 +1,4 @@
 GNU_CONFIGURE=	yes
-
 LDFLAGS_i386=	-Wl,-znotext
 
 .include <bsd.port.pre.mk>

@@ -218,6 +218,12 @@ find_insert_point_same_block(struct Parser *parser, struct Array *ptokens, struc
 	return insert_after;
 }
 
+static int
+insert_newline_before_block(enum BlockType before, enum BlockType block)
+{
+	return before < block && (before < BLOCK_USES || block > BLOCK_PLIST);
+}
+
 struct Array *
 insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
@@ -279,7 +285,9 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 		if (insert_flag) {
 			insert_flag = 0;
 			if (block_before_var != block_var) {
-				append_empty_line(parser, tokens, token_lines(t));
+				if (insert_newline_before_block(block_before_var, block_var)) {
+					append_empty_line(parser, tokens, token_lines(t));
+				}
 				append_new_variable(parser, tokens, var, token_lines(t));
 				added = 1;
 				struct Token *next = find_next_token(ptokens, i, CONDITIONAL_START, TARGET_START, VARIABLE_START);
@@ -313,7 +321,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 		if (array_len(ptokens) > 0) {
 			lines = token_lines(array_get(ptokens, array_len(ptokens) - 1));
 		}
-		if (block_before_var != block_var) {
+		if (insert_newline_before_block(block_before_var, block_var)) {
 			append_empty_line(parser, tokens, lines);
 		}
 		append_new_variable(parser, tokens, var, lines);

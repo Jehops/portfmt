@@ -1,7 +1,6 @@
 PORTNAME=	tokei
 
 USES=		gmake
-
 CARGO_CRATES=
 CARGO_USE_GITHUB=
 
