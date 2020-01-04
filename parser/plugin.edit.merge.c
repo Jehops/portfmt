@@ -158,31 +158,78 @@ find_next_token(struct Array *tokens, size_t start, int a1, int a2, int a3)
 	return NULL;
 }
 
-struct Array *
-insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+static ssize_t
+find_insert_point_generic(struct Parser *parser, struct Array *ptokens, struct Variable *var, enum BlockType *block_before_var)
 {
-	struct Variable *var = (struct Variable *)userdata;
-	enum BlockType varblock = variable_order_block(parser, variable_name(var));
-	ssize_t ptokenslen = array_len(ptokens);
-
 	ssize_t insert_after = -1;
-	enum BlockType block_before = BLOCK_UNKNOWN;
-	for (ssize_t i = 0; i < ptokenslen; i++) {
+	enum BlockType previous_block = BLOCK_UNKNOWN;
+	*block_before_var = BLOCK_UNKNOWN;
+	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
-		if (token_type(t) != VARIABLE_END) {
+		if (insert_after > -1 && is_include_bsd_port_mk(t)) {
+			break;
+		} else if (token_type(t) != VARIABLE_END) {;
 			continue;
 		}
 
 		char *a = variable_name(token_variable(t));
+		enum BlockType block = variable_order_block(parser, a);
 		char *b = variable_name(var);
 		int cmp = compare_order(&a, &b, parser);
 		assert(cmp != 0);
 		if (cmp < 0) {
-			block_before = variable_order_block(parser, a);
+			*block_before_var = block;
+			insert_after = i;
+		}
+		previous_block = block;
+	}
+
+	return insert_after;
+}
+
+static ssize_t
+find_insert_point_same_block(struct Parser *parser, struct Array *ptokens, struct Variable *var, enum BlockType *block_before_var)
+{
+	ssize_t insert_after = -1;
+	enum BlockType block_var = variable_order_block(parser, variable_name(var));
+	*block_before_var = BLOCK_UNKNOWN;
+	for (size_t i = 0; i < array_len(ptokens); i++) {
+		struct Token *t = array_get(ptokens, i);
+		if (is_include_bsd_port_mk(t)) {
+			break;
+		} else if (token_type(t) != VARIABLE_END) {;
+			continue;
+		}
+
+		char *a = variable_name(token_variable(t));
+		enum BlockType block = variable_order_block(parser, a);
+		if (block != block_var) {
+			continue;
+		}
+		char *b = variable_name(var);
+		int cmp = compare_order(&a, &b, parser);
+		assert(cmp != 0);
+		if (cmp < 0) {
+			*block_before_var = block;
 			insert_after = i;
 		}
 	}
 
+	return insert_after;
+}
+
+struct Array *
+insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+{
+	struct Variable *var = (struct Variable *)userdata;
+	enum BlockType block_var = variable_order_block(parser, variable_name(var));
+	ssize_t ptokenslen = array_len(ptokens);
+
+	enum BlockType block_before_var = BLOCK_UNKNOWN;
+	ssize_t insert_after = find_insert_point_same_block(parser, ptokens, var, &block_before_var);
+	if (insert_after == -1) {
+		insert_after = find_insert_point_generic(parser, ptokens, var, &block_before_var);
+	}
 	if (insert_after == -1) {
 		// No variable found where we could insert our new
 		// var.  Insert it before any conditional or target
@@ -211,7 +258,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 			for (ssize_t i = 0; i < ptokenslen; i++) {
 				struct Token *t = array_get(ptokens, i);
 				if (!empty_line_added && token_type(t) == VARIABLE_START &&
-				    variable_order_block(parser, variable_name(token_variable(t))) != varblock) {
+				    variable_order_block(parser, variable_name(token_variable(t))) != block_var) {
 					append_empty_line(parser, tokens, token_lines(t));
 					empty_line_added = 1;
 				}
@@ -231,7 +278,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 		struct Token *t = array_get(ptokens, i);
 		if (insert_flag) {
 			insert_flag = 0;
-			if (block_before != varblock) {
+			if (block_before_var != block_var) {
 				append_empty_line(parser, tokens, token_lines(t));
 				append_new_variable(parser, tokens, var, token_lines(t));
 				added = 1;
@@ -243,7 +290,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 					next = find_next_token(ptokens, i, VARIABLE_START, -1, -1);
 					if (next) {
 						enum BlockType block_next = variable_order_block(parser, variable_name(token_variable(next)));
-						if (block_next == varblock) {
+						if (block_next == block_var) {
 							continue;
 						}
 					} else {
@@ -266,7 +313,7 @@ insert_variable(struct Parser *parser, struct Array *ptokens, enum ParserError *
 		if (array_len(ptokens) > 0) {
 			lines = token_lines(array_get(ptokens, array_len(ptokens) - 1));
 		}
-		if (block_before != varblock) {
+		if (block_before_var != block_var) {
 			append_empty_line(parser, tokens, lines);
 		}
 		append_new_variable(parser, tokens, var, lines);

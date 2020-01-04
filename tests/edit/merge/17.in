@@ -1,0 +1,9 @@
+GNU_CONFIGURE=	yes
+
+.include <bsd.port.pre.mk>
+
+.if ${CHOSEN_COMPILER_TYPE} == gcc
+CXXFLAGS+=	-fpermissive
+.endif
+
+.include <bsd.port.post.mk>
