@@ -79,7 +79,8 @@ skip_developer_only(enum SkipDeveloperState state, struct Token *t)
 		case SKIP_DEVELOPER_SKIP:
 			if (token_data(t) &&
 			    (strcmp(token_data(t), "defined(DEVELOPER)") == 0 ||
-			     strcmp(token_data(t), "defined(MAINTAINER_MODE)") == 0)) {
+			     strcmp(token_data(t), "defined(MAINTAINER_MODE)") == 0 ||
+			     strcmp(token_data(t), "make(makesum)") == 0)) {
 				return SKIP_DEVELOPER_END;
 			}
 			break;
