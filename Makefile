@@ -18,7 +18,7 @@ PLUGINS=	parser/plugin.edit.bump-revision.${LIBSUFFIX} \
 		parser/plugin.lint.clones.${LIBSUFFIX} \
 		parser/plugin.lint.order.${LIBSUFFIX} \
 		parser/plugin.refactor.collapse-adjacent-variables.${LIBSUFFIX} \
-		parser/plugin.refactor.depup-tokens.${LIBSUFFIX} \
+		parser/plugin.refactor.dedup-tokens.${LIBSUFFIX} \
 		parser/plugin.refactor.sanitize-append-modifier.${LIBSUFFIX} \
 		parser/plugin.refactor.sanitize-eol-comments.${LIBSUFFIX} \
 		parser/plugin.output.unknown-targets.${LIBSUFFIX} \
