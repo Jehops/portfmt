@@ -1,0 +1,3 @@
+USE_GL=		gl glu
+
+MAKE_ARGS=	CC="${CC}" CXX="${CXX}"

@@ -1615,6 +1615,10 @@ parser_read_finish(struct Parser *parser)
 		return parser->error;
 	}
 
+	if (PARSER_ERROR_OK != parser_edit(parser, "refactor.remove-consecutive-empty-lines", NULL)) {
+		return parser->error;
+	}
+
 	return parser->error;
 }
 
@@ -2068,6 +2072,10 @@ parser_merge(struct Parser *parser, struct Parser *subparser, enum ParserMergeBe
 	if (error == PARSER_ERROR_OK &&
 	    parser->settings.behavior & PARSER_DEDUP_TOKENS) {
 		error = parser_edit(parser, "refactor.dedup-tokens", NULL);
+	}
+
+	if (error == PARSER_ERROR_OK) {
+		error = parser_edit(parser, "refactor.remove-consecutive-empty-lines", NULL);
 	}
 
 	return error;
