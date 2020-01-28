@@ -72,6 +72,7 @@ refactor_remove_consecutive_empty_lines(struct Parser *parser, struct Array *pto
 				empty++;
 			} else {
 				array_append(tokens, t);
+				empty = 0;
 			}
 		} else {
 			empty = 0;
