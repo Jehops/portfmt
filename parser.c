@@ -1262,13 +1262,17 @@ parser_output_diff(struct Parser *parser)
 		return;
 	}
 
-	struct Array *new_result = diff_to_patch(&p, parser->settings.filename, parser->settings.filename, !(parser->settings.behavior & PARSER_OUTPUT_NO_COLOR));
 	for (size_t i = 0; i < array_len(parser->result); i++) {
 		char *line = array_get(parser->result, i);
 		free(line);
 	}
-	array_free(parser->result);
-	parser->result = new_result;
+	array_truncate(parser->result);
+
+	if (p.editdist > 0) {
+		struct Array *new_result = diff_to_patch(&p, parser->settings.filename, parser->settings.filename, !(parser->settings.behavior & PARSER_OUTPUT_NO_COLOR));
+		array_free(parser->result);
+		parser->result = new_result;
+	}
 
 	free(lines_buf);
 	array_free(lines);
