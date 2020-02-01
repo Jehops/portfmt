@@ -1,0 +1,4 @@
+USES=		compiler:c++11-lang iconv
+
+FOO_USES_OFF=	python:3.5+,build
+FOO_USES=	python:3.5+,build

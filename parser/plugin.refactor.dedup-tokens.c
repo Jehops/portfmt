@@ -31,6 +31,7 @@
 #include <regex.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "array.h"
 #include "parser.h"
@@ -39,6 +40,13 @@
 #include "token.h"
 #include "util.h"
 #include "variable.h"
+
+enum DedupAction {
+	APPEND,
+	DEFAULT,
+	SKIP,
+	USES,
+};
 
 static struct Array *
 refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
@@ -50,26 +58,65 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 
 	struct Array *tokens = array_new();
 	struct Array *seen = array_new();
-	int always_append = 0;
-	int skip = 0;
+	struct Array *uses = array_new();
+	enum DedupAction action = DEFAULT;
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			array_truncate(seen);
-			always_append = 0;
-			skip = skip_dedup(parser, token_variable(t));
+			for (size_t j = 0; j < array_len(uses); j++) {
+				free(array_get(uses, j));
+			}
+			array_truncate(uses);
+			action = DEFAULT;
+			if (skip_dedup(parser, token_variable(t))) {
+				action = SKIP;
+			} else {
+				// XXX: Handle *_DEPENDS (turn 'RUN_DEPENDS=foo>=1.5.6:misc/foo foo>0:misc/foo'
+				// into 'RUN_DEPENDS=foo>=1.5.6:misc/foo')?
+				char *helper = NULL;
+				if (is_options_helper(parser, variable_name(token_variable(t)), NULL, &helper, NULL)) {
+					if (strcmp(helper, "USES") == 0 || strcmp(helper, "USES_OFF") == 0) {
+						action = USES;
+					}
+					free(helper);
+				} else if (strcmp(variable_name(token_variable(t)), "USES") == 0) {
+					action = USES;
+				}
+			}
 			array_append(tokens, t);
 			break;
 		case VARIABLE_TOKEN:
-			if (skip) {
+			if (action == SKIP) {
 				array_append(tokens, t);
 			} else {
 				if (is_comment(t)) {
-					always_append = 1;
+					action = APPEND;
 				}
-				// XXX: This is naive and does not dedup composite tokens like USES=mod:args or *_DEPENDS in a good way.
-				if (always_append || array_find(seen, token_data(t), str_compare, NULL) == -1) {
+				if (action == APPEND) {
+					array_append(tokens, t);
+					array_append(seen, token_data(t));
+				} else if (action == USES) {
+					char *buf = xstrdup(token_data(t));
+					char *args = strchr(buf, ':');
+					if (args) {
+						*args = 0;
+					}
+					// We follow the semantics of the ports framework.
+					// 'USES=compiler:c++11-lang compiler:c++14-lang' is
+					// semantically equivalent to just USES=compiler:c++11-lang
+					// since compiler_ARGS has already been set once before.
+					// As such compiler:c++14-lang can be dropped entirely.
+					if (array_find(uses, buf, str_compare, NULL) == -1) {
+						array_append(tokens, t);
+						array_append(uses, buf);
+						array_append(seen, token_data(t));
+					} else {
+						parser_mark_for_gc(parser, t);
+						free(buf);
+					}
+				} else if (array_find(seen, token_data(t), str_compare, NULL) == -1) {
 					array_append(tokens, t);
 					array_append(seen, token_data(t));
 				} else {
@@ -84,6 +131,10 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 	}
 
 	array_free(seen);
+	for (size_t i = 0; i < array_len(uses); i++) {
+		free(array_get(uses, i));
+	}
+	array_free(uses);
 	return tokens;
 }
 
