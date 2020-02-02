@@ -53,7 +53,6 @@ usage()
 int
 main(int argc, char *argv[])
 {
-	int status = 0;
 	struct ParserSettings settings;
 
 	parser_init_settings(&settings);
@@ -94,8 +93,11 @@ main(int argc, char *argv[])
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 
+	int status = 0;
 	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
+	if (error == PARSER_ERROR_DIFFERENCES_FOUND) {
+		status = 2;
+	} else if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 	parser_free(parser);

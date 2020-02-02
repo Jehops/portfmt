@@ -369,6 +369,9 @@ parser_error_tostring(struct Parser *parser)
 			xasprintf(&buf, "line %s: buffer too small", lines);
 		}
 		break;
+	case PARSER_ERROR_DIFFERENCES_FOUND:
+		xasprintf(&buf, "differences found");
+		break;
 	case PARSER_ERROR_EDIT_FAILED:
 		if (parser->error_msg) {
 			xasprintf(&buf, "%s", parser->error_msg);
@@ -1272,6 +1275,7 @@ parser_output_diff(struct Parser *parser)
 		struct Array *new_result = diff_to_patch(&p, parser->settings.filename, parser->settings.filename, !(parser->settings.behavior & PARSER_OUTPUT_NO_COLOR));
 		array_free(parser->result);
 		parser->result = new_result;
+		parser->error = PARSER_ERROR_DIFFERENCES_FOUND;
 	}
 
 	free(lines_buf);
@@ -1640,9 +1644,12 @@ enum ParserError
 parser_output_write_to_file(struct Parser *parser, FILE *fp)
 {
 	parser_output_prepare(parser);
-	if (parser->error != PARSER_ERROR_OK) {
+	if (parser->error != PARSER_ERROR_OK &&
+	    parser->error != PARSER_ERROR_DIFFERENCES_FOUND) {
 		return parser->error;
 	}
+
+	int error = parser->error;
 
 	int fd = fileno(fp);
 	if (parser->settings.behavior & PARSER_OUTPUT_INPLACE) {
@@ -1662,7 +1669,7 @@ parser_output_write_to_file(struct Parser *parser, FILE *fp)
 
 	size_t len = array_len(parser->result);
 	if (len == 0) {
-		return PARSER_ERROR_OK;
+		return error;
 	}
 
 	size_t iov_len = MIN(len, IOV_MAX);
@@ -1695,7 +1702,7 @@ parser_output_write_to_file(struct Parser *parser, FILE *fp)
 	array_truncate(parser->result);
 	free(iov);
 
-	return PARSER_ERROR_OK;
+	return error;
 }
 
 enum ParserError

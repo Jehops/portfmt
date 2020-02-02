@@ -124,8 +124,11 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 		errx(1, "%s: %s", apply_edit, parser_error_tostring(parser));
 	}
 
+	int status = 0;
 	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
+	if (error == PARSER_ERROR_DIFFERENCES_FOUND) {
+		status = 2;
+	} else if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
@@ -135,7 +138,7 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	return 0;
+	return status;
 }
 
 int
@@ -164,8 +167,11 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 
+	int status = 0;
 	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
+	if (error == PARSER_ERROR_DIFFERENCES_FOUND) {
+		status = 2;
+	} else if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
@@ -175,7 +181,7 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	return 0;
+	return status;
 }
 
 int
@@ -204,8 +210,11 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 
+	int status = 0;
 	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
+	if (error == PARSER_ERROR_DIFFERENCES_FOUND) {
+		status = 2;
+	} else if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
@@ -215,7 +224,7 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	return 0;
+	return status;
 }
 
 int
@@ -312,8 +321,11 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	}
 	parser_free(subparser);
 
+	int status = 0;
 	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
+	if (error == PARSER_ERROR_DIFFERENCES_FOUND) {
+		status = 2;
+	} else if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
@@ -323,7 +335,7 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	return 0;
+	return status;
 }
 
 int
@@ -353,8 +365,11 @@ sanitize_append(struct ParserSettings *settings, int argc, char *argv[])
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 
+	int status = 0;
 	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
+	if (error == PARSER_ERROR_DIFFERENCES_FOUND) {
+		status = 2;
+	} else if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
@@ -364,7 +379,7 @@ sanitize_append(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	return 0;
+	return status;
 }
 
 int
@@ -400,8 +415,11 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 
+	int status = 0;
 	error = parser_output_write_to_file(parser, fp_out);
-	if (error != PARSER_ERROR_OK) {
+	if (error == PARSER_ERROR_DIFFERENCES_FOUND) {
+		status = 2;
+	} else if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 	parser_free(parser);
@@ -411,7 +429,7 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	return 0;
+	return status;
 }
 
 int

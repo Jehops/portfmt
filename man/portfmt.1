@@ -25,7 +25,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd December 31, 2019
+.Dd February 2, 2020
 .Dt PORTFMT 1
 .Os
 .Sh NAME
@@ -119,6 +119,19 @@ with
 .Bd -literal -offset indent
 xnoremap <leader>1 <esc>:'<,'>!portfmt<CR>
 .Ed
+.Sh EXIT STATUS
+.Nm
+will exit with one of the following values:
+.Bl -tag -width indent
+.It 0
+Success.
+.It 1
+An error occurred.
+.It 2
+There were no changes when compared to previous results.
+Only possible with
+.Fl D .
+.El
 .Sh EXAMPLES
 In-place format
 .Pa /usr/ports/audio/sndio/Makefile :
