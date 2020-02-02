@@ -1604,6 +1604,11 @@ parser_read_finish(struct Parser *parser)
 	// Set it now to avoid recursion in parser_edit()
 	parser->read_finished = 1;
 
+	if (parser->settings.behavior & PARSER_SANITIZE_COMMENTS &&
+	    PARSER_ERROR_OK != parser_edit(parser, "refactor.sanitize-comments", NULL)) {
+		return parser->error;
+	}
+
 	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS) &&
 	    PARSER_ERROR_OK != parser_edit(parser, "refactor.sanitize-eol-comments", NULL)) {
 		return parser->error;

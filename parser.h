@@ -43,6 +43,7 @@ enum ParserBehavior {
 	PARSER_SANITIZE_APPEND = 1 << 11,
 	PARSER_UNSORTED_VARIABLES = 1 << 12,
 	PARSER_DYNAMIC_PORT_OPTIONS = 1 << 13,
+	PARSER_SANITIZE_COMMENTS = 1 << 14,
 };
 
 enum ParserMergeBehavior {
