@@ -42,10 +42,11 @@ diff_to_patch(struct diff *p, const char *origin_name, const char *target_name, 
 	struct Array *result = array_new();
 
 	const char *color_add = ANSI_COLOR_GREEN;
+	const char *color_context = ANSI_COLOR_CYAN;
 	const char *color_delete = ANSI_COLOR_RED;
 	const char *color_reset = ANSI_COLOR_RESET;
 	if (!color) {
-		color_add = color_delete = color_reset = "";
+		color_add = color_context = color_delete = color_reset = "";
 	}
 
 	size_t origin_lines = 0;
@@ -63,9 +64,9 @@ diff_to_patch(struct diff *p, const char *origin_name, const char *target_name, 
 		target_name = "Makefile";
 	}
 	char *buf;
-	xasprintf(&buf, "--- %s\n+++ %s\n@@ -%zu,%zu +%zu,%zu @@\n",
-		origin_name, target_name, origin_start, origin_lines,
-		target_start, target_lines);
+	xasprintf(&buf, "%s--- %s\n%s+++ %s\n%s@@ -%zu,%zu +%zu,%zu @@%s\n",
+		color_delete, origin_name, color_add, target_name, color_context,
+		origin_start, origin_lines, target_start, target_lines, color_reset);
 	array_append(result, buf);
 
 	for (size_t i = 0; i < p->sessz; i++) {
