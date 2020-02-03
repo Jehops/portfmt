@@ -164,12 +164,14 @@ array_len(struct Array *array)
 	return array->len;
 }
 
-void
+void *
 array_pop(struct Array *array)
 {
 	if (array->len > 0) {
 		array->len--;
+		return array->buf[array->len];
 	}
+	return NULL;
 }
 
 void
