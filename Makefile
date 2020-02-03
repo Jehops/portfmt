@@ -53,43 +53,45 @@ portfmt: ${LIBNAME}.${LIBSUFFIX} portfmt.o
 portscan: ${LIBNAME}.${LIBSUFFIX} portscan.o
 	${CC} ${LDFLAGS} -o portscan portscan.o -lpthread ${LIBNAME}.${LIBSUFFIX}
 
-portclippy.o: portclippy.c config.h mainutils.h parser.h parser/plugin.h
+portclippy.o: config.h mainutils.h parser.h parser/plugin.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portedit.o: portedit.c config.h array.h mainutils.h parser.h parser/plugin.h util.h
+portedit.o: config.h array.h mainutils.h parser.h parser/plugin.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portfmt.o: portfmt.c config.h mainutils.h parser.h parser/plugin.h
+portfmt.o: config.h mainutils.h parser.h parser/plugin.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portscan.o: portscan.c config.h array.h conditional.h diff.h mainutils.h parser.h parser/plugin.h token.h util.h
+portscan.o: config.h array.h conditional.h diff.h mainutils.h parser.h parser/plugin.h token.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-conditional.o: config.h conditional.c conditional.h regexp.h
+array.o: config.h array.h diff.h util.h
+conditional.o: config.h conditional.h regexp.h rules.h util.h
 diff.o: config.h diff.h
-diffutil.o: config.h array.h diff.h diffutil.h
-mainutils.o: config.h array.h mainutils.c mainutils.h parser.h util.h
-parser.o: config.h array.h conditional.h diffutil.h regexp.h parser.c parser.h rules.h target.h token.h util.h variable.h
-parser/plugin.edit-set-version.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.set-version.c
-parser/plugin.edit.bump-revision.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.bump-revision.c
-parser/plugin.edit.merge.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.edit.merge.c
-parser/plugin.lint.clones.o: config.h array.h conditional.h parser.h parser/plugin.h token.h util.h variable.h parser/plugin.lint.clones.c
-parser/plugin.lint.order.o: config.h array.h conditional.h diff.h parser.h parser/plugin.h rules.h target.h token.h util.h variable.h parser/plugin.lint.order.c
+diffutil.o: config.h array.h diff.h diffutil.h util.h
+mainutils.o: config.h array.h mainutils.h parser.h util.h
+parser.o: config.h array.h conditional.h diffutil.h parser.h parser/plugin.h regexp.h rules.h target.h token.h util.h variable.h
 parser/plugin.o: config.h parser.h parser/plugin.h util.h
-parser/plugin.kakoune.select-object-on-line.o: config.h array.h parser.h parser/plugin.h token.h util.h parser/plugin.kakoune.select-object-on-line.c
-parser/plugin.refactor.collapse-adjacent-variables.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h parser/plugin.refactor.collapse-adjacent-variables.c
-parser/plugin.refactor.dedup-tokens.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h parser/plugin.refactor.dedup-tokens.c
-parser/plugin.refactor.sanitize-append-modifier.o: config.h array.h parser.h parser/plugin.h rules.h token.h variable.h parser/plugin.refactor.sanitize-append-modifier.c
-parser/plugin.refactor.sanitize-eol-comments.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h parser/plugin.refactor.sanitize-eol-comments.c
-parser/plugin.output.unknown-targets.o: config.h array.h parser.h parser/plugin.h regexp.h rules.h target.h token.h util.h parser/plugin.output.unknown-targets.c
-parser/plugin.output.unknown-variables.o: config.h array.h parser.h parser/plugin.h regexp.h rules.h token.h util.h variable.h parser/plugin.output.unknown-variables.c
-parser/plugin.output.variable-value.o: config.h array.h parser.h parser/plugin.h token.h variable.h parser/plugin.output.variable-value.c
-regexp.o: config.h
-rules.o: config.h array.h conditional.h parser.h rules.c regexp.h rules.h token.h util.h variable.h
+parser/plugin.edit.bump-revision.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
+parser/plugin.edit.merge.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
+parser/plugin.edit-set-version.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
+parser/plugin.kakoune.select-object-on-line.o: config.h array.h parser.h parser/plugin.h token.h util.h
+parser/plugin.lint.clones.o: config.h array.h conditional.h parser.h parser/plugin.h token.h util.h variable.h
+parser/plugin.lint.order.o: config.h array.h conditional.h diff.h parser.h parser/plugin.h rules.h target.h token.h util.h variable.h
+parser/plugin.output.unknown-targets.o: config.h array.h parser.h parser/plugin.h rules.h target.h token.h util.h
+parser/plugin.output.unknown-variables.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
+parser/plugin.output.variable-value.o: config.h array.h parser.h parser/plugin.h regexp.h token.h variable.h
+parser/plugin.refactor.collapse-adjacent-variables.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h
+parser/plugin.refactor.dedup-tokens.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h
+parser/plugin.refactor.sanitize-append-modifier.o: config.h array.h parser.h parser/plugin.h rules.h token.h variable.h
+parser/plugin.refactor.sanitize-comments.o: config.h array.h parser.h parser/plugin.h token.h util.h
+parser/plugin.refactor.sanitize-eol-comments.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
+regexp.o: config.h regexp.h util.h
+rules.o: config.h array.h conditional.h parser.h regexp.h rules.h token.h util.h variable.h
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h
-util.o: config.h util.c array.h util.h
-variable.o: config.h regexp.h rules.h util.h variable.c variable.h
+util.o: config.h array.h util.h
+variable.o: config.h regexp.h rules.h util.h variable.h
 
 install:
 	${MKDIR} ${DESTDIR}${BINDIR} ${DESTDIR}${LIBDIR}/portfmt ${DESTDIR}${MANDIR}/man1
