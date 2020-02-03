@@ -823,7 +823,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		}
 
 		array_append(merge, word);
-		array_append(commands, array_join(merge, " "));
+		array_append(commands, str_join(merge, " "));
 		if (wrap_after) {
 			// An empty string is abused as a "wrap line here" marker
 			array_append(commands, xstrdup(""));
@@ -832,7 +832,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		array_truncate(merge);
 	}
 	if (array_len(merge) > 0) {
-		array_append(commands, array_join(merge, " "));
+		array_append(commands, str_join(merge, " "));
 		if (wrap_after) {
 			// An empty string is abused as a "wrap line here" marker
 			array_append(commands, xstrdup(""));
@@ -1249,7 +1249,7 @@ parser_output_diff(struct Parser *parser)
 
 	// Normalize result: one element = one line like parser->rawlines
 	struct Array *lines = array_new();
-	char *lines_buf = array_join(parser->result, "");
+	char *lines_buf = str_join(parser->result, "");
 	char *token;
 	while ((token = strsep(&lines_buf, "\n")) != NULL) {
 		array_append(lines, token);
@@ -2071,11 +2071,11 @@ parser_lookup_variable_str(struct Parser *parser, const char *name, char **retva
 	}
 
 	if (comment) {
-		*comment = array_join(comments, " ");
+		*comment = str_join(comments, " ");
 	}
 
 	if (retval) {
-		*retval = array_join(tokens, " ");
+		*retval = str_join(tokens, " ");
 	}
 
 	array_free(comments);

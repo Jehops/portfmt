@@ -41,6 +41,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "array.h"
 #include "util.h"
 
 char *
@@ -130,6 +131,27 @@ str_endswith(const char *s, const char *end)
 		return 0;
 	}
 	return strncmp(s + strlen(s) - len, end, len) == 0;
+}
+
+char *
+str_join(struct Array *array, const char *sep)
+{
+	size_t sz = array_len(array) + 1;
+	for (size_t i = 0; i < array_len(array); i++) {
+		char *s = array_get(array, i);
+		sz += strlen(s);
+	}
+
+	char *buf = xmalloc(sz);
+	for (size_t i = 0; i < array_len(array); i++) {
+		char *s = array_get(array, i);
+		xstrlcat(buf, s, sz);
+		if (i != array_len(array) - 1) {
+			xstrlcat(buf, sep, sz);
+		}
+	}
+
+	return buf;
 }
 
 int

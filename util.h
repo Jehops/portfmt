@@ -39,6 +39,7 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+struct Array;
 typedef int (*CompareFn)(const void *, const void *, void *);
 
 char *read_symlink(int, const char *);
@@ -49,6 +50,7 @@ char *repeat(char, size_t);
 char *str_common_prefix(const char *, const char *);
 int str_compare(const void *, const void *, void *);
 int str_endswith(const char *, const char *);
+char *str_join(struct Array *, const char *);
 int str_startswith(const char *, const char *);
 char *str_strip_dup(const char *);
 char *str_substr_dup(const char *, size_t, size_t);

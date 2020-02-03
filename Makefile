@@ -88,7 +88,7 @@ regexp.o: config.h
 rules.o: config.h array.h conditional.h parser.h rules.c regexp.h rules.h token.h util.h variable.h
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h
-util.o: config.h util.c util.h
+util.o: config.h util.c array.h util.h
 variable.o: config.h regexp.h rules.h util.h variable.c variable.h
 
 install:

@@ -137,27 +137,6 @@ array_get(struct Array *array, size_t i)
 	return NULL;
 }
 
-char *
-array_join(struct Array *array, const char *sep)
-{
-	size_t sz = array_len(array) + 1;
-	for (size_t i = 0; i < array_len(array); i++) {
-		char *s = array_get(array, i);
-		sz += strlen(s);
-	}
-
-	char *buf = xmalloc(sz);
-	for (size_t i = 0; i < array_len(array); i++) {
-		char *s = array_get(array, i);
-		xstrlcat(buf, s, sz);
-		if (i != array_len(array) - 1) {
-			xstrlcat(buf, sep, sz);
-		}
-	}
-
-	return buf;
-}
-
 size_t
 array_len(struct Array *array)
 {
