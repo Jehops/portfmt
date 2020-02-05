@@ -131,6 +131,43 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 	return 1;
 }
 
+static char *
+get_filename(const char *path)
+{
+	struct stat sb;
+	if (stat(path, &sb) == -1) {
+		return NULL;
+	}
+
+	char *filename;
+	if (S_ISDIR(sb.st_mode)) {
+		char *buf;
+		xasprintf(&buf, "%s/Makefile", path);
+		filename = realpath(buf, NULL);
+		free(buf);
+	} else {
+		filename = realpath(path, NULL);
+	}
+
+	if (filename == NULL) {
+		return NULL;
+	}
+
+	char pwd[PATH_MAX];
+	if (getcwd(pwd, PATH_MAX) == NULL) {
+		free(filename);
+		return NULL;
+	}
+
+	if (str_startswith(filename, pwd) && filename[strlen(pwd)] == '/') {
+		char *buf = xstrdup(filename + strlen(pwd) + 1);
+		free(filename);
+		filename = buf;
+	}
+
+	return filename;
+}
+
 int
 open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in, FILE **fp_out, int keep_stdin_open)
 {
@@ -141,16 +178,10 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 	if (*argc > 1 || ((settings->behavior & PARSER_OUTPUT_INPLACE) && *argc == 0)) {
 		return 0;
 	} else if (*argc == 1) {
-		struct stat sb;
-		if (stat(*argv[0], &sb) == -1) {
+		char *filename = get_filename(*argv[0]);
+		if (filename == NULL) {
 			*fp_in = NULL;
 			return 0;
-		}
-		char *filename;
-		if (S_ISDIR(sb.st_mode)) {
-			xasprintf(&filename, "%s/Makefile", *argv[0]);
-		} else {
-			filename = xstrdup(*argv[0]);
 		}
 		settings->filename = filename;
 		if (settings->behavior & PARSER_OUTPUT_INPLACE) {

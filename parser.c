@@ -282,12 +282,7 @@ parser_new(struct ParserSettings *settings)
 	parser->inbuf = xmalloc(INBUF_SIZE);
 	parser->settings = *settings;
 	if (settings->filename) {
-		char *filename = settings->filename;
-		// XXX: We could sanitize a lot more here
-		if (str_startswith(filename, "./")) {
-			filename += 2;
-		}
-		parser->settings.filename = xstrdup(filename);
+		parser->settings.filename = xstrdup(settings->filename);
 	} else {
 		parser->settings.filename = xstrdup("/dev/stdin");
 	}
