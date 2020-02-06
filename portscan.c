@@ -539,6 +539,7 @@ scan_ports(int portsdir, struct Array *origins, int include_options)
 	}
 
 	array_sort(retval, log_entry_compare, NULL);
+	free(tid);
 
 	return retval;
 }
