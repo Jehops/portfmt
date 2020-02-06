@@ -32,7 +32,6 @@
 # include <sys/capsicum.h>
 # include "capsicum_helpers.h"
 #endif
-#include <sys/stat.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -131,33 +130,36 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 	return 1;
 }
 
-static char *
-get_filename(const char *path)
+static FILE *
+open_file_helper(const char *path, const char *mode, char **retval)
 {
-	struct stat sb;
-	if (stat(path, &sb) == -1) {
+	char pwd[PATH_MAX];
+	if (getcwd(pwd, PATH_MAX) == NULL) {
+		*retval = NULL;
 		return NULL;
 	}
 
 	char *filename;
-	if (S_ISDIR(sb.st_mode)) {
-		char *buf;
-		xasprintf(&buf, "%s/Makefile", path);
-		filename = realpath(buf, NULL);
-		free(buf);
-	} else {
-		filename = realpath(path, NULL);
-	}
-
-	if (filename == NULL) {
-		return NULL;
-	}
-
-	char pwd[PATH_MAX];
-	if (getcwd(pwd, PATH_MAX) == NULL) {
+	xasprintf(&filename, "%s/Makefile", path);
+	FILE *f = fopen(filename, mode);
+	if (f == NULL) {
 		free(filename);
+		f = fopen(path, mode);
+		if (f == NULL) {
+			*retval = NULL;
+			return NULL;
+		}
+		filename = xstrdup(path);
+	}
+
+	char *buf = realpath(filename, NULL);
+	if (buf == NULL) {
+		free(filename);
+		fclose(f);
+		*retval = NULL;
 		return NULL;
 	}
+	filename = buf;
 
 	if (str_startswith(filename, pwd) && filename[strlen(pwd)] == '/') {
 		char *buf = xstrdup(filename + strlen(pwd) + 1);
@@ -165,7 +167,8 @@ get_filename(const char *path)
 		filename = buf;
 	}
 
-	return filename;
+	*retval = filename;
+	return f;
 }
 
 int
@@ -178,19 +181,13 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 	if (*argc > 1 || ((settings->behavior & PARSER_OUTPUT_INPLACE) && *argc == 0)) {
 		return 0;
 	} else if (*argc == 1) {
-		char *filename = get_filename(*argv[0]);
-		if (filename == NULL) {
-			*fp_in = NULL;
-			return 0;
-		}
-		settings->filename = filename;
 		if (settings->behavior & PARSER_OUTPUT_INPLACE) {
 			if (!keep_stdin_open) {
 				close(STDIN_FILENO);
 			}
 			close(STDOUT_FILENO);
 
-			*fp_in = fopen(filename, "r+");
+			*fp_in = open_file_helper(*argv[0], "r+", &settings->filename);
 			*fp_out = *fp_in;
 			if (*fp_in == NULL) {
 				return 0;
@@ -204,7 +201,7 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 			if (!keep_stdin_open) {
 				close(STDIN_FILENO);
 			}
-			*fp_in = fopen(filename, "r");
+			*fp_in = open_file_helper(*argv[0], "r", &settings->filename);
 			if (*fp_in == NULL) {
 				return 0;
 			}
