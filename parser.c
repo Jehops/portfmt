@@ -1254,6 +1254,8 @@ parser_output_diff(struct Parser *parser)
 	struct diff p;
 	int rc = array_diff(parser->rawlines, lines, &p, str_compare, NULL);
 	if (rc <= 0) {
+		free(lines_buf);
+		array_free(lines);
 		parser->error = PARSER_ERROR_UNSPECIFIED;
 		free(parser->error_msg);
 		xasprintf(&parser->error_msg, "could not create diff");
