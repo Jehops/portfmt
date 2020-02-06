@@ -53,16 +53,16 @@ portfmt: ${LIBNAME}.${LIBSUFFIX} portfmt.o
 portscan: ${LIBNAME}.${LIBSUFFIX} portscan.o
 	${CC} ${LDFLAGS} -o portscan portscan.o -lpthread ${LIBNAME}.${LIBSUFFIX}
 
-portclippy.o: config.h mainutils.h parser.h parser/plugin.h
+portclippy.o: portclippy.c config.h mainutils.h parser.h parser/plugin.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portedit.o: config.h array.h mainutils.h parser.h parser/plugin.h util.h
+portedit.o: portedit.c config.h array.h mainutils.h parser.h parser/plugin.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portfmt.o: config.h mainutils.h parser.h parser/plugin.h
+portfmt.o: portfmt.c config.h mainutils.h parser.h parser/plugin.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portscan.o: config.h array.h conditional.h diff.h mainutils.h parser.h parser/plugin.h token.h util.h
+portscan.o: portscan.c config.h array.h conditional.h diff.h mainutils.h parser.h parser/plugin.h token.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 array.o: config.h array.h diff.h util.h
