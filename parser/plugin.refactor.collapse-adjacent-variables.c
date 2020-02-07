@@ -38,6 +38,17 @@
 #include "util.h"
 #include "variable.h"
 
+static int
+has_valid_modifier(struct Variable *var) {
+	switch (variable_modifier(var)) {
+	case MODIFIER_APPEND:
+	case MODIFIER_ASSIGN:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static struct Array *
 refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
@@ -57,8 +68,8 @@ refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptoken
 		case VARIABLE_START:
 			if (last_var != NULL &&
 			    variable_cmp(token_variable(t), last_var) == 0 &&
-			    variable_modifier(last_var) != MODIFIER_EXPAND &&
-			    variable_modifier(token_variable(t)) != MODIFIER_EXPAND) {
+			    has_valid_modifier(last_var) &&
+			    has_valid_modifier(token_variable(t))) {
 				if (last_end) {
 					array_append(ignored_tokens, t);
 					array_append(ignored_tokens, last_end);
