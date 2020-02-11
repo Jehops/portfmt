@@ -91,7 +91,6 @@ refactor_sanitize_cmake_args(struct Parser *parser, struct Array *ptokens, enum 
 				free(buf);
 				array_append(tokens, newt);
 				parser_mark_for_gc(parser, t);
-				parser_mark_edited(parser, newt);
 				state = CMAKE_ARGS;
 			} else {
 				array_append(tokens, t);
