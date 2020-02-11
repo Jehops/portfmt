@@ -21,6 +21,7 @@ PLUGINS=	parser/plugin.edit.bump-revision.${LIBSUFFIX} \
 		parser/plugin.refactor.dedup-tokens.${LIBSUFFIX} \
 		parser/plugin.refactor.remove-consecutive-empty-lines.${LIBSUFFIX} \
 		parser/plugin.refactor.sanitize-append-modifier.${LIBSUFFIX} \
+		parser/plugin.refactor.sanitize-cmake-args.${LIBSUFFIX} \
 		parser/plugin.refactor.sanitize-comments.${LIBSUFFIX} \
 		parser/plugin.refactor.sanitize-eol-comments.${LIBSUFFIX} \
 		parser/plugin.output.unknown-targets.${LIBSUFFIX} \
@@ -84,6 +85,7 @@ parser/plugin.output.variable-value.o: config.h array.h parser.h parser/plugin.h
 parser/plugin.refactor.collapse-adjacent-variables.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h
 parser/plugin.refactor.dedup-tokens.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h
 parser/plugin.refactor.sanitize-append-modifier.o: config.h array.h parser.h parser/plugin.h rules.h token.h variable.h
+parser/plugin.refactor.sanitize-cmake-args.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
 parser/plugin.refactor.sanitize-comments.o: config.h array.h parser.h parser/plugin.h token.h util.h
 parser/plugin.refactor.sanitize-eol-comments.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
 regexp.o: config.h regexp.h util.h

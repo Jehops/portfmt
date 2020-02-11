@@ -1615,6 +1615,10 @@ parser_read_finish(struct Parser *parser)
 		return parser->error;
 	}
 
+	if (PARSER_ERROR_OK != parser_edit(parser, "refactor.sanitize-cmake-args", NULL)) {
+		return parser->error;
+	}
+
 	if (parser->settings.behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES &&
 	    PARSER_ERROR_OK != parser_edit(parser, "refactor.collapse-adjacent-variables", NULL)) {
 		return parser->error;

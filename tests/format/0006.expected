@@ -1,0 +1,4 @@
+CMAKE_ARGS=	-Dbla \
+		-Dfoo \
+		-Dx \
+		-Dy
