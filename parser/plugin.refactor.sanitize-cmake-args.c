@@ -65,13 +65,14 @@ refactor_sanitize_cmake_args(struct Parser *parser, struct Array *ptokens, enum 
 			char *name = variable_name(token_variable(t));
 			char *helper = NULL;
 			if (is_options_helper(parser, name, NULL, &helper, NULL)) {
-				if (strcmp(helper, "CMAKE_ON") == 0 || strcmp(helper, "CMAKE_OFF") == 0) {
+				if (strcmp(helper, "CMAKE_ON") == 0 || strcmp(helper, "CMAKE_OFF") == 0 ||
+				    strcmp(helper, "MESON_ON") == 0 || strcmp(helper, "MESON_OFF") == 0) {
 					state = CMAKE_ARGS;
 				} else {
 					state = NONE;
 				}
 				free(helper);
-			} else if (strcmp(name, "CMAKE_ARGS") == 0) {
+			} else if (strcmp(name, "CMAKE_ARGS") == 0 || strcmp(name, "MESON_ARGS") == 0) {
 				state = CMAKE_ARGS;
 			} else {
 				state = NONE;
