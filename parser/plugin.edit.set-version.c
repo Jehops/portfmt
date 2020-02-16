@@ -90,8 +90,8 @@ extract_git_describe_prefix(const char *ver)
 	}
 
 	for (size_t i = 0; i < strlen(ver); i++) {
-		if (!isdigit(ver[i])) {
-			return i;
+		if (i > 0 && isdigit(ver[i])) {
+			return i - 1;
 		}
 	}
 
