@@ -28,26 +28,21 @@
 
 #include "config.h"
 
+#include <sys/param.h>
 #if HAVE_CAPSICUM
 # include <sys/capsicum.h>
 # include "capsicum_helpers.h"
 #endif
-#include <sys/param.h>
-#include <sys/stat.h>
 #include <assert.h>
-#include <ctype.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
-#include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "array.h"
@@ -56,13 +51,9 @@
 #include "mainutils.h"
 #include "parser.h"
 #include "parser/plugin.h"
+#include "portscanlog.h"
 #include "token.h"
 #include "util.h"
-
-#define PORTSCAN_LOG_DATE_FORMAT "portscan-%Y%m%d%H%M%S"
-#define PORTSCAN_LOG_LATEST "portscan-latest.log"
-#define PORTSCAN_LOG_PREVIOUS "portscan-previous.log"
-#define PORTSCAN_LOG_INIT "/dev/null"
 
 struct ScanResult {
 	char *origin;
@@ -89,20 +80,6 @@ struct PortReaderData {
 	int include_options;
 };
 
-enum LogEntryType {
-	LOG_ENTRY_UNKNOWN_VAR,
-	LOG_ENTRY_UNKNOWN_TARGET,
-	LOG_ENTRY_DUPLICATE_VAR,
-	LOG_ENTRY_OPTION_GROUP,
-	LOG_ENTRY_OPTION,
-};
-
-struct LogEntry {
-	enum LogEntryType type;
-	char *origin;
-	char *value;
-};
-
 // Ignore these ports when processing .include
 static const char *ports_include_blacklist_[] = {
 	"devel/llvm",
@@ -118,17 +95,7 @@ static struct Array *extract_includes(struct Parser *, struct Array *, enum Pars
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int);
-static struct Array *scan_ports(int, struct Array *, int);
-static int log_compare(struct Array *, struct Array *);
-static void log_add_entry(struct Array *, enum LogEntryType, const char *, struct Array *);
-static int log_entry_compare(const void *, const void *, void *);
-static void log_entry_parse(const char *, struct LogEntry *);
-static char *log_filename(const char *);
-static char *log_revision(int);
-static FILE *log_open(int, const char *);
-static int log_open_dir(const char *);
-struct Array *log_read_all(int, const char *);
-static void log_update_latest(int, const char *);
+static struct PortscanLog *scan_ports(int, struct Array *, int);
 static void usage(void);
 
 FILE *
@@ -489,7 +456,7 @@ lookup_origins(int portsdir)
 	return retval;
 }
 
-struct Array *
+struct PortscanLog *
 scan_ports(int portsdir, struct Array *origins, int include_options)
 {
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
@@ -518,7 +485,7 @@ scan_ports(int portsdir, struct Array *origins, int include_options)
 		end = MIN(end + step, array_len(origins));
 	}
 
-	struct Array *retval = array_new();
+	struct PortscanLog *retval = portscan_log_new();
 	for (ssize_t i = 0; i < n_threads; i++) {
 		void *data;
 		if (pthread_join(tid[i], &data) != 0) {
@@ -527,330 +494,20 @@ scan_ports(int portsdir, struct Array *origins, int include_options)
 		struct Array *result = data;
 		for (size_t j = 0; j < array_len(result); j++) {
 			struct ScanResult *r = array_get(result, j);
-			log_add_entry(retval, LOG_ENTRY_UNKNOWN_VAR, r->origin, r->unknown_variables);
-			log_add_entry(retval, LOG_ENTRY_UNKNOWN_TARGET, r->origin, r->unknown_targets);
-			log_add_entry(retval, LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);
-			log_add_entry(retval, LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
-			log_add_entry(retval, LOG_ENTRY_OPTION, r->origin, r->options);
+			portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_VAR, r->origin, r->unknown_variables);
+			portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_TARGET, r->origin, r->unknown_targets);
+			portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);
+			portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
+			portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_OPTION, r->origin, r->options);
 			free(r->origin);
 			free(r);
 		}
 		array_free(result);
 	}
 
-	array_sort(retval, log_entry_compare, NULL);
 	free(tid);
 
 	return retval;
-}
-
-void
-log_add_entry(struct Array *log, enum LogEntryType type, const char *origin, struct Array *values)
-{
-	array_sort(values, str_compare, NULL);
-
-	for (size_t k = 0; k < array_len(values); k++) {
-		char *value = array_get(values, k);
-		char *buf;
-		switch (type) {
-		case LOG_ENTRY_UNKNOWN_VAR:
-			xasprintf(&buf, "%-7c %-40s %s\n", 'V', origin, value);
-			break;
-		case LOG_ENTRY_UNKNOWN_TARGET:
-			xasprintf(&buf, "%-7c %-40s %s\n", 'T', origin, value);
-			break;
-		case LOG_ENTRY_DUPLICATE_VAR:
-			xasprintf(&buf, "%-7s %-40s %s\n", "Vc", origin, value);
-			break;
-		case LOG_ENTRY_OPTION_GROUP:
-			xasprintf(&buf, "%-7s %-40s %s\n", "OG", origin, value);
-			break;
-		case LOG_ENTRY_OPTION:
-			xasprintf(&buf, "%-7c %-40s %s\n", 'O', origin, value);
-			break;
-		default:
-			abort();
-		}
-		array_append(log, buf);
-		free(value);
-	}
-
-	array_free(values);
-}
-
-void
-log_entry_parse(const char *s, struct LogEntry *e)
-{
-	if (str_startswith(s, "V ")) {
-		e->type = LOG_ENTRY_UNKNOWN_VAR;
-		s++;
-	} else if (str_startswith(s, "T ")) {
-		e->type = LOG_ENTRY_UNKNOWN_TARGET;
-		s++;
-	} else if (str_startswith(s, "Vc ")) {
-		e->type = LOG_ENTRY_DUPLICATE_VAR;
-		s += 2;
-	} else if (str_startswith(s, "OG ")) {
-		e->type = LOG_ENTRY_OPTION_GROUP;
-		s += 2;
-	} else if (str_startswith(s, "O ")) {
-		e->type = LOG_ENTRY_OPTION;
-		s++;
-	} else {
-		errx(1, "unable to parse: %s", s);
-	}
-
-	while (*s != 0 && isspace(*s)) {
-		s++;
-	}
-	const char *origin_start = s;
-	while (*s != 0 && !isspace(*s)) {
-		s++;
-	}
-	const char *value = s;
-	while (*value != 0 && isspace(*value)) {
-		value++;
-	}
-	size_t value_len = strlen(value);
-	if (value_len > 0 && value[value_len - 1] == '\n') {
-		value_len--;
-	}
-
-	e->origin = xstrndup(origin_start, s - origin_start);
-	e->value = xstrndup(value, value_len);
-
-	if (strlen(e->origin) == 0 || strlen(value) == 0) {
-		errx(1, "unable to parse: %s", s);
-	}
-}
-
-int
-log_entry_compare(const void *ap, const void *bp, void *userdata)
-{
-	const char *aline = *(const char **)ap;
-	const char *bline = *(const char **)bp;
-
-	struct LogEntry a;
-	log_entry_parse(aline, &a);
-	struct LogEntry b;
-	log_entry_parse(bline, &b);
-
-	int retval = strcmp(a.origin, b.origin);
-
-	if (retval == 0) {
-		if (a.type > b.type) {
-			retval = 1;
-		} else if (a.type < b.type) {
-			retval = -1;
-		} else {
-			retval = strcmp(a.value, b.value);
-		}
-	}
-
-	free(a.origin);
-	free(a.value);
-	free(b.origin);
-	free(b.value);
-
-	return retval;
-}
-
-int
-log_compare(struct Array *prev_result, struct Array *result)
-{
-	struct diff p;
-	int rc = array_diff(prev_result, result, &p, str_compare, NULL);
-	if (rc <= 0) {
-		errx(1, "array_diff failed");
-	}
-	int equal = 1;
-	for (size_t i = 0; i < p.sessz; i++) {
-		if (p.ses[i].type != DIFF_COMMON) {
-			equal = 0;
-			break;
-		}
-	}
-	free(p.ses);
-	free(p.lcs);
-	for (size_t i = 0; i < array_len(prev_result); i++) {
-		free(array_get(prev_result, i));
-	}
-	array_free(prev_result);
-
-	return equal;
-}
-
-char *
-log_filename(const char *rev)
-{
-	time_t date = time(NULL);
-	if (date == -1) {
-		err(1, "time");
-	}
-	struct tm *tm = gmtime(&date);
-
-	char buf[PATH_MAX];
-	if (strftime(buf, sizeof(buf), PORTSCAN_LOG_DATE_FORMAT, tm) == 0) {
-		errx(1, "strftime: buffer too small");
-	}
-
-	char *log_path;
-	xasprintf(&log_path, "%s-%s.log", buf, rev);
-
-	return log_path;
-}
-
-char *
-log_revision(int portsdir)
-{
-	if (fchdir(portsdir) == -1) {
-		err(1, "fchdir");
-	}
-
-	FILE *fp = popen("if [ -d .svn ]; then svn info --show-item revision --no-newline 2>/dev/null; exit; fi; if [ -d .git ]; then git rev-parse HEAD 2>/dev/null; fi", "r");
-	if (fp == NULL) {
-		err(1, "popen");
-	}
-
-	char *revision = NULL;
-	char *line = NULL;
-	size_t linecap = 0;
-	ssize_t linelen;
-	if ((linelen = getline(&line, &linecap, fp)) > 0) {
-		if (linelen > 0 && line[linelen - 1] == '\n') {
-			line[linelen - 1] = 0;
-		}
-
-		if (strlen(line) == 40) {
-			// Assume git commit
-			xasprintf(&revision, "%s", line);
-		} else {
-			xasprintf(&revision, "r%s", line);
-		}
-	}
-	free(line);
-	pclose(fp);
-
-	if (revision == NULL) {
-		revision = xstrdup("unknown");
-	}
-	return revision;
-}
-
-FILE *
-log_open(int logdir, const char *log_path)
-{
-	int outfd = openat(logdir, log_path, O_CREAT | O_WRONLY, 0660);
-	if (outfd == -1) {
-		err(1, "openat: %s", log_path);
-	}
-
-	FILE *f = fdopen(outfd, "w");
-	if (f == NULL) {
-		err(1, "fdopen");
-	}
-
-	return f;
-}
-
-int
-log_open_dir(const char *logdir_path)
-{
-	int created_dir = 0;
-	int logdir;
-	while ((logdir = open(logdir_path, O_DIRECTORY)) == -1) {
-		if (errno == ENOENT) {
-			if (mkdir(logdir_path, 0777) == -1) {
-				return -1;
-			}
-			created_dir = 1;
-		} else {
-			return -1;
-		}
-	}
-	if (created_dir) {
-		if (symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_PREVIOUS) == -1) {
-			return -1;
-		}
-		if (symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_LATEST) == -1) {
-			return -1;
-		}
-	} else {
-		char *prev = read_symlink(logdir, PORTSCAN_LOG_PREVIOUS);
-		if (prev == NULL &&
-		    symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_PREVIOUS) == -1) {
-			return -1;
-		}
-		free(prev);
-
-		char *latest = read_symlink(logdir, PORTSCAN_LOG_LATEST);
-		if (latest == NULL &&
-		    symlinkat(PORTSCAN_LOG_INIT, logdir, PORTSCAN_LOG_LATEST) == -1) {
-			return -1;
-		}
-		free(latest);
-	}
-
-	return logdir;
-}
-
-struct Array *
-log_read_all(int logdir, const char *log_path)
-{
-	struct Array *log = array_new();
-
-	char *buf = read_symlink(logdir, log_path);
-	if (buf == NULL) {
-		if (errno == ENOENT) {
-			return log;
-		} else if (errno != EINVAL) {
-			err(1, "read_symlink: %s", log_path);
-		}
-	} else if (strcmp(buf, PORTSCAN_LOG_INIT) == 0) {
-		free(buf);
-		return log;
-	}
-	free(buf);
-
-	int fd = openat(logdir, log_path, O_RDONLY);
-	if (fd == -1) {
-		if (errno == ENOENT) {
-			return log;
-		}
-		err(1, "openat: %s", log_path);
-	}
-
-	FILE *fp = fdopen(fd, "r");
-	if (fp == NULL) {
-		close(fd);
-		return log;
-	}
-
-	ssize_t linelen;
-	size_t linecap = 0;
-	char *line = NULL;
-	while ((linelen = getline(&line, &linecap, fp)) > 0) {
-		array_append(log, xstrdup(line));
-	}
-	free(line);
-	fclose(fp);
-
-	array_sort(log, log_entry_compare, NULL);
-
-	return log;
-}
-
-void
-log_update_latest(int logdir, const char *log_path)
-{
-	char *prev = NULL;
-	if (!update_symlink(logdir, log_path, PORTSCAN_LOG_LATEST, &prev)) {
-		err(1, "update_symlink");
-	}
-	if (prev != NULL && !update_symlink(logdir, prev, PORTSCAN_LOG_PREVIOUS, NULL)) {
-		err(1, "update_symlink");
-	}
-	free(prev);
 }
 
 void
@@ -907,25 +564,19 @@ main(int argc, char *argv[])
 		err(1, "open: %s", portsdir_path);
 	}
 
-	int logdir = -1;
+	struct PortscanLogDir *logdir = NULL;
 	FILE *out = stdout;
-	char *log_rev = NULL;
 	if (logdir_path != NULL) {
-		logdir = log_open_dir(logdir_path);
-		if (logdir == -1) {
-			err(1, "log_open_dir: %s", logdir_path);
+		logdir = portscan_log_dir_open(logdir_path, portsdir);
+		if (logdir == NULL) {
+			err(1, "portscan_log_dir_open: %s", logdir_path);
 		}
-		log_rev = log_revision(portsdir);
 		fclose(out);
 		out = NULL;
 	}
 
 #if HAVE_CAPSICUM
 	if (caph_limit_stream(portsdir, CAPH_LOOKUP | CAPH_READ) < 0) {
-		err(1, "caph_limit_stream");
-	}
-
-	if (logdir > -1 && caph_limit_stream(logdir, CAPH_CREATE | CAPH_READ | CAPH_SYMLINK) < 0) {
 		err(1, "caph_limit_stream");
 	}
 
@@ -945,39 +596,28 @@ main(int argc, char *argv[])
 	}
 
 	int status = 0;
-	struct Array *result = scan_ports(portsdir, origins, oflag);
-	char *log_path = NULL;
-	if (array_len(result) > 0) {
-		if (logdir != -1) {
-			struct Array *prev_result = log_read_all(logdir, PORTSCAN_LOG_LATEST);
-			if (log_compare(prev_result, result)) {
+	struct PortscanLog *result = scan_ports(portsdir, origins, oflag);
+	if (portscan_log_len(result) > 0) {
+		if (logdir != NULL) {
+			struct PortscanLog *prev_result = portscan_log_read_all(logdir, PORTSCAN_LOG_LATEST);
+			if (portscan_log_compare(prev_result, result)) {
 				warnx("no changes compared to previous result");
 				status = 2;
 				goto cleanup;
 			}
-			log_path = log_filename(log_rev);
-			out = log_open(logdir, log_path);
-		}
-		for (size_t i = 0; i < array_len(result); i++) {
-			char *line = array_get(result, i);
-			if (write(fileno(out), line, strlen(line)) == -1) {
-				err(1, "write");
+			if (!portscan_log_serialize_to_dir(result, logdir)) {
+				err(1, "portscan_log_serialize_to_dir");
 			}
-			free(line);
-		}
-		if (logdir != -1) {
-			log_update_latest(logdir, log_path);
-			logdir = -1;
+		} else {
+			if (!portscan_log_serialize_to_file(result, out)) {
+				err(1, "portscan_log_serialize");
+			}
 		}
 	}
 
 cleanup:
-	if (logdir != -1) {
-		close(logdir);
-	}
-	free(log_path);
-	free(log_rev);
-	array_free(result);
+	portscan_log_dir_close(logdir);
+	portscan_log_free(result);
 
 	for (size_t i = 0; i < array_len(origins); i++) {
 		free(array_get(origins, i));

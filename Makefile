@@ -9,8 +9,8 @@ CFLAGS+=	-std=c99 -I.
 LDADD+=		${LIBDL} -lm
 
 OBJS=		array.o compats.o conditional.o diff.o diffutil.o mainutils.o \
-		parser.o parser/plugin.o regexp.o rules.o target.o token.o \
-		util.o variable.o
+		parser.o parser/plugin.o portscanlog.o regexp.o rules.o \
+		target.o token.o util.o variable.o
 PLUGINS=	parser/plugin.edit.bump-revision.${LIBSUFFIX} \
 		parser/plugin.edit.merge.${LIBSUFFIX} \
 		parser/plugin.edit.set-version.${LIBSUFFIX} \
@@ -63,7 +63,7 @@ portedit.o: portedit.c config.h array.h mainutils.h parser.h parser/plugin.h uti
 portfmt.o: portfmt.c config.h mainutils.h parser.h parser/plugin.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portscan.o: portscan.c config.h array.h conditional.h diff.h mainutils.h parser.h parser/plugin.h token.h util.h
+portscan.o: portscan.c config.h array.h conditional.h diff.h mainutils.h parser.h parser/plugin.h portscanlog.h token.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 array.o: config.h array.h diff.h util.h
@@ -88,6 +88,7 @@ parser/plugin.refactor.sanitize-append-modifier.o: config.h array.h parser.h par
 parser/plugin.refactor.sanitize-cmake-args.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
 parser/plugin.refactor.sanitize-comments.o: config.h array.h parser.h parser/plugin.h token.h util.h
 parser/plugin.refactor.sanitize-eol-comments.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
+portscanlog.o: config.h array.h diff.h portscanlog.h util.h
 regexp.o: config.h regexp.h util.h
 rules.o: config.h array.h conditional.h parser.h regexp.h rules.h token.h util.h variable.h
 target.o: config.h target.h util.h
