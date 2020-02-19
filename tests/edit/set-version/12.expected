@@ -1,0 +1,4 @@
+DISTVERSION=	0.61-335
+DISTVERSIONSUFFIX=	-gdf58b85
+
+include Makefile.configure
