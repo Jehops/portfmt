@@ -34,6 +34,14 @@
 
 #include <sys/cdefs.h>
 
+#ifndef __inline
+#define __inline
+#endif
+
+#ifndef __unused
+#define __unused
+#endif
+
 /*
  * This file defines data structures for different types of trees:
  * splay trees and red-black trees.

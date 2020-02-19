@@ -32,20 +32,30 @@
 
 #include "array.h"
 #include "set.h"
+#include "tree.h"
 #include "util.h"
 
+struct SetNode {
+	SPLAY_ENTRY(SetNode) entry;
+	void *value;
+	struct Set *set;
+};
+
 struct Set {
-	struct Array *array;
+	SPLAY_HEAD(SetTree, SetNode) root;
 	SetCompareFn compare;
 	void *compare_userdata;
 	void (*free)(void *);
 };
 
+static int nodecmp(struct SetNode *, struct SetNode *);
+SPLAY_PROTOTYPE(SetTree, SetNode, entry, nodecmp);
+
 struct Set *
 set_new(SetCompareFn compare, void *compare_userdata, void *freefn)
 {
 	struct Set *set = xmalloc(sizeof(struct Set));
-	set->array = array_new();
+	SPLAY_INIT(&set->root);
 	set->compare = compare;
 	set->compare_userdata = compare_userdata;
 	set->free = freefn;
@@ -59,12 +69,7 @@ set_free(struct Set *set)
 		return;
 	}
 
-	if (set->free != NULL) {
-		for (size_t i = 0; i < array_len(set->array); i++) {
-			set->free(array_get(set->array, i));
-		}
-	}
-	array_free(set->array);
+	set_truncate(set);
 	free(set);
 }
 
@@ -72,22 +77,29 @@ void
 set_add(struct Set *set, void *value)
 {
 	if (!set_contains(set, value)) {
-		array_append(set->array, value);
+		struct SetNode *node = xmalloc(sizeof(struct SetNode));
+		node->value = value;
+		node->set = set;
+		SPLAY_INSERT(SetTree, &set->root, node);
 	}
 }
 
 int
 set_contains(struct Set *set, void *value)
 {
-	return array_find(set->array, value, set->compare, set->compare_userdata) != -1;
+	struct SetNode node;
+	node.value = value;
+	node.set = set;
+	return SPLAY_FIND(SetTree, &set->root, &node) != NULL;
 }
 
 struct Array *
 set_toarray(struct Set *set)
 {
 	struct Array *array = array_new();
-	for (size_t i = 0; i < array_len(set->array); i++) {
-		array_append(array, array_get(set->array, i));
+	struct SetNode *node;
+	SPLAY_FOREACH (node, SetTree, &set->root) {
+		array_append(array, node->value);
 	}
 	return array;
 }
@@ -95,10 +107,34 @@ set_toarray(struct Set *set)
 void
 set_truncate(struct Set *set)
 {
-	if (set->free != NULL) {
-		for (size_t i = 0; i < array_len(set->array); i++) {
-			set->free(array_get(set->array, i));
+	struct SetNode *node;
+	struct SetNode *next;
+	for (node = SPLAY_MIN(SetTree, &set->root); node != NULL; node = next) {
+		next = SPLAY_NEXT(SetTree, &set->root, node);
+		SPLAY_REMOVE(SetTree, &set->root, node);
+		if (set->free != NULL) {
+			set->free(node->value);
 		}
+		free(node);
 	}
-	array_truncate(set->array);
+	SPLAY_INIT(&set->root);
 }
+
+int
+nodecmp(struct SetNode *e1, struct SetNode *e2)
+{
+	if (e1->set->compare == NULL) {
+		if (e1->value == e2->value) {
+			return 0;
+		} else if (e1->value < e2->value) {
+			return -1;
+		} else {
+			return 1;
+		}
+	} else {
+		return e1->set->compare(&e1->value, &e2->value, e1->set->compare_userdata);
+	}
+}
+
+SPLAY_GENERATE(SetTree, SetNode, entry, nodecmp);
+

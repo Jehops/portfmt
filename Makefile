@@ -91,7 +91,7 @@ parser/plugin.refactor.sanitize-eol-comments.o: config.h array.h parser.h parser
 portscanlog.o: config.h array.h diff.h portscanlog.h util.h
 regexp.o: config.h regexp.h util.h
 rules.o: config.h array.h conditional.h parser.h regexp.h rules.h token.h util.h variable.h
-set.o: config.h array.h set.h util.h
+set.o: config.h array.h set.h tree.h util.h
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h
 util.o: config.h array.h util.h
