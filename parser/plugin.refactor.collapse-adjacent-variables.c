@@ -34,6 +34,7 @@
 #include "array.h"
 #include "parser.h"
 #include "parser/plugin.h"
+#include "set.h"
 #include "token.h"
 #include "util.h"
 #include "variable.h"
@@ -61,7 +62,7 @@ refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptoken
 	struct Variable *last_var = NULL;
 	struct Token *last_end = NULL;
 	struct Token *last_token = NULL;
-	struct Array *ignored_tokens = array_new();
+	struct Set *ignored_tokens = set_new(NULL, NULL, NULL);
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {
@@ -71,8 +72,8 @@ refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptoken
 			    has_valid_modifier(last_var) &&
 			    has_valid_modifier(token_variable(t))) {
 				if (last_end) {
-					array_append(ignored_tokens, t);
-					array_append(ignored_tokens, last_end);
+					set_add(ignored_tokens, t);
+					set_add(ignored_tokens, last_end);
 					last_end = NULL;
 				}
 			}
@@ -95,14 +96,14 @@ refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptoken
 
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
-		if (array_find(ignored_tokens, t, NULL, NULL) == -1) {
-			array_append(tokens, t);
-		} else {
+		if (set_contains(ignored_tokens, t)) {
 			parser_mark_for_gc(parser, t);
+		} else {
+			array_append(tokens, t);
 		}
 	}
 
-	array_free(ignored_tokens);
+	set_free(ignored_tokens);
 	return tokens;
 }
 

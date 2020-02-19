@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
- * Copyright (c) 2019 Tobias Kortkamp <tobik@FreeBSD.org>
+ * Copyright (c) 2020 Tobias Kortkamp <tobik@FreeBSD.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,52 +28,77 @@
 
 #include "config.h"
 
-#include <regex.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
 #include "array.h"
-#include "parser.h"
-#include "parser/plugin.h"
-#include "rules.h"
 #include "set.h"
-#include "target.h"
-#include "token.h"
 #include "util.h"
 
-static struct Array *
-output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+struct Set {
+	struct Array *array;
+	SetCompareFn compare;
+	void *compare_userdata;
+	void (*free)(void *);
+};
+
+struct Set *
+set_new(SetCompareFn compare, void *compare_userdata, void *freefn)
 {
-	struct Array **unknowns = (struct Array **)userdata;
-	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
-		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
-		return NULL;
-	}
-
-	struct Set *targets = set_new(str_compare, NULL, NULL);
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-		if (token_type(t) != TARGET_START) {
-			continue;
-		}
-		char *name = target_name(token_target(t));
-		if (!is_special_target(name) &&
-		    !is_known_target(parser, name) &&
-		    !set_contains(targets, name)) {
-			parser_enqueue_output(parser, name);
-			parser_enqueue_output(parser, "\n");
-			set_add(targets, name);
-		}
-	}
-
-	if (unknowns) {
-		*unknowns = set_toarray(targets);
-	}
-	set_free(targets);
-
-	return NULL;
+	struct Set *set = xmalloc(sizeof(struct Set));
+	set->array = array_new();
+	set->compare = compare;
+	set->compare_userdata = compare_userdata;
+	set->free = freefn;
+	return set;
 }
 
-PLUGIN("output.unknown-targets", output_unknown_targets);
+void
+set_free(struct Set *set)
+{
+	if (set == NULL) {
+		return;
+	}
+
+	if (set->free != NULL) {
+		for (size_t i = 0; i < array_len(set->array); i++) {
+			set->free(array_get(set->array, i));
+		}
+	}
+	array_free(set->array);
+	free(set);
+}
+
+void
+set_add(struct Set *set, void *value)
+{
+	if (!set_contains(set, value)) {
+		array_append(set->array, value);
+	}
+}
+
+int
+set_contains(struct Set *set, void *value)
+{
+	return array_find(set->array, value, set->compare, set->compare_userdata) != -1;
+}
+
+struct Array *
+set_toarray(struct Set *set)
+{
+	struct Array *array = array_new();
+	for (size_t i = 0; i < array_len(set->array); i++) {
+		array_append(array, array_get(set->array, i));
+	}
+	return array;
+}
+
+void
+set_truncate(struct Set *set)
+{
+	if (set->free != NULL) {
+		for (size_t i = 0; i < array_len(set->array); i++) {
+			set->free(array_get(set->array, i));
+		}
+	}
+	array_truncate(set->array);
+}

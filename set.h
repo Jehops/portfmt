@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
  *
- * Copyright (c) 2019 Tobias Kortkamp <tobik@FreeBSD.org>
+ * Copyright (c) 2020 Tobias Kortkamp <tobik@FreeBSD.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,55 +25,15 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#pragma once
 
-#include "config.h"
+struct Array;
+struct Set;
+typedef int (*SetCompareFn)(const void *, const void *, void *);
 
-#include <regex.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-#include "array.h"
-#include "parser.h"
-#include "parser/plugin.h"
-#include "rules.h"
-#include "set.h"
-#include "target.h"
-#include "token.h"
-#include "util.h"
-
-static struct Array *
-output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
-{
-	struct Array **unknowns = (struct Array **)userdata;
-	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
-		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
-		return NULL;
-	}
-
-	struct Set *targets = set_new(str_compare, NULL, NULL);
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-		if (token_type(t) != TARGET_START) {
-			continue;
-		}
-		char *name = target_name(token_target(t));
-		if (!is_special_target(name) &&
-		    !is_known_target(parser, name) &&
-		    !set_contains(targets, name)) {
-			parser_enqueue_output(parser, name);
-			parser_enqueue_output(parser, "\n");
-			set_add(targets, name);
-		}
-	}
-
-	if (unknowns) {
-		*unknowns = set_toarray(targets);
-	}
-	set_free(targets);
-
-	return NULL;
-}
-
-PLUGIN("output.unknown-targets", output_unknown_targets);
+struct Set *set_new(SetCompareFn, void *, void *);
+void set_free(struct Set *);
+void set_add(struct Set *, void *);
+int set_contains(struct Set *, void *);
+struct Array *set_toarray(struct Set *);
+void set_truncate(struct Set *);

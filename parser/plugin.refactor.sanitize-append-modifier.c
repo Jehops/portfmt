@@ -37,6 +37,7 @@
 #include "parser.h"
 #include "parser/plugin.h"
 #include "rules.h"
+#include "set.h"
 #include "token.h"
 #include "variable.h"
 
@@ -49,7 +50,7 @@ refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, 
 	}
 
 	/* Sanitize += before bsd.options.mk */
-	struct Array *seen = array_new();
+	struct Set *seen = set_new(variable_compare, NULL, NULL);
 	struct Array *tokens = array_new();
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
@@ -60,11 +61,11 @@ refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, 
 			break;
 		case VARIABLE_END: {
 			array_append(tokens, t);
-			if (array_find(seen, token_variable(t), variable_compare, NULL) == -1) {
-				array_append(seen, token_variable(t));
-			} else {
+			if (set_contains(seen, token_variable(t))) {
 				array_truncate(tokens);
 				continue;
+			} else {
+				set_add(seen, token_variable(t));
 			}
 			for (size_t j = 0; j < array_len(tokens); j++) {
 				struct Token *o = array_get(tokens, j);
@@ -88,7 +89,7 @@ refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, 
 		}
 	}
 end:
-	array_free(seen);
+	set_free(seen);
 	array_free(tokens);
 
 	return ptokens;

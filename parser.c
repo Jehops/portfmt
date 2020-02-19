@@ -54,6 +54,7 @@
 #include "parser/plugin.h"
 #include "regexp.h"
 #include "rules.h"
+#include "set.h"
 #include "target.h"
 #include "token.h"
 #include "util.h"
@@ -72,8 +73,8 @@ struct Parser {
 	char *targetname;
 	char *varname;
 
-	struct Array *edited; /* unowned struct Token * */
-	struct Array *tokengc;
+	struct Set *edited;
+	struct Set *tokengc;
 	struct Array *tokens;
 	struct Array *result;
 	struct Array *rawlines;
@@ -283,8 +284,8 @@ parser_new(struct ParserSettings *settings)
 
 	struct Parser *parser = xmalloc(sizeof(struct Parser));
 
-	parser->edited = array_new();
-	parser->tokengc = array_new();
+	parser->edited = set_new(NULL, NULL, NULL);
+	parser->tokengc = set_new(NULL, NULL, token_free);
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
@@ -349,12 +350,8 @@ parser_free(struct Parser *parser)
 	}
 	array_free(parser->rawlines);
 
-	for (size_t i = 0; i < array_len(parser->tokengc); i++) {
-		struct Token *t = array_get(parser->tokengc, i);
-		token_free(t);
-	}
-	array_free(parser->tokengc);
-	array_free(parser->edited);
+	set_free(parser->tokengc);
+	set_free(parser->edited);
 	array_free(parser->tokens);
 
 	free(parser->settings.filename);
@@ -861,7 +858,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	const char *start = startlv0;
 
 	// Find the places we need to wrap to the next line.
-	struct Array *wraps = array_new();
+	struct Set *wraps = set_new(NULL, NULL, NULL);
 	size_t column = 8;
 	int complexity = 0;
 	size_t command_i = 0;
@@ -906,14 +903,14 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 			}
 			start = startlv2;
 			column = 16;
-			array_append(wraps, (void*)i);
+			set_add(wraps, (void*)i);
 		}
 	}
 
 	if (!(parser->settings.behavior & PARSER_FORMAT_TARGET_COMMANDS) ||
 	    complexity > parser->settings.target_command_format_threshold) {
 		struct Token *t = array_get(tokens, 0);
-		if (array_find(parser->edited, t, NULL, NULL) == -1) {
+		if (!set_contains(parser->edited, t)) {
 			parser_output_print_rawlines(parser, token_lines(t));
 			goto cleanup;
 		}
@@ -927,7 +924,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		if (wrapped) {
 			parser_enqueue_output(parser, startlv2);
 		}
-		wrapped = array_find(wraps, (void*)i, NULL, NULL) > -1;
+		wrapped = set_contains(wraps, (void*)i);
 
 		parser_enqueue_output(parser, word);
 		if (wrapped) {
@@ -953,7 +950,7 @@ cleanup:
 		free(array_get(commands, i));
 	}
 	array_free(commands);
-	array_free(wraps);
+	set_free(wraps);
 }
 
 void
@@ -1083,12 +1080,13 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* uno
 	/* Leave variables unformatted that have $\ in them. */
 	if ((array_len(arr) == 1 && strstr(token_data(t0), "$\001") != NULL) ||
 	    (leave_unformatted(parser, token_variable(t0)) &&
-	     array_find(parser->edited, t0, NULL, NULL) == -1)) {
+	     !set_contains(parser->edited, t0))) {
 		parser_output_print_rawlines(parser, token_lines(t0));
 		goto cleanup;
 	}
 
-	if (array_find(parser->edited, t0, NULL, NULL) == -1 && (parser->settings.behavior & PARSER_OUTPUT_EDITED)) {
+	if (!set_contains(parser->edited, t0) &&
+	    (parser->settings.behavior & PARSER_OUTPUT_EDITED)) {
 		parser_output_print_rawlines(parser, token_lines(t0));
 		goto cleanup;
 	}
@@ -1259,7 +1257,7 @@ parser_output_reformatted(struct Parser *parser)
 	struct Token *prev = NULL;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *o = array_get(parser->tokens, i);
-		int edited = array_find(parser->edited, o, NULL, NULL) != -1;
+		int edited = set_contains(parser->edited, o);
 		switch (token_type(o)) {
 		case CONDITIONAL_END:
 			if (edited) {
@@ -1846,15 +1844,13 @@ parser_read_from_buffer(struct Parser *parser, const char *input, size_t len)
 void
 parser_mark_for_gc(struct Parser *parser, struct Token *t)
 {
-	if (array_find(parser->tokengc, t, NULL, NULL) == -1) {
-		array_append(parser->tokengc, t);
-	}
+	set_add(parser->tokengc, t);
 }
 
 void
 parser_mark_edited(struct Parser *parser, struct Token *t)
 {
-	array_append(parser->edited, t);
+	set_add(parser->edited, t);
 }
 
 enum ParserError

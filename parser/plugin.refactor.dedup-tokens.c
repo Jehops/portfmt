@@ -37,6 +37,7 @@
 #include "parser.h"
 #include "parser/plugin.h"
 #include "rules.h"
+#include "set.h"
 #include "token.h"
 #include "util.h"
 #include "variable.h"
@@ -57,18 +58,15 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 	}
 
 	struct Array *tokens = array_new();
-	struct Array *seen = array_new();
-	struct Array *uses = array_new();
+	struct Set *seen = set_new(str_compare, NULL, NULL);
+	struct Set *uses = set_new(str_compare, NULL, free);
 	enum DedupAction action = DEFAULT;
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
 		switch (token_type(t)) {
 		case VARIABLE_START:
-			array_truncate(seen);
-			for (size_t j = 0; j < array_len(uses); j++) {
-				free(array_get(uses, j));
-			}
-			array_truncate(uses);
+			set_truncate(seen);
+			set_truncate(uses);
 			action = DEFAULT;
 			if (skip_dedup(parser, token_variable(t))) {
 				action = SKIP;
@@ -96,7 +94,7 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 				}
 				if (action == APPEND) {
 					array_append(tokens, t);
-					array_append(seen, token_data(t));
+					set_add(seen, token_data(t));
 				} else if (action == USES) {
 					char *buf = xstrdup(token_data(t));
 					char *args = strchr(buf, ':');
@@ -108,17 +106,17 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 					// semantically equivalent to just USES=compiler:c++11-lang
 					// since compiler_ARGS has already been set once before.
 					// As such compiler:c++14-lang can be dropped entirely.
-					if (array_find(uses, buf, str_compare, NULL) == -1) {
-						array_append(tokens, t);
-						array_append(uses, buf);
-						array_append(seen, token_data(t));
-					} else {
+					if (set_contains(uses, buf)) {
 						parser_mark_for_gc(parser, t);
 						free(buf);
+					} else {
+						array_append(tokens, t);
+						set_add(uses, buf);
+						set_add(seen, token_data(t));
 					}
-				} else if (array_find(seen, token_data(t), str_compare, NULL) == -1) {
+				} else if (!set_contains(seen, token_data(t))) {
 					array_append(tokens, t);
-					array_append(seen, token_data(t));
+					set_add(seen, token_data(t));
 				} else {
 					parser_mark_for_gc(parser, t);
 				}
@@ -130,11 +128,8 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 		}
 	}
 
-	array_free(seen);
-	for (size_t i = 0; i < array_len(uses); i++) {
-		free(array_get(uses, i));
-	}
-	array_free(uses);
+	set_free(seen);
+	set_free(uses);
 	return tokens;
 }
 
