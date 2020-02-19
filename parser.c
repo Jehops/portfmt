@@ -251,6 +251,21 @@ range_tostring(struct Range *range)
 	return s;
 }
 
+static int
+parser_is_category_makefile(struct Parser *parser)
+{
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		if (token_type(t) == CONDITIONAL_TOKEN &&
+		    conditional_type(token_conditional(t)) == COND_INCLUDE &&
+		    strcmp(token_data(t), "<bsd.port.subdir.mk>") == 0) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 void
 parser_init_settings(struct ParserSettings *settings)
 {
@@ -1133,11 +1148,109 @@ parser_output_edited_insert_empty(struct Parser *parser, struct Token *prev)
 	}
 }
 
+static int
+category_makefile_compare(const void *ap, const void *bp, void *userdata)
+{
+	struct Token *a = *(struct Token**)ap;
+	struct Token *b = *(struct Token**)bp;
+	return strcmp(token_data(a), token_data(b));
+}
+
+static void
+parser_output_category_makefile_reformatted(struct Parser *parser)
+{
+	// Category Makefiles have a strict layout so we can simply
+	// dump everything out but also verify everything when doing so.
+	// We do not support editing/formatting the top level Makefile.
+	const char *indent = "    ";
+	struct Array *tokens = array_new();
+	for (size_t i = 0; i < array_len(parser->tokens); i++) {
+		struct Token *t = array_get(parser->tokens, i);
+		switch (token_type(t)) {
+		case CONDITIONAL_END:
+			for (size_t j = 0; j < array_len(tokens); j++) {
+				struct Token *o = array_get(tokens, j);
+				parser_enqueue_output(parser, token_data(o));
+				if ((j + 1) < array_len(tokens)) {
+					parser_enqueue_output(parser, " ");
+				}
+			}
+			parser_enqueue_output(parser, "\n");
+			break;
+		case CONDITIONAL_START:
+			if (conditional_type(token_conditional(t)) != COND_INCLUDE) {
+				parser->error = PARSER_ERROR_UNSPECIFIED;
+				char *buf = conditional_tostring(token_conditional(t));
+				xasprintf(&parser->error_msg, "unsupported conditional in category Makefile: %s", buf);
+				free(buf);
+				goto cleanup;
+			}
+			array_truncate(tokens);
+			break;
+		case CONDITIONAL_TOKEN:
+			array_append(tokens, t);
+			break;
+		case VARIABLE_START:
+			array_truncate(tokens);
+			break;
+		case VARIABLE_END: {
+			const char *varname = variable_name(token_variable(t));
+			if (strcmp(varname, "COMMENT") == 0) {
+				parser_enqueue_output(parser, indent);
+				parser_enqueue_output(parser, varname);
+				parser_enqueue_output(parser, " = ");
+				for (size_t j = 0; j < array_len(tokens); j++) {
+					struct Token *o = array_get(tokens, j);
+					parser_enqueue_output(parser, token_data(o));
+					if ((j + 1) < array_len(tokens)) {
+						parser_enqueue_output(parser, " ");
+					}
+				}
+				parser_enqueue_output(parser, "\n");
+			} else if (strcmp(varname, "SUBDIR") == 0) {
+				array_sort(tokens, category_makefile_compare, NULL);
+				for (size_t j = 0; j < array_len(tokens); j++) {
+					struct Token *o = array_get(tokens, j);
+					parser_enqueue_output(parser, indent);
+					parser_enqueue_output(parser, varname);
+					parser_enqueue_output(parser, " += ");
+					parser_enqueue_output(parser, token_data(o));
+					parser_enqueue_output(parser, "\n");
+				}
+			} else {
+				parser->error = PARSER_ERROR_UNSPECIFIED;
+				xasprintf(&parser->error_msg, "unsupported variable in category Makefile: %s", varname);
+				goto cleanup;
+			}
+			break;
+		} case VARIABLE_TOKEN: {
+			array_append(tokens, t);
+			break;
+		} case COMMENT:
+			parser_enqueue_output(parser, token_data(t));
+			parser_enqueue_output(parser, "\n");
+			break;
+		default:
+			parser->error = PARSER_ERROR_UNHANDLED_TOKEN_TYPE;
+			xasprintf(&parser->error_msg, "%s", token_type_tostring(token_type(t)));
+			goto cleanup;
+		}
+	}
+
+cleanup:
+	array_free(tokens);
+}
+
 void
 parser_output_reformatted(struct Parser *parser)
 {
 	parser_find_goalcols(parser);
 	if (parser->error != PARSER_ERROR_OK) {
+		return;
+	}
+
+	if (parser_is_category_makefile(parser)) {
+		parser_output_category_makefile_reformatted(parser);
 		return;
 	}
 
@@ -1619,7 +1732,11 @@ parser_read_finish(struct Parser *parser)
 		return parser->error;
 	}
 
-	if (parser->settings.behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES &&
+	// To properly support editing category Makefiles always
+	// collapse all the SUBDIR into one assignment regardless
+	// of settings.
+	if ((parser_is_category_makefile(parser) ||
+	     parser->settings.behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES) &&
 	    PARSER_ERROR_OK != parser_edit(parser, "refactor.collapse-adjacent-variables", NULL)) {
 		return parser->error;
 	}
