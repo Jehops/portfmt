@@ -79,12 +79,12 @@ struct Parser {
 	struct Array *result;
 	struct Array *rawlines;
 
-	struct Array *port_options;
-	struct Array *port_options_groups;
+	struct Set *port_options;
+	struct Set *port_options_groups;
 	int port_options_looked_up;
 
 #if PORTFMT_SUBPACKAGES
-	struct Array *subpackages;
+	struct Set *subpackages;
 	int subpackages_looked_up;
 #endif
 
@@ -289,8 +289,8 @@ parser_new(struct ParserSettings *settings)
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
-	parser->port_options = array_new();
-	parser->port_options_groups = array_new();
+	parser->port_options = set_new(str_compare, NULL, free);
+	parser->port_options_groups = set_new(str_compare, NULL, free);
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
 	parser->lines.start = 1;
@@ -303,10 +303,10 @@ parser_new(struct ParserSettings *settings)
 		parser->settings.filename = xstrdup("/dev/stdin");
 	}
 #if PORTFMT_SUBPACKAGES
-	parser->subpackages = array_new();
+	parser->subpackages = set_new(str_compare, NULL, free);
 
 	// There is always a main subpackage
-	array_append(parser->subpackages, xstrdup("main"));
+	set_add(parser->subpackages, xstrdup("main"));
 #endif
 
 	if (parser->settings.behavior & PARSER_OUTPUT_EDITED) {
@@ -323,21 +323,11 @@ parser_free(struct Parser *parser)
 		return;
 	}
 
-	for (size_t i = 0; i < array_len(parser->port_options); i++) {
-		free(array_get(parser->port_options, i));
-	}
-	array_free(parser->port_options);
-
-	for (size_t i = 0; i < array_len(parser->port_options_groups); i++) {
-		free(array_get(parser->port_options_groups, i));
-	}
-	array_free(parser->port_options_groups);
+	set_free(parser->port_options);
+	set_free(parser->port_options_groups);
 
 #if PORTFMT_SUBPACKAGES
-	for (size_t i = 0; i < array_len(parser->subpackages); i++) {
-		free(array_get(parser->subpackages, i));
-	}
-	array_free(parser->subpackages);
+	set_free(parser->subpackages);
 #endif
 
 	for (size_t i = 0; i < array_len(parser->result); i++) {
@@ -1910,8 +1900,8 @@ parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 	if (parser_lookup_variable_all(parser, groupname, &optmulti, NULL)) {
 		for (size_t i = 0; i < array_len(optmulti); i++) {
 			char *optgroupname = array_get(optmulti, i);
-			if (array_find(parser->port_options_groups, optgroupname, str_compare, NULL) == -1) {
-				array_append(parser->port_options_groups, xstrdup(optgroupname));
+			if (!set_contains(parser->port_options_groups, optgroupname)) {
+				set_add(parser->port_options_groups, xstrdup(optgroupname));
 			}
 			char *optgroupvar;
 			xasprintf(&optgroupvar, "%s_%s", groupname, optgroupname);
@@ -1919,8 +1909,8 @@ parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 			if (parser_lookup_variable_all(parser, optgroupvar, &opts, NULL)) {
 				for (size_t i = 0; i < array_len(opts); i++) {
 					char *opt = array_get(opts, i);
-					if (array_find(parser->port_options, opt, str_compare, NULL) == -1) {
-						array_append(parser->port_options, xstrdup(opt));
+					if (!set_contains(parser->port_options, opt)) {
+						set_add(parser->port_options, xstrdup(opt));
 					}
 				}
 				array_free(opts);
@@ -1938,8 +1928,8 @@ parser_port_options_add_from_var(struct Parser *parser, const char *var)
 	if (parser_lookup_variable_all(parser, var, &optdefine, NULL)) {
 		for (size_t i = 0; i < array_len(optdefine); i++) {
 			char *opt = array_get(optdefine, i);
-			if (array_find(parser->port_options, opt, str_compare, NULL) == -1) {
-				array_append(parser->port_options, xstrdup(opt));
+			if (!set_contains(parser->port_options, opt)) {
+				set_add(parser->port_options, xstrdup(opt));
 			}
 		}
 		array_free(optdefine);
@@ -1947,7 +1937,7 @@ parser_port_options_add_from_var(struct Parser *parser, const char *var)
 }
 
 void
-parser_port_options(struct Parser *parser, struct Array **groups, struct Array **options)
+parser_port_options(struct Parser *parser, struct Set **groups, struct Set **options)
 {
 	if (parser->port_options_looked_up) {
 		if (groups) {
@@ -2007,7 +1997,7 @@ parser_port_options(struct Parser *parser, struct Array **groups, struct Array *
 }
 
 #if PORTFMT_SUBPACKAGES
-struct Array *
+struct Set *
 parser_subpackages(struct Parser *parser)
 {
 	if (parser->subpackages_looked_up) {
@@ -2018,25 +2008,24 @@ parser_subpackages(struct Parser *parser)
 	if (parser_lookup_variable_all(parser, "SUBPACKAGES", &subpkgs, NULL)) {
 		for (size_t i = 0; i < array_len(subpkgs); i++) {
 			char *subpkg = array_get(subpkgs, i);
-			if (array_find(parser->subpackages, subpkg, str_compare, NULL) == -1) {
-				array_append(parser->subpackages, xstrdup(subpkg));
+			if (!set_contains(parser->subpackages, subpkg)) {
+				set_add(parser->subpackages, xstrdup(subpkg));
 			}
 		}
 		array_free(subpkgs);
 		subpkgs = NULL;
 	}
 
-	struct Array *options = NULL;
+	struct Set *options = NULL;
 	parser_port_options(parser, NULL, &options);
-	for (size_t i = 0; i < array_len(options); i++) {
-		char *opt = array_get(options, i);
+	SET_FOREACH (options, char *, opt) {
 		char *var;
 		xasprintf(&var, "%s_SUBPACKAGES", opt);
 		if (parser_lookup_variable_all(parser, var, &subpkgs, NULL)) {
 			for (size_t j = 0; j < array_len(subpkgs); j++) {
 				char *subpkg = array_get(subpkgs, j);
-				if (array_find(parser->subpackages, subpkg, str_compare, NULL) == -1) {
-					array_append(parser->subpackages, xstrdup(subpkg));
+				if (!set_contains(parser->subpackages, subpkg)) {
+					set_add(parser->subpackages, xstrdup(subpkg));
 				}
 			}
 			array_free(subpkgs);

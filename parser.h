@@ -79,6 +79,7 @@ struct ParserSettings {
 
 struct Array;
 struct Parser;
+struct Set;
 struct Token;
 
 typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
@@ -99,9 +100,9 @@ struct Target *parser_lookup_target(struct Parser *, const char *, struct Array 
 struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_all(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
-void parser_port_options(struct Parser *, struct Array **, struct Array **);
+void parser_port_options(struct Parser *, struct Set **, struct Set **);
 #if PORTFMT_SUBPACKAGES
-struct Array *parser_subpackages(struct Parser *);
+struct Set *parser_subpackages(struct Parser *);
 #endif
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);

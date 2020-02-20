@@ -52,6 +52,7 @@
 #include "parser.h"
 #include "parser/plugin.h"
 #include "portscanlog.h"
+#include "set.h"
 #include "token.h"
 #include "util.h"
 
@@ -330,13 +331,15 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 
 	array_free(tmp);
 	if (retval->include_options) {
-		parser_port_options(parser, &tmp, NULL);
-		for (size_t i = 0; i < array_len(tmp); i++) {
-			array_append(retval->option_groups, xstrdup(array_get(tmp, i)));
+		struct Set *groups;
+		parser_port_options(parser, &groups, NULL);
+		SET_FOREACH (groups, const char *, group) { 
+			array_append(retval->option_groups, xstrdup(group));
 		}
-		parser_port_options(parser, NULL, &tmp);
-		for (size_t i = 0; i < array_len(tmp); i++) {
-			array_append(retval->options, xstrdup(array_get(tmp, i)));
+		struct Set *options;
+		parser_port_options(parser, NULL, &options);
+		SET_FOREACH (options, const char *, option) {
+			array_append(retval->options, xstrdup(option));
 		}
 	}
 

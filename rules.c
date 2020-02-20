@@ -45,6 +45,7 @@
 #include "regexp.h"
 #include "rules.h"
 #include "parser.h"
+#include "set.h"
 #include "token.h"
 #include "util.h"
 #include "variable.h"
@@ -2118,9 +2119,8 @@ extract_subpkg(struct Parser *parser, const char *var_, char **subpkg_ret)
 	if (subpkg && !(parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS)) {
 		int found = 0;
 #if PORTFMT_SUBPACKAGES
-		struct Array *subpkgs = parser_subpackages(parser);
-		for (size_t i = 0; i < array_len(subpkgs); i++) {
-			const char *pkg = array_get(subpkgs, i);
+		struct Set *subpkgs = parser_subpackages(parser);
+		SET_FOREACH (subpkgs, const char *, pkg) {
 			if (strcmp(subpkg, pkg) == 0) {
 				found = 1;
 				break;
@@ -2226,12 +2226,11 @@ is_options_helper(struct Parser *parser, const char *var_, char **prefix_ret, ch
 	}
 
 	char *prefix = xstrndup(var, len - 1);
-	struct Array *groups = NULL;
-	struct Array *options = NULL;
+	struct Set *groups = NULL;
+	struct Set *options = NULL;
 	parser_port_options(parser, &groups, &options);
 	if (strcmp(suffix, "DESC") == 0) {
-		for (size_t i = 0; i < array_len(groups); i++) {
-			const char *group = array_get(groups, i);
+		SET_FOREACH (groups, const char *, group) {
 			if (strcmp(prefix, group) == 0) {
 				free(prefix);
 				goto done;
@@ -2239,8 +2238,7 @@ is_options_helper(struct Parser *parser, const char *var_, char **prefix_ret, ch
 		}
 	}
 	int found = 0;
-	for (size_t i = 0; i < array_len(options); i++) {
-		const char *option = array_get(options, i);
+	SET_FOREACH (options, const char *, option) {
 		if (strcmp(prefix, option) == 0) {
 			found = 1;
 			break;

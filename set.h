@@ -29,6 +29,7 @@
 
 struct Array;
 struct Set;
+struct SetIterator;
 typedef int (*SetCompareFn)(const void *, const void *, void *);
 
 struct Set *set_new(SetCompareFn, void *, void *);
@@ -37,3 +38,11 @@ void set_add(struct Set *, void *);
 int set_contains(struct Set *, void *);
 struct Array *set_toarray(struct Set *);
 void set_truncate(struct Set *);
+
+struct SetIterator *set_iterator(struct Set *);
+void set_iterator_free(struct SetIterator *);
+void *set_iterator_next(struct SetIterator **);
+
+#define SET_FOREACH(SET, TYPE, VAR) \
+	for (struct SetIterator *SET##_iter = set_iterator(SET); SET##_iter != NULL;) \
+	for (TYPE VAR = set_iterator_next(&SET##_iter); VAR != NULL; VAR = set_iterator_next(&SET##_iter))

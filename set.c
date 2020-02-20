@@ -48,6 +48,10 @@ struct Set {
 	void (*free)(void *);
 };
 
+struct SetIterator {
+	struct SetNode *current;
+};
+
 static int nodecmp(struct SetNode *, struct SetNode *);
 SPLAY_PROTOTYPE(SetTree, SetNode, entry, nodecmp);
 
@@ -138,3 +142,33 @@ nodecmp(struct SetNode *e1, struct SetNode *e2)
 
 SPLAY_GENERATE(SetTree, SetNode, entry, nodecmp);
 
+struct SetIterator *
+set_iterator(struct Set *set)
+{
+	struct SetIterator *iter = xmalloc(sizeof(struct SetIterator));
+	iter->current = SPLAY_MIN(SetTree, &set->root);
+	return iter;
+}
+
+void
+set_iterator_free(struct SetIterator *iter)
+{
+	if (iter != NULL) {
+		free(iter);
+	}
+}
+
+void *
+set_iterator_next(struct SetIterator **iter_)
+{
+	struct SetIterator *iter = *iter_;
+	if (iter->current == NULL) {
+		set_iterator_free(iter);
+		*iter_ = NULL;
+		return NULL;
+	}
+
+	void *value = iter->current->value;
+	iter->current = SPLAY_NEXT(SetTree, &(iter->current->set->root), iter->current);
+	return value;
+}
