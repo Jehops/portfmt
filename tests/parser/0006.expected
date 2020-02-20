@@ -1,0 +1,3 @@
+variable-start            1-4 FOO= -
+variable-token            1-4 FOO= foo
+variable-end              1-4 FOO= -

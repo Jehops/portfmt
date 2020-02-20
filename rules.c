@@ -72,7 +72,6 @@ static struct {
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
 				  "elifmake|endif|sinclude))([[:space:]]*|$|\\(|!)",
 				  REG_EXTENDED, {} },
-	[RE_CONTINUE_LINE]    = { "[^\\\\]\\\\$",			      REG_EXTENDED, {} },
 	[RE_LICENSE_NAME]     = { "^(_?(-|LICENSE_NAME_[A-Za-z0-9._+ ])+|"
 				  "^LICENSE_(FILE|NAME)_|"
 				  "^LICENSE_(NAME|TEXT)$|"

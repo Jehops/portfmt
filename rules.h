@@ -74,7 +74,6 @@ enum BlockType {
 
 enum RegularExpression {
 	RE_CONDITIONAL = 0,
-	RE_CONTINUE_LINE,
 	RE_LICENSE_NAME,
 	RE_LICENSE_PERMS,
 	RE_OPTIONS_GROUP,

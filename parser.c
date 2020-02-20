@@ -1516,7 +1516,7 @@ parser_read_line(struct Parser *parser, char *line)
 
 	parser->lines.end++;
 
-	int will_continue = matches(RE_CONTINUE_LINE, line);
+	int will_continue = linelen > 0 && line[linelen - 1] == '\\' && (linelen == 1 || line[linelen - 2] != '\\');
 	if (will_continue) {
  		if (linelen > 2 && line[linelen - 2] == '$' && line[linelen - 3] != '$') {
 			/* Hack to "handle" things like $\ in variable values */
