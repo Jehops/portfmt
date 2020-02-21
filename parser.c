@@ -226,13 +226,42 @@ consume_token(struct Parser *parser, const char *line, size_t pos,
 size_t
 consume_var(const char *buf)
 {
-	size_t pos = 0;
-	struct Regexp *re = regexp_new(regex(RE_VAR));
-	if (regexp_exec(re, buf) == 0) {
-		pos = regexp_length(re, 0);
+	size_t len = strlen(buf);
+
+	// ^ *
+	size_t pos;
+	for (pos = 0; pos < len && buf[pos] == ' '; pos++);
+
+	// [^[:space:]=]+
+	size_t i;
+	for (i = pos; i < len && !(isspace(buf[i]) || buf[i] == '='); i++);
+	if (pos == i) {
+		return 0;
 	}
-	regexp_free(re);
-	return pos;
+	pos = i;
+
+	// [[:space:]]*
+	for (; pos < len && isspace(buf[pos]); pos++);
+
+	// [+!?:]?
+	switch (buf[pos]) {
+	case '+':
+	case '!':
+	case '?':
+	case ':':
+		pos++;
+		break;
+	case '=':
+		return pos + 1;
+	default:
+		return 0;
+	}
+
+	// =
+	if (buf[pos] != '=') {
+		return 0;
+	}
+	return pos + 1;
 }
 
 int

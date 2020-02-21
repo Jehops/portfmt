@@ -79,7 +79,6 @@ enum RegularExpression {
 	RE_OPTIONS_GROUP,
 	RE_OPT_USE_PREFIX,
 	RE_PLIST_KEYWORDS,
-	RE_VAR,
 };
 
 struct Parser;

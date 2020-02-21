@@ -84,7 +84,6 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_OPT_USE_PREFIX]   = { "^([-_[:upper:][:lower:][:digit:]]+)\\+?=", REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
-	[RE_VAR] 	      = { "^ *[^[:space:]=]+[[:space:]]*[+!?:]?=",    REG_EXTENDED, {} },
 };
 
 static const char *license_perms_rel[] = {
