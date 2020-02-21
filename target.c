@@ -94,7 +94,7 @@ target_new(char *buf)
 			} else {
 				i = pos;
 			}
-		} else if (c == ':') {
+		} else if (c == ':' || c == '!') {
 			after_target = buf + i;
 			break;
 		}

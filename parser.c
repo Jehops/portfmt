@@ -158,13 +158,24 @@ consume_target(const char *buf)
 		return 0;
 	}
 
-	size_t pos = 0;
-	struct Regexp *re = regexp_new(regex(RE_TARGET));
-	if (regexp_exec(re, buf) == 0) {
-		pos = regexp_length(re, 0);
+	// ^[^:]+(::?|!)
+	// We are more strict than make(1) and do not accept something
+	// like just ":".
+	size_t len = strlen(buf);
+	for (size_t i = 0; i < len; i++) {
+		if (buf[i] == ':' || buf[i] == '!') {
+			if (i == 0) {
+				return 0;
+			}
+			// Consume the next ':' too if any
+			if (buf[i] == ':' && i < len - 1 && buf[i + 1] == ':') {
+				i++;
+			}
+			return i;
+		}
 	}
-	regexp_free(re);
-	return pos;
+
+	return 0;
 }
 
 size_t
