@@ -47,7 +47,7 @@ struct Array {
 	size_t value_size;
 };
 
-static const size_t INITIAL_ARRAY_CAP = 1024;
+static const size_t INITIAL_ARRAY_CAP = 16;
 
 struct Array *
 array_new(void)
