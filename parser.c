@@ -1009,6 +1009,36 @@ parser_output_prepare(struct Parser *parser)
 	}
 }
 
+static int
+matches_opt_use_prefix_helper(char c)
+{
+	return isupper(c) || islower(c) || isdigit(c) || c == '-' || c == '_';
+}
+
+static int
+matches_opt_use_prefix(const char *s)
+{
+	// ^([-_[:upper:][:lower:][:digit:]]+)
+	if (!matches_opt_use_prefix_helper(*s)) {
+		return 0;
+	}
+	size_t len = strlen(s);
+	size_t i;
+	for (i = 1; i < len && matches_opt_use_prefix_helper(s[i]); i++);
+
+	// \+?
+	if (s[i] == '+') {
+		i++;
+	}
+
+	// =
+	if (s[i] == '=') {
+		return 1;
+	}
+
+	return 0;
+}
+
 struct Array *
 parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 {
@@ -1038,7 +1068,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 	for (size_t i = 0; i < array_len(arr); i++) {
 		t = array_get(arr, i);
 		assert(token_type(t) == VARIABLE_TOKEN);
-		if (!matches(RE_OPT_USE_PREFIX, token_data(t))) {
+		if (!matches_opt_use_prefix(token_data(t))) {
 			array_append(up, t);
 			continue;
 		}

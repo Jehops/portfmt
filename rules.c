@@ -82,7 +82,6 @@ static struct {
 				  REG_EXTENDED, {} },
 	[RE_OPTIONS_GROUP]    = { "^_?OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_([-_[:upper:][:digit:]]+)",
 				  REG_EXTENDED, {} },
-	[RE_OPT_USE_PREFIX]   = { "^([-_[:upper:][:lower:][:digit:]]+)\\+?=", REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 };
 
