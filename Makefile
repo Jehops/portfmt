@@ -90,7 +90,7 @@ parser/plugin.refactor.sanitize-comments.o: config.h array.h parser.h parser/plu
 parser/plugin.refactor.sanitize-eol-comments.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
 portscanlog.o: config.h array.h diff.h portscanlog.h util.h
 regexp.o: config.h regexp.h util.h
-rules.o: config.h array.h conditional.h parser.h regexp.h rules.h set.h token.h util.h variable.h
+rules.o: config.h array.h conditional.h parser.h regexp.h rules.h set.h token.h util.h variable.h generated_rules.c
 set.o: config.h array.h set.h tree.h util.h
 target.o: config.h target.h util.h
 token.o: config.h conditional.h target.h token.h util.h variable.h
@@ -109,6 +109,9 @@ install-symlinks:
 		INSTALL_PROGRAM="install -l as" INSTALL_SCRIPT="install -l as" \
 		install
 
+regen-rules:
+	@/bin/sh generate_rules.sh
+
 clean:
 	@rm -f ${OBJS} ${PLUGINS} parser/*.o *.o libportfmt.${LIBSUFFIX} portclippy portedit portfmt \
 		portscan config.*.old
@@ -120,4 +123,4 @@ debug:
 test: all
 	@/bin/sh run-tests.sh
 
-.PHONY: clean debug install install-symlinks test
+.PHONY: clean debug install install-symlinks regen-rules test

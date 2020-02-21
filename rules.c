@@ -54,6 +54,8 @@ static int case_sensitive_sort(struct Parser *, struct Variable *);
 static int compare_rel(const char *[], size_t, const char *, const char *);
 static int compare_license_perms(struct Variable *, const char *, const char *, int *);
 static int compare_plist_files(struct Parser *, struct Variable *, const char *, const char *, int *);
+static int compare_use_gnome(struct Variable *, const char *, const char *, int *);
+static int compare_use_kde(struct Variable *, const char *, const char *, int *);
 static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static char *extract_subpkg(struct Parser *, const char *, char **);
@@ -83,6 +85,8 @@ static struct {
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 };
 
+#include "generated_rules.c"
+
 static const char *license_perms_rel[] = {
 	"dist-mirror",
 	"no-dist-mirror",
@@ -97,359 +101,6 @@ static const char *license_perms_rel[] = {
 	"none",
 };
 
-static const char *use_qt_rel[] = {
-	"3d",
-	"assistant",
-	"buildtools",
-	"canvas3d",
-	"charts",
-	"concurrent",
-	"connectivity",
-	"core",
-	"datavis3d",
-	"dbus",
-	"declarative",
-	"designer",
-	"diag",
-	"doc",
-	"examples",
-	"gamepad",
-	"graphicaleffects",
-	"gui",
-	"help",
-	"imageformats",
-	"l1x++n",
-	"linguist",
-	"linguisttools",
-	"location",
-	"multimedia",
-	"network",
-	"networkauth",
-	"opengl",
-	"paths",
-	"phonon4",
-	"pixeltool",
-	"plugininfo",
-	"printsupport",
-	"qdbus",
-	"qdbusviewer",
-	"qdoc-data",
-	"qdoc",
-	"qev",
-	"qmake",
-	"quickcontrols",
-	"quickcontrols2",
-	"remoteobjects",
-	"script",
-	"scripttools",
-	"scxml",
-	"sensors",
-	"serialbus",
-	"serialport",
-	"speech",
-	"sql-ibase",
-	"sql-mysql",
-	"sql-odbc",
-	"sql-pgsql",
-	"sql-sqlite2",
-	"sql-sqlite3",
-	"sql-tds",
-	"sql",
-	"svg",
-	"testlib",
-	"uiplugin",
-	"uitools",
-	"virtualkeyboard",
-	"wayland",
-	"webchannel",
-	"webengine",
-	"webglplugin",
-	"webkit",
-	"websockets-qml",
-	"websockets",
-	"webview",
-	"widgets",
-	"x11extras",
-	"xml",
-	"xmlpatterns",
-
-	// _run variants of the above
-	"3d_run",
-	"assistant_run",
-	"buildtools_run",
-	"canvas3d_run",
-	"charts_run",
-	"concurrent_run",
-	"connectivity_run",
-	"core_run",
-	"datavis3d_run",
-	"dbus_run",
-	"declarative_run",
-	"designer_run",
-	"diag_run",
-	"doc_run",
-	"examples_run",
-	"gamepad_run",
-	"graphicaleffects_run",
-	"gui_run",
-	"help_run",
-	"imageformats_run",
-	"l1x++n_run",
-	"linguist_run",
-	"linguisttools_run",
-	"location_run",
-	"multimedia_run",
-	"network_run",
-	"networkauth_run",
-	"opengl_run",
-	"paths_run",
-	"phonon4_run",
-	"pixeltool_run",
-	"plugininfo_run",
-	"printsupport_run",
-	"qdbus_run",
-	"qdbusviewer_run",
-	"qdoc-data_run",
-	"qdoc_run",
-	"qev_run",
-	"qmake_run",
-	"quickcontrols_run",
-	"quickcontrols2_run",
-	"remoteobjects_run",
-	"script_run",
-	"scripttools_run",
-	"scxml_run",
-	"sensors_run",
-	"serialbus_run",
-	"serialport_run",
-	"speech_run",
-	"sql-ibase_run",
-	"sql-mysql_run",
-	"sql-odbc_run",
-	"sql-pgsql_run",
-	"sql-sqlite2_run",
-	"sql-sqlite3_run",
-	"sql-tds_run",
-	"sql_run",
-	"svg_run",
-	"testlib_run",
-	"uiplugin_run",
-	"uitools_run",
-	"virtualkeyboard_run",
-	"wayland_run",
-	"webchannel_run",
-	"webengine_run",
-	"webglplugin_run",
-	"webkit_run",
-	"websockets-qml_run",
-	"websockets_run",
-	"webview_run",
-	"widgets_run",
-	"x11extras_run",
-	"xml_run",
-	"xmlpatterns_run",
-
-	// _build variants of the above
-	"3d_build",
-	"assistant_build",
-	"buildtools_build",
-	"canvas3d_build",
-	"charts_build",
-	"concurrent_build",
-	"connectivity_build",
-	"core_build",
-	"datavis3d_build",
-	"dbus_build",
-	"declarative_build",
-	"designer_build",
-	"diag_build",
-	"doc_build",
-	"examples_build",
-	"gamepad_build",
-	"graphicaleffects_build",
-	"gui_build",
-	"help_build",
-	"imageformats_build",
-	"l1x++n_build",
-	"linguist_build",
-	"linguisttools_build",
-	"location_build",
-	"multimedia_build",
-	"network_build",
-	"networkauth_build",
-	"opengl_build",
-	"paths_build",
-	"phonon4_build",
-	"pixeltool_build",
-	"plugininfo_build",
-	"printsupport_build",
-	"qdbus_build",
-	"qdbusviewer_build",
-	"qdoc-data_build",
-	"qdoc_build",
-	"qev_build",
-	"qmake_build",
-	"quickcontrols_build",
-	"quickcontrols2_build",
-	"remoteobjects_build",
-	"script_build",
-	"scripttools_build",
-	"scxml_build",
-	"sensors_build",
-	"serialbus_build",
-	"serialport_build",
-	"speech_build",
-	"sql-ibase_build",
-	"sql-mysql_build",
-	"sql-odbc_build",
-	"sql-pgsql_build",
-	"sql-sqlite2_build",
-	"sql-sqlite3_build",
-	"sql-tds_build",
-	"sql_build",
-	"svg_build",
-	"testlib_build",
-	"uiplugin_build",
-	"uitools_build",
-	"virtualkeyboard_build",
-	"wayland_build",
-	"webchannel_build",
-	"webengine_build",
-	"webkit_build",
-	"webglplugin_build",
-	"websockets-qml_build",
-	"websockets_build",
-	"webview_build",
-	"widgets_build",
-	"x11extras_build",
-	"xml_build",
-	"xmlpatterns_build",
-};
-
-static const char *use_pyqt_rel[] = {
-	"core",
-	"dbus",
-	"dbussupport",
-	"demo",
-	"designer",
-	"designerplugin",
-	"gui",
-	"help",
-	"multimedia",
-	"multimediawidgets",
-	"network",
-	"opengl",
-	"printsupport",
-	"qml",
-	"qscintilla2",
-	"quickwidgets",
-	"serialport",
-	"sip",
-	"sql",
-	"svg",
-	"test",
-	"webchannel",
-	"webengine",
-	"webkit",
-	"webkitwidgets",
-	"websockets",
-	"widgets",
-	"xml",
-	"xmlpatterns",
-
-	// _build variants of the above
-	"core_build",
-	"dbus_build",
-	"dbussupport_build",
-	"demo_build",
-	"designer_build",
-	"designerplugin_build",
-	"gui_build",
-	"help_build",
-	"multimedia_build",
-	"multimediawidgets_build",
-	"network_build",
-	"opengl_build",
-	"printsupport_build",
-	"qml_build",
-	"qscintilla2_build",
-	"quickwidgets_build",
-	"serialport_build",
-	"sip_build",
-	"sql_build",
-	"svg_build",
-	"test_build",
-	"webchannel_build",
-	"webengine_build",
-	"webkit_build",
-	"webkitwidgets_build",
-	"websockets_build",
-	"widgets_build",
-	"xml_build",
-	"xmlpatterns_build",
-
-	// _run variants of the above
-	"core_run",
-	"dbus_run",
-	"dbussupport_run",
-	"demo_run",
-	"designer_run",
-	"designerplugin_run",
-	"gui_run",
-	"help_run",
-	"multimedia_run",
-	"multimediawidgets_run",
-	"network_run",
-	"opengl_run",
-	"printsupport_run",
-	"qml_run",
-	"qscintilla2_run",
-	"quickwidgets_run",
-	"serialport_run",
-	"sip_run",
-	"sql_run",
-	"svg_run",
-	"test_run",
-	"webchannel_run",
-	"webengine_run",
-	"webkit_run",
-	"webkitwidgets_run",
-	"websockets_run",
-	"widgets_run",
-	"xml_run",
-	"xmlpatterns_run",
-
-	// _test variants of the above
-	"core_test",
-	"dbus_test",
-	"dbussupport_test",
-	"demo_test",
-	"designer_test",
-	"designerplugin_test",
-	"gui_test",
-	"help_test",
-	"multimedia_test",
-	"multimediawidgets_test",
-	"network_test",
-	"opengl_test",
-	"printsupport_test",
-	"qml_test",
-	"qscintilla2_test",
-	"quickwidgets_test",
-	"serialport_test",
-	"sip_test",
-	"sql_test",
-	"svg_test",
-	"test_test",
-	"webchannel_test",
-	"webengine_test",
-	"webkit_test",
-	"webkitwidgets_test",
-	"websockets_test",
-	"widgets_test",
-	"xml_test",
-	"xmlpatterns_test",
-};
 
 static const char *target_command_wrap_after_each_token_[] = {
 	"${INSTALL_DATA}",
@@ -545,23 +196,6 @@ static const char *special_targets_[] = {
 	".WAIT",
 };
 
-static const char *static_flavors_[] = {
-	// lazarus
-	"gtk2",
-	"qt5",
-	// php
-	"php71",
-	"php72",
-	"php73",
-	"php74",
-	// python
-	"py27",
-	"py35",
-	"py36",
-	"py37",
-	"py38",
-};
-
 enum VariableOrderFlag {
 	VAR_DEFAULT = 0,
 	VAR_CASE_SENSITIVE_SORT = 1,
@@ -582,45 +216,7 @@ struct VariableOrderEntry {
 	const char *var;
 	enum VariableOrderFlag flags;
 };
-#define VAR_FOR_EACH_ARCH(block, var, flags) \
-	{ block, var "aarch64", flags }, \
-	{ block, var "amd64", flags }, \
-	{ block, var "arm", flags }, \
-	{ block, var "armv6", flags }, \
-	{ block, var "armv7", flags }, \
-	{ block, var "i386", flags }, \
-	{ block, var "mips", flags }, \
-	{ block, var "mips64", flags }, \
-	{ block, var "mips64el", flags }, \
-	{ block, var "mips64elhf", flags }, \
-	{ block, var "mips64hf", flags }, \
-	{ block, var "mipsel", flags }, \
-	{ block, var "mipselhf", flags }, \
-	{ block, var "mipsn32", flags }, \
-	{ block, var "powerpc", flags }, \
-	{ block, var "powerpc64", flags }, \
-	{ block, var "powerpcspe", flags }, \
-	{ block, var "riscv64", flags }, \
-	{ block, var "sparc64", flags }
-#define VAR_FOR_EACH_FREEBSD_VERSION_AND_ARCH(block, var, flags) \
-	{ block, var "FreeBSD", flags }, \
-	{ block, var "FreeBSD_11", flags }, \
-	VAR_FOR_EACH_ARCH(block, var "FreeBSD_11_", flags), \
-	{ block, var "FreeBSD_12", flags }, \
-	VAR_FOR_EACH_ARCH(block, var "FreeBSD_12_", flags), \
-	{ block, var "FreeBSD_13", flags }, \
-	VAR_FOR_EACH_ARCH(block, var "FreeBSD_13_", flags), \
-	VAR_FOR_EACH_ARCH(block, var "FreeBSD_", flags)
-#define VAR_FOR_EACH_FREEBSD_VERSION(block, var, flags) \
-	{ block, var "FreeBSD", flags }, \
-	{ block, var "FreeBSD_11", flags }, \
-	{ block, var "FreeBSD_12", flags }, \
-	{ block, var "FreeBSD_13", flags }
-#define VAR_FOR_EACH_SSL(block, var, flags) \
-	{ block, var "base", flags}, \
-	{ block, var "libressl", flags}, \
-	{ block, var "libressl-devel", flags}, \
-	{ block, var "openssl", flags}
+
 // Based on: https://www.freebsd.org/doc/en/books/porters-handbook/porting-order.html
 static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_PORTNAME, "PORTNAME", VAR_DEFAULT },
@@ -1925,6 +1521,8 @@ compare_tokens(const void *ap, const void *bp, void *userdata)
 	int result;
 	if (compare_license_perms(var, token_data(a), token_data(b), &result) ||
 	    compare_plist_files(parser, var, token_data(a), token_data(b), &result) ||
+	    compare_use_gnome(var, token_data(a), token_data(b), &result) ||
+	    compare_use_kde(var, token_data(a), token_data(b), &result) ||
 	    compare_use_pyqt(var, token_data(a), token_data(b), &result) ||
 	    compare_use_qt(var, token_data(a), token_data(b), &result)) {
 		return result;
@@ -1977,6 +1575,32 @@ compare_plist_files(struct Parser *parser, struct Variable *var, const char *a, 
 	free(as);
 	free(bs);
 
+	return 1;
+}
+
+int
+compare_use_gnome(struct Variable *var, const char *a, const char *b, int *result)
+{
+	assert(result != NULL);
+
+	if (strcmp(variable_name(var), "USE_GNOME") != 0) {
+		return 0;
+	}
+
+	*result = compare_rel(use_gnome_rel, nitems(use_gnome_rel), a, b);
+	return 1;
+}
+
+int
+compare_use_kde(struct Variable *var, const char *a, const char *b, int *result)
+{
+	assert(result != NULL);
+
+	if (strcmp(variable_name(var), "USE_KDE") != 0) {
+		return 0;
+	}
+
+	*result = compare_rel(use_kde_rel, nitems(use_kde_rel), a, b);
 	return 1;
 }
 
