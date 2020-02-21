@@ -80,8 +80,6 @@ static struct {
 	[RE_LICENSE_PERMS]    = { "^(_?LICENSE_PERMS_(-|[A-Z0-9\\._+ ])+|"
 				  "_LICENSE_LIST_PERMS|LICENSE_PERMS)",
 				  REG_EXTENDED, {} },
-	[RE_OPTIONS_GROUP]    = { "^_?OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_([-_[:upper:][:digit:]]+)",
-				  REG_EXTENDED, {} },
 	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 };
 
@@ -2270,6 +2268,59 @@ done:
 	return 1;
 }
 
+static int
+matches_options_group(struct Parser *parser, const char *s)
+{
+	size_t i = 0;
+	// ^_?
+	if (s[i] == '_') {
+		i++;
+	}
+
+	// OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_
+	const char *opts[] = {
+		"OPTIONS_GROUP_",
+		"OPTIONS_MULTI_",
+		"OPTIONS_RADIO_",
+		"OPTIONS_SINGLE_",
+	};
+	int matched = 0;
+	for (size_t j = 0; j < nitems(opts); j++) {
+		if (str_startswith(s + i, opts[j])) {
+			matched = 1;
+			i += strlen(opts[j]);
+			break;
+		}
+	}
+	if (!matched) {
+		return 0;
+	}
+
+	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS) {
+		// [-_[:upper:][:digit:]]+
+		if (!(isupper(s[i]) || isdigit(s[i]) || s[i] == '-' || s[i] == '_')) {
+			return 0;
+		}
+		for (size_t len = strlen(s); i < len; i++) {
+			if (!(isupper(s[i]) || isdigit(s[i]) || s[i] == '-' || s[i] == '_')) {
+				return 0;
+			}
+		}
+		return 1;
+	} else {
+		struct Set *groups;
+		parser_port_options(parser, &groups, NULL);
+		// XXX: This could be stricter by checking the group type too
+		SET_FOREACH (groups, const char *, group) {
+			if (strcmp(s + i, group) == 0) {
+				return 1;
+			}
+		}
+		return 0;
+	}
+
+}
+
 enum BlockType
 variable_order_block(struct Parser *parser, const char *var)
 {
@@ -2311,7 +2362,7 @@ variable_order_block(struct Parser *parser, const char *var)
 		}
 	}
 
-	if (matches(RE_OPTIONS_GROUP, var)) {
+	if (matches_options_group(parser, var)) {
 		return BLOCK_OPTDEF;
 	}
 
@@ -2328,7 +2379,7 @@ variable_order_block(struct Parser *parser, const char *var)
 			continue;
 		case BLOCK_LICENSE:
 		case BLOCK_OPTDEF:
-			// RE_LICENSE_*, RE_OPTIONS_GROUP do not
+			// RE_LICENSE_*, matches_options_group() do not
 			// cover all cases.
 		default:
 			break;
