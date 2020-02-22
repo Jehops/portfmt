@@ -31,38 +31,23 @@
 #include <stdlib.h>
 
 #include "array.h"
+#include "map.h"
 #include "set.h"
-#include "tree.h"
 #include "util.h"
 
-struct SetNode {
-	SPLAY_ENTRY(SetNode) entry;
-	void *value;
-	struct Set *set;
-};
-
 struct Set {
-	SPLAY_HEAD(SetTree, SetNode) root;
-	SetCompareFn compare;
-	void *compare_userdata;
-	void (*free)(void *);
+	struct Map *map;
 };
 
 struct SetIterator {
-	struct SetNode *current;
+	struct MapIterator *iter;
 };
-
-static int nodecmp(struct SetNode *, struct SetNode *);
-SPLAY_PROTOTYPE(SetTree, SetNode, entry, nodecmp);
 
 struct Set *
 set_new(SetCompareFn compare, void *compare_userdata, void *freefn)
 {
 	struct Set *set = xmalloc(sizeof(struct Set));
-	SPLAY_INIT(&set->root);
-	set->compare = compare;
-	set->compare_userdata = compare_userdata;
-	set->free = freefn;
+	set->map = map_new(compare, compare_userdata, freefn, NULL);
 	return set;
 }
 
@@ -78,32 +63,41 @@ set_free(struct Set *set)
 }
 
 void
-set_add(struct Set *set, void *value)
+set_add(struct Set *set, void *element)
 {
-	if (!set_contains(set, value)) {
-		struct SetNode *node = xmalloc(sizeof(struct SetNode));
-		node->value = value;
-		node->set = set;
-		SPLAY_INSERT(SetTree, &set->root, node);
-	}
+	map_add(set->map, element, element);
+}
+
+void
+set_remove(struct Set *set, void *element)
+{
+	map_remove(set->map, element);
+}
+
+void *
+set_get(struct Set *set, void *element)
+{
+	return map_get(set->map, element);
 }
 
 int
-set_contains(struct Set *set, void *value)
+set_contains(struct Set *set, void *element)
 {
-	struct SetNode node;
-	node.value = value;
-	node.set = set;
-	return SPLAY_FIND(SetTree, &set->root, &node) != NULL;
+	return map_get(set->map, element) != NULL;
+}
+
+size_t
+set_len(struct Set *set)
+{
+	return map_len(set->map);
 }
 
 struct Array *
 set_toarray(struct Set *set)
 {
 	struct Array *array = array_new();
-	struct SetNode *node;
-	SPLAY_FOREACH (node, SetTree, &set->root) {
-		array_append(array, node->value);
+	MAP_FOREACH (set->map, void *, key, void *, element) {
+		array_append(array, key);
 	}
 	return array;
 }
@@ -111,42 +105,14 @@ set_toarray(struct Set *set)
 void
 set_truncate(struct Set *set)
 {
-	struct SetNode *node;
-	struct SetNode *next;
-	for (node = SPLAY_MIN(SetTree, &set->root); node != NULL; node = next) {
-		next = SPLAY_NEXT(SetTree, &set->root, node);
-		SPLAY_REMOVE(SetTree, &set->root, node);
-		if (set->free != NULL) {
-			set->free(node->value);
-		}
-		free(node);
-	}
-	SPLAY_INIT(&set->root);
+	map_truncate(set->map);
 }
-
-int
-nodecmp(struct SetNode *e1, struct SetNode *e2)
-{
-	if (e1->set->compare == NULL) {
-		if (e1->value == e2->value) {
-			return 0;
-		} else if (e1->value < e2->value) {
-			return -1;
-		} else {
-			return 1;
-		}
-	} else {
-		return e1->set->compare(&e1->value, &e2->value, e1->set->compare_userdata);
-	}
-}
-
-SPLAY_GENERATE(SetTree, SetNode, entry, nodecmp);
 
 struct SetIterator *
 set_iterator(struct Set *set)
 {
 	struct SetIterator *iter = xmalloc(sizeof(struct SetIterator));
-	iter->current = SPLAY_MIN(SetTree, &set->root);
+	iter->iter = map_iterator(set->map);
 	return iter;
 }
 
@@ -154,6 +120,7 @@ void
 set_iterator_free(struct SetIterator *iter)
 {
 	if (iter != NULL) {
+		map_iterator_free(iter->iter);
 		free(iter);
 	}
 }
@@ -161,14 +128,13 @@ set_iterator_free(struct SetIterator *iter)
 void *
 set_iterator_next(struct SetIterator **iter_)
 {
+	void *element;
 	struct SetIterator *iter = *iter_;
-	if (iter->current == NULL) {
+	void *next = map_iterator_next(&iter->iter, &element);
+	if (next == NULL) {
 		set_iterator_free(iter);
 		*iter_ = NULL;
 		return NULL;
 	}
-
-	void *value = iter->current->value;
-	iter->current = SPLAY_NEXT(SetTree, &(iter->current->set->root), iter->current);
-	return value;
+	return next;
 }

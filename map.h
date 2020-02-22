@@ -28,24 +28,23 @@
 #pragma once
 
 struct Array;
-struct Set;
-struct SetIterator;
-typedef int (*SetCompareFn)(const void *, const void *, void *);
+struct Map;
+typedef int (*MapCompareFn)(const void *, const void *, void *);
 
-struct Set *set_new(SetCompareFn, void *, void *);
-void set_free(struct Set *);
-void set_add(struct Set *, void *);
-void set_remove(struct Set *, void *);
-void *set_get(struct Set *, void *);
-int set_contains(struct Set *, void *);
-size_t set_len(struct Set *);
-struct Array *set_toarray(struct Set *);
-void set_truncate(struct Set *);
+struct Map *map_new(MapCompareFn, void *, void *, void *);
+void map_free(struct Map *);
+void map_add(struct Map *, void *, void *);
+void map_remove(struct Map *, void *);
+void *map_get(struct Map *, void *);
+int map_contains(struct Map *, void *);
+size_t map_len(struct Map *);
+void map_truncate(struct Map *);
 
-struct SetIterator *set_iterator(struct Set *);
-void set_iterator_free(struct SetIterator *);
-void *set_iterator_next(struct SetIterator **);
+struct MapIterator *map_iterator(struct Map *);
+void map_iterator_free(struct MapIterator *);
+void *map_iterator_next(struct MapIterator **, void **);
 
-#define SET_FOREACH(SET, TYPE, VAR) \
-	for (struct SetIterator *__##VAR##_iter = set_iterator(SET); __##VAR##_iter != NULL;) \
-	for (TYPE VAR = set_iterator_next(&__##VAR##_iter); VAR != NULL; VAR = set_iterator_next(&__##VAR##_iter))
+#define MAP_FOREACH(MAP, KEYTYPE, KEYVAR, VALTYPE, VALVAR) \
+	for (struct MapIterator *__##KEYVAR##_iter = map_iterator(MAP); __##KEYVAR##_iter != NULL;) \
+	for (VALTYPE VALVAR = NULL; __##KEYVAR##_iter != NULL;) \
+	for (KEYTYPE KEYVAR = map_iterator_next(&__##KEYVAR##_iter, (void **)&VALVAR); KEYVAR != NULL; KEYVAR = map_iterator_next(&__##KEYVAR##_iter, (void **)&VALVAR))
