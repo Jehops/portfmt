@@ -176,7 +176,14 @@ explicit_bzero(void *p, size_t n)
 
 #include <errno.h>
 
-#if HAVE_PROGRAM_INVOCATION_SHORT_NAME
+#if HAVE_GETEXECNAME
+#include <stdlib.h>
+const char *
+getprogname(void)
+{
+	return getexecname();
+}
+#elif HAVE_PROGRAM_INVOCATION_SHORT_NAME
 const char *
 getprogname(void)
 {
