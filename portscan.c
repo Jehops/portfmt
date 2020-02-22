@@ -58,11 +58,11 @@
 
 struct ScanResult {
 	char *origin;
-	struct Array *unknown_variables;
-	struct Array *unknown_targets;
-	struct Array *clones;
-	struct Array *option_groups;
-	struct Array *options;
+	struct Set *unknown_variables;
+	struct Set *unknown_targets;
+	struct Set *clones;
+	struct Set *option_groups;
+	struct Set *options;
 	int include_options;
 };
 
@@ -245,11 +245,8 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 void
 lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 {
-	retval->unknown_targets = array_new();
-	retval->unknown_variables = array_new();
-	retval->clones = array_new();
-	retval->option_groups = array_new();
-	retval->options = array_new();
+	retval->option_groups = set_new(str_compare, NULL, free);
+	retval->options = set_new(str_compare, NULL, free);
 
 	struct ParserSettings settings;
 	parser_init_settings(&settings);
@@ -299,47 +296,35 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 		goto cleanup;
 	}
 
-	struct Array *tmp = NULL;
-	error = parser_edit(parser, "output.unknown-variables", &tmp);
+	error = parser_edit(parser, "output.unknown-variables", &retval->unknown_variables);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
-	for (size_t i = 0; i < array_len(tmp); i++) {
-		array_append(retval->unknown_variables, xstrdup(array_get(tmp, i)));
-	}
-	array_free(tmp);
 
-	error = parser_edit(parser, "output.unknown-targets", &tmp);
+	error = parser_edit(parser, "output.unknown-targets", &retval->unknown_targets);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
-	for (size_t i = 0; i < array_len(tmp); i++) {
-		array_append(retval->unknown_targets, xstrdup(array_get(tmp, i)));
-	}
-	array_free(tmp);
 
-	error = parser_edit(parser, "lint.clones", &tmp);
+	error = parser_edit(parser, "lint.clones", &retval->clones);
 	if (error != PARSER_ERROR_OK) {
 		warnx("%s: %s", path, parser_error_tostring(parser));
 		goto cleanup;
 	}
-	for (size_t i = 0; i < array_len(tmp); i++) {
-		array_append(retval->clones, xstrdup(array_get(tmp, i)));
-	}
 
-	array_free(tmp);
 	if (retval->include_options) {
 		struct Set *groups;
 		parser_port_options(parser, &groups, NULL);
 		SET_FOREACH (groups, const char *, group) { 
-			array_append(retval->option_groups, xstrdup(group));
+			set_add(retval->option_groups, xstrdup(group));
 		}
 		struct Set *options;
 		parser_port_options(parser, NULL, &options);
+		retval->options = set_new(str_compare, NULL, free);
 		SET_FOREACH (options, const char *, option) {
-			array_append(retval->options, xstrdup(option));
+			set_add(retval->options, xstrdup(option));
 		}
 	}
 

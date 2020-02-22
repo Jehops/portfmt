@@ -57,7 +57,7 @@ portscan: ${LIBNAME}.${LIBSUFFIX} portscan.o
 portclippy.o: portclippy.c config.h mainutils.h parser.h parser/plugin.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portedit.o: portedit.c config.h array.h mainutils.h parser.h parser/plugin.h util.h
+portedit.o: portedit.c config.h array.h mainutils.h parser.h parser/plugin.h set.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 portfmt.o: portfmt.c config.h mainutils.h parser.h parser/plugin.h
@@ -78,7 +78,7 @@ parser/plugin.edit.bump-revision.o: config.h array.h parser.h parser/plugin.h ru
 parser/plugin.edit.merge.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
 parser/plugin.edit-set-version.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
 parser/plugin.kakoune.select-object-on-line.o: config.h array.h parser.h parser/plugin.h token.h util.h
-parser/plugin.lint.clones.o: config.h array.h conditional.h parser.h parser/plugin.h token.h util.h variable.h
+parser/plugin.lint.clones.o: config.h array.h conditional.h parser.h parser/plugin.h set.h token.h util.h variable.h
 parser/plugin.lint.order.o: config.h array.h conditional.h diff.h parser.h parser/plugin.h rules.h target.h token.h util.h variable.h
 parser/plugin.output.unknown-targets.o: config.h array.h parser.h parser/plugin.h rules.h set.h target.h token.h util.h
 parser/plugin.output.unknown-variables.o: config.h array.h parser.h parser/plugin.h rules.h set.h token.h util.h variable.h
@@ -89,7 +89,7 @@ parser/plugin.refactor.sanitize-append-modifier.o: config.h array.h parser.h par
 parser/plugin.refactor.sanitize-cmake-args.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
 parser/plugin.refactor.sanitize-comments.o: config.h array.h parser.h parser/plugin.h token.h util.h
 parser/plugin.refactor.sanitize-eol-comments.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
-portscanlog.o: config.h array.h diff.h portscanlog.h util.h
+portscanlog.o: config.h array.h diff.h portscanlog.h set.h util.h
 regexp.o: config.h regexp.h util.h
 rules.o: config.h array.h conditional.h parser.h regexp.h rules.h set.h token.h util.h variable.h generated_rules.c
 set.o: config.h array.h map.h set.h util.h

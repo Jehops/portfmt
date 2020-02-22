@@ -36,32 +36,31 @@
 #include "conditional.h"
 #include "parser.h"
 #include "parser/plugin.h"
+#include "set.h"
 #include "token.h"
 #include "util.h"
 #include "variable.h"
 
 static void
-add_clones(struct Array *clones, struct Array *seen, struct Array *seen_in_cond)
+add_clones(struct Set *clones, struct Set *seen, struct Set *seen_in_cond)
 {
-	for (size_t i = 0; i < array_len(seen_in_cond); i++) {
-		char *name = array_get(seen_in_cond, i);
-		if (array_find(seen, name, str_compare, NULL) > -1 &&
-		    array_find(clones, name, str_compare, NULL) == -1) {
-			array_append(clones, xstrdup(name));
+	SET_FOREACH (seen_in_cond, char *, name) {
+		if (set_contains(seen, name)) {
+			set_add(clones, xstrdup(name));
 		}
 	}
-	array_truncate(seen_in_cond);
+	set_truncate(seen_in_cond);
 }
 
 static struct Array *
 lint_clones(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	struct Array **clones_ret = (struct Array **)userdata;
+	struct Set **clones_ret = (struct Set **)userdata;
 	int no_color = parser_settings(parser).behavior & PARSER_OUTPUT_NO_COLOR;
 
-	struct Array *seen = array_new();
-	struct Array *seen_in_cond = array_new();
-	struct Array *clones = array_new();
+	struct Set *seen = set_new(str_compare, NULL, NULL);
+	struct Set *seen_in_cond = set_new(str_compare, NULL, NULL);
+	struct Set *clones = set_new(str_compare, NULL, free);
 	int in_conditional = 0;
 	for (size_t i = 0; i < array_len(ptokens); i++) {
 		struct Token *t = array_get(ptokens, i);
@@ -91,15 +90,11 @@ lint_clones(struct Parser *parser, struct Array *ptokens, enum ParserError *erro
 			if (variable_modifier(v) == MODIFIER_ASSIGN) {
 				char *name = variable_name(v);
 				if (in_conditional > 0) {
-					if (array_find(seen_in_cond, name, str_compare, NULL) == -1) {
-						array_append(seen_in_cond, name);
-					}
+					set_add(seen_in_cond, name);
+				} else if (set_contains(seen, name)) {
+					set_add(clones, xstrdup(name));
 				} else {
-					if (array_find(seen, name, str_compare, NULL) == -1) {
-						array_append(seen, name);
-					} else if (array_find(clones, name, str_compare, NULL) == -1) {
-						array_append(clones, name);
-					}
+					set_add(seen, name);
 				}
 			}
 			break;
@@ -108,9 +103,7 @@ lint_clones(struct Parser *parser, struct Array *ptokens, enum ParserError *erro
 		}
 	}
 
-	array_sort(clones, str_compare, NULL);
-
-	if (clones_ret == NULL && array_len(clones) > 0) {
+	if (clones_ret == NULL && set_len(clones) > 0) {
 		if (!no_color) {
 			parser_enqueue_output(parser, ANSI_COLOR_CYAN);
 		}
@@ -118,17 +111,16 @@ lint_clones(struct Parser *parser, struct Array *ptokens, enum ParserError *erro
 		if (!no_color) {
 			parser_enqueue_output(parser, ANSI_COLOR_RESET);
 		}
-		for (size_t i = 0; i < array_len(clones); i++) {
-			char *name = array_get(clones, i);
+		SET_FOREACH (clones, const char *, name) {
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
 		}
 	}
 
-	array_free(seen);
-	array_free(seen_in_cond);
+	set_free(seen);
+	set_free(seen_in_cond);
 	if (clones_ret == NULL) {
-		array_free(clones);
+		set_free(clones);
 	} else {
 		*clones_ret = clones;
 	}

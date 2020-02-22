@@ -45,14 +45,14 @@
 static struct Array *
 output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	struct Array **unknowns = (struct Array **)userdata;
+	struct Set **unknowns = (struct Set **)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 
-	struct Set *targets = set_new(str_compare, NULL, NULL);
+	struct Set *targets = set_new(str_compare, NULL, free);
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (token_type(t) != TARGET_START) {
@@ -64,14 +64,15 @@ output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserE
 		    !set_contains(targets, name)) {
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
-			set_add(targets, name);
+			set_add(targets, xstrdup(name));
 		}
 	}
 
 	if (unknowns) {
-		*unknowns = set_toarray(targets);
+		*unknowns = targets;
+	} else {
+		set_free(targets);
 	}
-	set_free(targets);
 
 	return NULL;
 }

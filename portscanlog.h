@@ -27,9 +27,9 @@
  */
 #pragma once
 
-struct Array;
 struct PortscanLog;
 struct PortscanLogDir;
+struct Set;
 
 enum PortscanLogEntryType {
 	PORTSCAN_LOG_ENTRY_UNKNOWN_VAR,
@@ -50,7 +50,7 @@ struct PortscanLog *portscan_log_read_all(struct PortscanLogDir *, const char *)
 void portscan_log_free(struct PortscanLog *);
 
 size_t portscan_log_len(struct PortscanLog *);
-void portscan_log_add_entry(struct PortscanLog *, enum PortscanLogEntryType, const char *, struct Array *);
+void portscan_log_add_entry(struct PortscanLog *, enum PortscanLogEntryType, const char *, struct Set *);
 int portscan_log_compare(struct PortscanLog *, struct PortscanLog *);
 int portscan_log_serialize_to_file(struct PortscanLog *, FILE *);
 int portscan_log_serialize_to_dir(struct PortscanLog *, struct PortscanLogDir *);

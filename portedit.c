@@ -43,6 +43,7 @@
 #include "mainutils.h"
 #include "parser.h"
 #include "parser/plugin.h"
+#include "set.h"
 #include "util.h"
 
 static int apply(struct ParserSettings *, int, char *[]);
@@ -447,7 +448,7 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_targets_usage();
 	}
 
-	struct Array *unknowns = NULL;
+	struct Set *unknowns = NULL;
 	enum ParserError error = parser_edit(parser, "output.unknown-targets", &unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
@@ -464,11 +465,11 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	if (array_len(unknowns) > 0) {
-		array_free(unknowns);
+	if (set_len(unknowns) > 0) {
+		set_free(unknowns);
 		return 1;
 	}
-	array_free(unknowns);
+	set_free(unknowns);
 
 	return 0;
 }
@@ -488,7 +489,7 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_vars_usage();
 	}
 
-	struct Array *unknowns = NULL;
+	struct Set *unknowns = NULL;
 	enum ParserError error = parser_edit(parser, "output.unknown-variables", &unknowns);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
@@ -505,11 +506,11 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	if (array_len(unknowns) > 0) {
-		array_free(unknowns);
+	if (set_len(unknowns) > 0) {
+		set_free(unknowns);
 		return 1;
 	}
-	array_free(unknowns);
+	set_free(unknowns);
 
 	return 0;
 }

@@ -49,6 +49,7 @@
 #include "array.h"
 #include "diff.h"
 #include "portscanlog.h"
+#include "set.h"
 #include "util.h"
 
 struct PortscanLogDir {
@@ -145,20 +146,16 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 }
 
 void
-portscan_log_add_entry(struct PortscanLog *log, enum PortscanLogEntryType type, const char *origin, struct Array *values)
+portscan_log_add_entry(struct PortscanLog *log, enum PortscanLogEntryType type, const char *origin, struct Set *values)
 {
-	array_sort(values, str_compare, NULL);
-	for (size_t k = 0; k < array_len(values); k++) {
-		char *value = array_get(values, k);
+	SET_FOREACH (values, const char *, value) {
 		struct PortscanLogEntry *entry = xmalloc(sizeof(struct PortscanLogEntry));
 		entry->type = type;
 		entry->origin = xstrdup(origin);
 		entry->value = xstrdup(value);
 		array_append(log->entries, entry);
-		free(value);
 	}
-
-	array_free(values);
+	set_free(values);
 }
 
 struct PortscanLogEntry *
