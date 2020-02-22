@@ -28,11 +28,13 @@
 
 #include "config.h"
 
+#if HAVE_SYS_TREE
+# include <sys/tree.h>
+#endif
 #include <stdlib.h>
 
 #include "array.h"
 #include "map.h"
-#include "tree.h"
 #include "util.h"
 
 struct MapNode {
