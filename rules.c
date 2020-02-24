@@ -2517,6 +2517,16 @@ sub(enum RegularExpression re, const char *replacement, const char *s)
 	return buf;
 }
 
+struct Set *
+known_architectures()
+{
+	struct Set *set = set_new(str_compare, NULL, NULL);
+	for (size_t i = 0; i < nitems(known_architectures_); i++) {
+		set_add(set, (void*)known_architectures_[i]);
+	}
+	return set;
+}
+
 void
 rules_init()
 {

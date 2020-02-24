@@ -2019,26 +2019,14 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 		return;
 	}
 
+	struct Set *archs = known_architectures();
 #define FOR_EACH_ARCH(f, var) \
-	f(parser, var "_" "aarch64"); \
-	f(parser, var "_" "amd64"); \
-	f(parser, var "_" "arm"); \
-	f(parser, var "_" "armv6"); \
-	f(parser, var "_" "armv7"); \
-	f(parser, var "_" "i386"); \
-	f(parser, var "_" "mips"); \
-	f(parser, var "_" "mips64"); \
-	f(parser, var "_" "mips64el"); \
-	f(parser, var "_" "mips64elhf"); \
-	f(parser, var "_" "mips64hf"); \
-	f(parser, var "_" "mipsel"); \
-	f(parser, var "_" "mipselhf"); \
-	f(parser, var "_" "mipsn32"); \
-	f(parser, var "_" "powerpc"); \
-	f(parser, var "_" "powerpc64"); \
-	f(parser, var "_" "powerpcspe"); \
-	f(parser, var "_" "riscv64"); \
-	f(parser, var "_" "sparc64")
+	SET_FOREACH (archs, const char *, arch) { \
+		char *buf; \
+		xasprintf(&buf, "%s_%s", var, "_", arch); \
+		f(parser, buf); \
+		free(buf); \
+	}
 
 	parser_port_options_add_from_var(parser, "OPTIONS_DEFINE");
 	FOR_EACH_ARCH(parser_port_options_add_from_var, "OPTIONS_DEFINE");
@@ -2056,6 +2044,7 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 	FOR_EACH_ARCH(parser_port_options_add_from_group, "OPTIONS_SINGLE");
 
 #undef FOR_EACH_ARCH
+	set_free(archs);
 
 	parser->port_options_looked_up = 1;
 	if (groups) {
