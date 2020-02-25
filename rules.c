@@ -60,6 +60,7 @@ static int compare_use_pyqt(struct Variable *, const char *, const char *, int *
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static char *extract_subpkg(struct Parser *, const char *, char **);
 static int is_flavors_helper(struct Parser *, const char *, char **, char **);
+static char *remove_plist_keyword(const char *);
 static void target_extract_opt(struct Parser *, const char *, char **, char **, int *);
 static int variable_has_flag(struct Parser *, const char *, int);
 
@@ -82,7 +83,6 @@ static struct {
 	[RE_LICENSE_PERMS]    = { "^(_?LICENSE_PERMS_(-|[A-Z0-9\\._+ ])+|"
 				  "_LICENSE_LIST_PERMS|LICENSE_PERMS)",
 				  REG_EXTENDED, {} },
-	[RE_PLIST_KEYWORDS]   = { "^\"@([a-z]|-)+ ",			      REG_EXTENDED, {} },
 };
 
 #include "generated_rules.c"
@@ -1548,6 +1548,34 @@ compare_license_perms(struct Variable *var, const char *a, const char *b, int *r
 	return 1;
 }
 
+char *
+remove_plist_keyword(const char *s)
+{
+	if (!str_endswith(s, "\"")) {
+		return xstrdup(s);
+	}
+
+	// "^\"@([a-z]|-)+ "
+	const char *ptr = s;
+	if (*ptr != '"') {
+		return xstrdup(s);
+	}
+	ptr++;
+	if (*ptr != '@') {
+		return xstrdup(s);
+	}
+	ptr++;
+
+	const char *prev = ptr;
+	for (; *ptr != 0 && (islower(*ptr) || *ptr == '-'); ptr++);
+	if (*ptr == 0 || prev == ptr || *ptr != ' ') {
+		return xstrdup(s);
+	}
+	ptr++;
+
+	return xstrndup(ptr, strlen(ptr) - 1);
+}
+
 int
 compare_plist_files(struct Parser *parser, struct Variable *var, const char *a, const char *b, int *result)
 {
@@ -1569,8 +1597,8 @@ compare_plist_files(struct Parser *parser, struct Variable *var, const char *a, 
 	}
 
 	/* Ignore plist keywords */
-	char *as = sub(RE_PLIST_KEYWORDS, "", a);
-	char *bs = sub(RE_PLIST_KEYWORDS, "", b);
+	char *as = remove_plist_keyword(a);
+	char *bs = remove_plist_keyword(b);
 	*result = strcasecmp(as, bs);
 	free(as);
 	free(bs);
