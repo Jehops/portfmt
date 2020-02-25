@@ -75,7 +75,6 @@ enum BlockType {
 enum RegularExpression {
 	RE_CONDITIONAL = 0,
 	RE_LICENSE_NAME,
-	RE_LICENSE_PERMS,
 };
 
 struct Parser;

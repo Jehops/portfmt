@@ -80,9 +80,6 @@ static struct {
 				  "^LICENSE_(NAME|TEXT)$|"
 				  "_?(-|LICENSE_TEXT_[A-Za-z0-9._+ ])+$)",
 				  REG_EXTENDED, {} },
-	[RE_LICENSE_PERMS]    = { "^(_?LICENSE_PERMS_(-|[A-Z0-9\\._+ ])+|"
-				  "_LICENSE_LIST_PERMS|LICENSE_PERMS)",
-				  REG_EXTENDED, {} },
 };
 
 #include "generated_rules.c"
@@ -1540,8 +1537,44 @@ compare_license_perms(struct Variable *var, const char *a, const char *b, int *r
 {
 	assert(result != NULL);
 
-	if (!matches(RE_LICENSE_PERMS, variable_name(var))) {
+	// ^(_?LICENSE_PERMS_(-|[A-Z0-9\\._+ ])+|_LICENSE_LIST_PERMS|LICENSE_PERMS)
+	const char *varname = variable_name(var);
+	if (str_startswith(varname, "_LICENSE_PERMS_")) {
+		varname++;
+	}
+	int perms = str_startswith(varname, "LICENSE_PERMS_");
+	if (!perms &&
+	    (strcmp(varname, "_LICENSE_LIST_PERMS") != 0 ||
+	     strcmp(varname, "LICENSE_PERMS") != 0)) {
 		return 0;
+	}
+
+	if (perms) {
+		const char *license = varname + strlen("LICENSE_PERMS_");
+		// XXX: For portclippy should match statically
+		// against locally defined licenses instead of fuzzy
+		if (strlen(license) == 0) {
+			return 0;
+		}
+		size_t i = 0;
+		for (; license[i] != 0; i++) {
+			char c = license[i];
+			switch (c) {
+			case '-':
+			case '.':
+			case '_':
+			case '+':
+				break;
+			default:
+				if (!isalnum(c)) {
+					return 0;
+				}
+				break;
+			}
+		}
+		if (i == 0) {
+			return 0;
+		}
 	}
 
 	*result = compare_rel(license_perms_rel, nitems(license_perms_rel), a, b);
