@@ -60,6 +60,8 @@ static int compare_use_pyqt(struct Variable *, const char *, const char *, int *
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static char *extract_subpkg(struct Parser *, const char *, char **);
 static int is_flavors_helper(struct Parser *, const char *, char **, char **);
+static int is_valid_license(const char *);
+static int matches_license_name(const char *);
 static char *remove_plist_keyword(const char *);
 static void target_extract_opt(struct Parser *, const char *, char **, char **, int *);
 static int variable_has_flag(struct Parser *, const char *, int);
@@ -74,11 +76,6 @@ static struct {
 				  "unexport-env|warning|if|ifdef|ifndef|include|"
 				  "ifmake|ifnmake|else|elif|elifdef|elifndef|"
 				  "elifmake|endif|sinclude))([[:space:]]*|$|\\(|!)",
-				  REG_EXTENDED, {} },
-	[RE_LICENSE_NAME]     = { "^(_?(-|LICENSE_NAME_[A-Za-z0-9._+ ])+|"
-				  "^LICENSE_(FILE|NAME)_|"
-				  "^LICENSE_(NAME|TEXT)$|"
-				  "_?(-|LICENSE_TEXT_[A-Za-z0-9._+ ])+$)",
 				  REG_EXTENDED, {} },
 };
 
@@ -1325,12 +1322,60 @@ variable_has_flag(struct Parser *parser, const char *var, int flag)
 }
 
 int
+is_valid_license(const char *license)
+{
+	// XXX: For portclippy, statically check locally defined
+	// licenses instead of fuzzy matching
+	if (strlen(license) == 0) {
+		return 0;
+	}
+	size_t i = 0;
+	for (; license[i] != 0; i++) {
+		char c = license[i];
+		switch (c) {
+		case '-':
+		case '.':
+		case '_':
+		case '+':
+			break;
+		default:
+			if (!isalnum(c)) {
+				return 0;
+			}
+			break;
+		}
+	}
+	return i > 0;
+}
+
+int
+matches_license_name(const char *var)
+{
+	if (strcmp(var, "LICENSE_NAME") == 0 ||
+	    strcmp(var, "LICENSE_TEXT") == 0) {
+		return 1;
+	}
+
+	if (*var == '_') {
+		var++;
+	}
+
+	if (!str_startswith(var, "LICENSE_NAME_") &&
+	    !str_startswith(var, "LICENSE_TEXT_") &&
+	    !str_startswith(var, "LICENSE_FILE_")) {
+		return 0;
+	}
+
+	return is_valid_license(var + strlen("LICENSE_NAME_"));
+}
+
+int
 ignore_wrap_col(struct Parser *parser, struct Variable *var)
 {
 	const char *varname = variable_name(var);
 
 	if (variable_modifier(var) == MODIFIER_SHELL ||
-	    matches(RE_LICENSE_NAME, varname)) {
+	    matches_license_name(varname)) {
 		return 1;
 	}
 
@@ -1410,7 +1455,7 @@ leave_unsorted(struct Parser *parser, struct Variable *var)
 	    str_endswith(varname, "_REASON") ||
 	    str_endswith(varname, "_USE_GNOME_IMPL") ||
 	    str_endswith(varname, "FLAGS") ||
-	    matches(RE_LICENSE_NAME, varname)) {
+	    matches_license_name(varname)) {
 		return 1;
 	}
 
@@ -1459,7 +1504,7 @@ skip_goalcol(struct Parser *parser, struct Variable *var)
 {
 	const char *varname = variable_name(var);
 
-	if (matches(RE_LICENSE_NAME, varname)) {
+	if (matches_license_name(varname)) {
 		return 1;
 	}
 
@@ -1551,28 +1596,7 @@ compare_license_perms(struct Variable *var, const char *a, const char *b, int *r
 
 	if (perms) {
 		const char *license = varname + strlen("LICENSE_PERMS_");
-		// XXX: For portclippy should match statically
-		// against locally defined licenses instead of fuzzy
-		if (strlen(license) == 0) {
-			return 0;
-		}
-		size_t i = 0;
-		for (; license[i] != 0; i++) {
-			char c = license[i];
-			switch (c) {
-			case '-':
-			case '.':
-			case '_':
-			case '+':
-				break;
-			default:
-				if (!isalnum(c)) {
-					return 0;
-				}
-				break;
-			}
-		}
-		if (i == 0) {
+		if (!is_valid_license(license)) {
 			return 0;
 		}
 	}
