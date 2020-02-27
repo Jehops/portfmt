@@ -1584,17 +1584,14 @@ compare_license_perms(struct Variable *var, const char *a, const char *b, int *r
 
 	// ^(_?LICENSE_PERMS_(-|[A-Z0-9\\._+ ])+|_LICENSE_LIST_PERMS|LICENSE_PERMS)
 	const char *varname = variable_name(var);
-	if (str_startswith(varname, "_LICENSE_PERMS_")) {
-		varname++;
-	}
-	int perms = str_startswith(varname, "LICENSE_PERMS_");
-	if (!perms &&
-	    (strcmp(varname, "_LICENSE_LIST_PERMS") != 0 ||
-	     strcmp(varname, "LICENSE_PERMS") != 0)) {
-		return 0;
-	}
-
-	if (perms) {
+	if (strcmp(varname, "_LICENSE_LIST_PERMS") != 0 &&
+	    strcmp(varname, "LICENSE_PERMS") != 0) {
+		if (str_startswith(varname, "_LICENSE_PERMS_")) {
+			varname++;
+		}
+		if (!str_startswith(varname, "LICENSE_PERMS_")) {
+			return 0;
+		}
 		const char *license = varname + strlen("LICENSE_PERMS_");
 		if (!is_valid_license(license)) {
 			return 0;
