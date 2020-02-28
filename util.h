@@ -31,6 +31,10 @@
 #define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
 #endif
 
+#ifndef __printflike
+#define __printflike(x, y)	__attribute__((__format__(__printf__, x, y)))
+#endif
+
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
@@ -57,7 +61,7 @@ char *str_substr_dup(const char *, size_t, size_t);
 char *str_trim(const char *);
 
 void sort(void *, size_t, size_t, CompareFn, void *);
-int xasprintf(char **, const char *, ...);
+int xasprintf(char **, const char *, ...) __printflike(2, 3);
 void *xmalloc(size_t);
 char *xstrdup(const char *);
 char *xstrndup(const char *, size_t);
