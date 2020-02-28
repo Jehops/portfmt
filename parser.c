@@ -2079,7 +2079,7 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 #define FOR_EACH_ARCH(f, var) \
 	SET_FOREACH (archs, const char *, arch) { \
 		char *buf; \
-		xasprintf(&buf, "%s_%s", var, "_", arch); \
+		xasprintf(&buf, "%s_%s", var, arch); \
 		f(parser, buf); \
 		free(buf); \
 	}
