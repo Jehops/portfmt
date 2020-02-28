@@ -1324,7 +1324,7 @@ variable_has_flag(struct Parser *parser, const char *var, int flag)
 int
 is_valid_license(struct Parser *parser, const char *license)
 {
-	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS) {
+	if (parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) {
 		if (strlen(license) == 0) {
 			return 0;
 		}
@@ -1749,7 +1749,7 @@ is_flavors_helper(struct Parser *parser, const char *var, char **prefix_ret, cha
 		}
 	}
 
-	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS) {
+	if (parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) {
 		goto done;
 	}
 
@@ -1820,7 +1820,7 @@ extract_subpkg(struct Parser *parser, const char *var_, char **subpkg_ret)
 		return NULL;
 	}
 
-	if (subpkg && !(parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS)) {
+	if (subpkg && !(parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING)) {
 		int found = 0;
 #if PORTFMT_SUBPACKAGES
 		struct Set *subpkgs = parser_subpackages(parser);
@@ -1925,7 +1925,7 @@ is_options_helper(struct Parser *parser, const char *var_, char **prefix_ret, ch
 		}
 	}
 
-	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS) {
+	if (parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) {
 		goto done;
 	}
 
@@ -2004,7 +2004,7 @@ matches_options_group(struct Parser *parser, const char *s)
 		return 0;
 	}
 
-	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS) {
+	if (parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) {
 		// [-_[:upper:][:digit:]]+
 		if (!(isupper(s[i]) || isdigit(s[i]) || s[i] == '-' || s[i] == '_')) {
 			return 0;

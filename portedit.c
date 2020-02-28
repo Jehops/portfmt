@@ -88,7 +88,7 @@ static struct PorteditCommand cmds[] = {
 int
 apply(struct ParserSettings *settings, int argc, char *argv[])
 {
-	settings->behavior |= PARSER_DYNAMIC_PORT_OPTIONS;
+	settings->behavior |= PARSER_ALLOW_FUZZY_MATCHING;
 
 	if (argc < 3) {
 		merge_usage();
@@ -269,7 +269,7 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 int
 merge(struct ParserSettings *settings, int argc, char *argv[])
 {
-	settings->behavior |= PARSER_DYNAMIC_PORT_OPTIONS;
+	settings->behavior |= PARSER_ALLOW_FUZZY_MATCHING;
 
 	if (argc < 2) {
 		merge_usage();
