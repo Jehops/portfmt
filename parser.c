@@ -79,6 +79,8 @@ struct Parser {
 	struct Array *result;
 	struct Array *rawlines;
 
+	struct Set *licenses;
+	int licenses_looked_up;
 	struct Set *port_options;
 	struct Set *port_options_groups;
 	int port_options_looked_up;
@@ -329,6 +331,7 @@ parser_new(struct ParserSettings *settings)
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
+	parser->licenses = set_new(str_compare, NULL, free);
 	parser->port_options = set_new(str_compare, NULL, free);
 	parser->port_options_groups = set_new(str_compare, NULL, free);
 	parser->error = PARSER_ERROR_OK;
@@ -363,6 +366,7 @@ parser_free(struct Parser *parser)
 		return;
 	}
 
+	set_free(parser->licenses);
 	set_free(parser->port_options);
 	set_free(parser->port_options_groups);
 
@@ -1961,6 +1965,53 @@ parser_edit_with_fn(struct Parser *parser, ParserEditFn f, const void *userdata)
 struct ParserSettings parser_settings(struct Parser *parser)
 {
 	return parser->settings;
+}
+
+struct Set *
+parser_licenses(struct Parser *parser)
+{
+	if (parser->licenses_looked_up) {
+		return parser->licenses;
+	}
+
+	struct Array *tmp = NULL;
+	if (parser_lookup_variable_all(parser, "LICENSE", &tmp, NULL)) {
+		for (size_t i = 0; i < array_len(tmp); i++) {
+			char *license = array_get(tmp, i);
+			if (!set_contains(parser->licenses, license)) {
+				set_add(parser->licenses, xstrdup(license));
+			}
+		}
+		array_free(tmp);
+	}
+
+	struct Set *options;
+	parser_port_options(parser, NULL, &options);
+	SET_FOREACH (options, const char *, opt) {
+		char *buf;
+		xasprintf(&buf, "%s_VARS", opt);
+		if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
+			for (size_t i = 0; i < array_len(tmp); i++) {
+				char *var = array_get(tmp, i);
+				if (str_startswith(var, "LICENSE+=")) {
+					var += strlen("LICENSE+=");
+				} else if (str_startswith(var, "LICENSE+=")) {
+					var += strlen("LICENSE=");
+				} else {
+					continue;
+				}
+				if (!set_contains(parser->licenses, var)) {
+					set_add(parser->licenses, xstrdup(var));
+				}
+			}
+			array_free(tmp);
+		}
+		free(buf);
+	}
+
+	parser->licenses_looked_up = 1;
+
+	return parser->licenses;
 }
 
 static void

@@ -52,7 +52,7 @@
 
 static int case_sensitive_sort(struct Parser *, struct Variable *);
 static int compare_rel(const char *[], size_t, const char *, const char *);
-static int compare_license_perms(struct Variable *, const char *, const char *, int *);
+static int compare_license_perms(struct Parser *, struct Variable *, const char *, const char *, int *);
 static int compare_plist_files(struct Parser *, struct Variable *, const char *, const char *, int *);
 static int compare_use_gnome(struct Variable *, const char *, const char *, int *);
 static int compare_use_kde(struct Variable *, const char *, const char *, int *);
@@ -60,8 +60,8 @@ static int compare_use_pyqt(struct Variable *, const char *, const char *, int *
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static char *extract_subpkg(struct Parser *, const char *, char **);
 static int is_flavors_helper(struct Parser *, const char *, char **, char **);
-static int is_valid_license(const char *);
-static int matches_license_name(const char *);
+static int is_valid_license(struct Parser *, const char *);
+static int matches_license_name(struct Parser *, const char *);
 static char *remove_plist_keyword(const char *);
 static void target_extract_opt(struct Parser *, const char *, char **, char **, int *);
 static int variable_has_flag(struct Parser *, const char *, int);
@@ -1322,34 +1322,36 @@ variable_has_flag(struct Parser *parser, const char *var, int flag)
 }
 
 int
-is_valid_license(const char *license)
+is_valid_license(struct Parser *parser, const char *license)
 {
-	// XXX: For portclippy, statically check locally defined
-	// licenses instead of fuzzy matching
-	if (strlen(license) == 0) {
-		return 0;
-	}
-	size_t i = 0;
-	for (; license[i] != 0; i++) {
-		char c = license[i];
-		switch (c) {
-		case '-':
-		case '.':
-		case '_':
-		case '+':
-			break;
-		default:
-			if (!isalnum(c)) {
-				return 0;
-			}
-			break;
+	if (parser_settings(parser).behavior & PARSER_DYNAMIC_PORT_OPTIONS) {
+		if (strlen(license) == 0) {
+			return 0;
 		}
+		size_t i = 0;
+		for (; license[i] != 0; i++) {
+			char c = license[i];
+			switch (c) {
+			case '-':
+			case '.':
+			case '_':
+			case '+':
+				break;
+			default:
+				if (!isalnum(c)) {
+					return 0;
+				}
+				break;
+			}
+		}
+		return i > 0;
+	} else {
+		return set_contains(parser_licenses(parser), (void*)license);
 	}
-	return i > 0;
 }
 
 int
-matches_license_name(const char *var)
+matches_license_name(struct Parser *parser, const char *var)
 {
 	if (strcmp(var, "LICENSE_NAME") == 0 ||
 	    strcmp(var, "LICENSE_TEXT") == 0) {
@@ -1366,7 +1368,7 @@ matches_license_name(const char *var)
 		return 0;
 	}
 
-	return is_valid_license(var + strlen("LICENSE_NAME_"));
+	return is_valid_license(parser, var + strlen("LICENSE_NAME_"));
 }
 
 int
@@ -1375,7 +1377,7 @@ ignore_wrap_col(struct Parser *parser, struct Variable *var)
 	const char *varname = variable_name(var);
 
 	if (variable_modifier(var) == MODIFIER_SHELL ||
-	    matches_license_name(varname)) {
+	    matches_license_name(parser, varname)) {
 		return 1;
 	}
 
@@ -1455,7 +1457,7 @@ leave_unsorted(struct Parser *parser, struct Variable *var)
 	    str_endswith(varname, "_REASON") ||
 	    str_endswith(varname, "_USE_GNOME_IMPL") ||
 	    str_endswith(varname, "FLAGS") ||
-	    matches_license_name(varname)) {
+	    matches_license_name(parser, varname)) {
 		return 1;
 	}
 
@@ -1504,7 +1506,7 @@ skip_goalcol(struct Parser *parser, struct Variable *var)
 {
 	const char *varname = variable_name(var);
 
-	if (matches_license_name(varname)) {
+	if (matches_license_name(parser, varname)) {
 		return 1;
 	}
 
@@ -1561,7 +1563,7 @@ compare_tokens(const void *ap, const void *bp, void *userdata)
 	}
 
 	int result;
-	if (compare_license_perms(var, token_data(a), token_data(b), &result) ||
+	if (compare_license_perms(parser, var, token_data(a), token_data(b), &result) ||
 	    compare_plist_files(parser, var, token_data(a), token_data(b), &result) ||
 	    compare_use_gnome(var, token_data(a), token_data(b), &result) ||
 	    compare_use_kde(var, token_data(a), token_data(b), &result) ||
@@ -1578,7 +1580,7 @@ compare_tokens(const void *ap, const void *bp, void *userdata)
 }
 
 int
-compare_license_perms(struct Variable *var, const char *a, const char *b, int *result)
+compare_license_perms(struct Parser *parser, struct Variable *var, const char *a, const char *b, int *result)
 {
 	assert(result != NULL);
 
@@ -1593,7 +1595,7 @@ compare_license_perms(struct Variable *var, const char *a, const char *b, int *r
 			return 0;
 		}
 		const char *license = varname + strlen("LICENSE_PERMS_");
-		if (!is_valid_license(license)) {
+		if (!is_valid_license(parser, license)) {
 			return 0;
 		}
 	}
@@ -2043,15 +2045,8 @@ variable_order_block(struct Parser *parser, const char *var)
 		}
 		if (str_startswith(var, variable_order_[i].var)) {
 			const char *suffix = var + strlen(variable_order_[i].var);
-			struct Array *licenses = NULL;
-			if (*suffix == '_' && parser_lookup_variable(parser, "LICENSE", &licenses, NULL) != NULL) {
-				for (size_t j = 0; j < array_len(licenses); j++) {
-					if (strcmp(suffix + 1, array_get(licenses, j)) == 0) {
-						array_free(licenses);
-						return BLOCK_LICENSE;
-					}
-				}
-				array_free(licenses);
+			if (*suffix == '_' && is_valid_license(parser, suffix + 1)) {
+				return BLOCK_LICENSE;
 			}
 		}
 	}

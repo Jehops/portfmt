@@ -100,6 +100,7 @@ struct Target *parser_lookup_target(struct Parser *, const char *, struct Array 
 struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_all(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
+struct Set *parser_licenses(struct Parser *);
 void parser_port_options(struct Parser *, struct Set **, struct Set **);
 #if PORTFMT_SUBPACKAGES
 struct Set *parser_subpackages(struct Parser *);
