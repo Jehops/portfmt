@@ -69,6 +69,15 @@ enum ParserError {
 	PARSER_ERROR_UNSPECIFIED,
 };
 
+enum ParserMetadata {
+	PARSER_METADATA_LICENSES,
+	PARSER_METADATA_OPTION_GROUPS,
+	PARSER_METADATA_OPTIONS,
+#if PORTFMT_SUBPACKAGES
+	PARSER_METADATA_SUBPACKAGES,
+#endif
+};
+
 struct ParserSettings {
 	char *filename;
 	enum ParserBehavior behavior;
@@ -92,7 +101,6 @@ enum ParserError parser_read_finish(struct Parser *);
 char *parser_error_tostring(struct Parser *);
 void parser_free(struct Parser *);
 enum ParserError parser_output_write_to_file(struct Parser *, FILE *);
-
 enum ParserError parser_edit(struct Parser *, const char *, const void *);
 enum ParserError parser_edit_with_fn(struct Parser *, ParserEditFn, const void *);
 void parser_enqueue_output(struct Parser *, const char *);
@@ -100,12 +108,8 @@ struct Target *parser_lookup_target(struct Parser *, const char *, struct Array 
 struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_all(struct Parser *, const char *, struct Array **, struct Array **);
 struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
-struct Set *parser_licenses(struct Parser *);
-void parser_port_options(struct Parser *, struct Set **, struct Set **);
-#if PORTFMT_SUBPACKAGES
-struct Set *parser_subpackages(struct Parser *);
-#endif
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
+struct Set *parser_metadata(struct Parser *, enum ParserMetadata);
 enum ParserError parser_merge(struct Parser *, struct Parser *, enum ParserMergeBehavior);
 struct ParserSettings parser_settings(struct Parser *);

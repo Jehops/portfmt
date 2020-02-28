@@ -103,8 +103,10 @@ static size_t consume_var(const char *);
 static int is_empty_line(const char *);
 static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
+static struct Set *parser_licenses(struct Parser *);
 static struct Variable *parser_lookup_variable_internal(struct Parser *, const char *, struct Array **, struct Array **, int);
 static void parser_output_dump_tokens(struct Parser *);
+static void parser_port_options(struct Parser *, struct Set **, struct Set **);
 static void parser_output_prepare(struct Parser *);
 static void parser_output_print_rawlines(struct Parser *, struct Range *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
@@ -115,6 +117,9 @@ static void parser_output_diff(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read_internal(struct Parser *);
 static void parser_read_line(struct Parser *, char *);
+#if PORTFMT_SUBPACKAGES
+static struct Set *parser_subpackages(struct Parser *);
+#endif
 static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_t);
 static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
@@ -2146,6 +2151,27 @@ parser_subpackages(struct Parser *parser)
 	return parser->subpackages;
 }
 #endif
+
+struct Set *
+parser_metadata(struct Parser *parser, enum ParserMetadata meta)
+{
+	struct Set *tmp;
+
+	switch (meta) {
+	case PARSER_METADATA_LICENSES:
+		return parser_licenses(parser);
+	case PARSER_METADATA_OPTION_GROUPS:
+		parser_port_options(parser, &tmp, NULL);
+		return tmp;
+	case PARSER_METADATA_OPTIONS:
+		parser_port_options(parser, NULL, &tmp);
+		return tmp;
+#if PORTFMT_SUBPACKAGES
+	case PARSER_METADATA_SUBPACKAGES:
+		return parser_subpackages(parser);
+#endif
+	}
+}
 
 struct Target *
 parser_lookup_target(struct Parser *parser, const char *name, struct Array **retval)

@@ -1346,7 +1346,7 @@ is_valid_license(struct Parser *parser, const char *license)
 		}
 		return i > 0;
 	} else {
-		return set_contains(parser_licenses(parser), (void*)license);
+		return set_contains(parser_metadata(parser, PARSER_METADATA_LICENSES), (void*)license);
 	}
 }
 
@@ -1823,7 +1823,7 @@ extract_subpkg(struct Parser *parser, const char *var_, char **subpkg_ret)
 	if (subpkg && !(parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING)) {
 		int found = 0;
 #if PORTFMT_SUBPACKAGES
-		struct Set *subpkgs = parser_subpackages(parser);
+		struct Set *subpkgs = parser_metadata(parser, PARSER_METADATA_SUBPACKAGES);
 		SET_FOREACH (subpkgs, const char *, pkg) {
 			if (strcmp(subpkg, pkg) == 0) {
 				found = 1;
@@ -1930,9 +1930,8 @@ is_options_helper(struct Parser *parser, const char *var_, char **prefix_ret, ch
 	}
 
 	char *prefix = xstrndup(var, len - 1);
-	struct Set *groups = NULL;
-	struct Set *options = NULL;
-	parser_port_options(parser, &groups, &options);
+	struct Set *groups = parser_metadata(parser, PARSER_METADATA_OPTION_GROUPS);
+	struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
 	if (strcmp(suffix, "DESC") == 0) {
 		SET_FOREACH (groups, const char *, group) {
 			if (strcmp(prefix, group) == 0) {
@@ -2016,8 +2015,7 @@ matches_options_group(struct Parser *parser, const char *s)
 		}
 		return 1;
 	} else {
-		struct Set *groups;
-		parser_port_options(parser, &groups, NULL);
+		struct Set *groups = parser_metadata(parser, PARSER_METADATA_OPTION_GROUPS);
 		// XXX: This could be stricter by checking the group type too
 		SET_FOREACH (groups, const char *, group) {
 			if (strcmp(s + i, group) == 0) {
