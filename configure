@@ -1248,7 +1248,7 @@ exec > Makefile.configure
 [ -z "${SBINDIR}"    ] && SBINDIR="${PREFIX}/sbin"
 [ -z "${INCLUDEDIR}" ] && INCLUDEDIR="${PREFIX}/include"
 [ -z "${LIBDIR}"     ] && LIBDIR="${PREFIX}/lib"
-[ -z "${MANDIR}"     ] && MANDIR="${PREFIX}/man"
+[ -z "${MANDIR}"     ] && MANDIR="${PREFIX}/share/man"
 [ -z "${SHAREDIR}"   ] && SHAREDIR="${PREFIX}/share"
 
 [ -z "${INSTALL_PROGRAM}" ] && INSTALL_PROGRAM="${INSTALL} -m 0555"
