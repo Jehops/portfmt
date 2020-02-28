@@ -2171,6 +2171,8 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 		return parser_subpackages(parser);
 #endif
 	}
+
+	abort();
 }
 
 struct Target *

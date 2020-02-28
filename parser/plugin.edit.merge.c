@@ -167,7 +167,6 @@ static ssize_t
 find_insert_point_generic(struct Parser *parser, struct Array *ptokens, struct Variable *var, enum BlockType *block_before_var)
 {
 	ssize_t insert_after = INSERT_VARIABLE_NO_POINT_FOUND;
-	enum BlockType previous_block = BLOCK_UNKNOWN;
 	*block_before_var = BLOCK_UNKNOWN;
 	int always_greater = 1;
 	for (size_t i = 0; i < array_len(ptokens); i++) {
@@ -188,7 +187,6 @@ find_insert_point_generic(struct Parser *parser, struct Array *ptokens, struct V
 			insert_after = i;
 			always_greater = 0;
 		}
-		previous_block = block;
 	}
 
 	if (always_greater) {
