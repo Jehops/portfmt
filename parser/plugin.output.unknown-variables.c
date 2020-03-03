@@ -28,6 +28,7 @@
 
 #include "config.h"
 
+#include <ctype.h>
 #include <regex.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,6 +42,54 @@
 #include "token.h"
 #include "util.h"
 #include "variable.h"
+
+static void
+check_opthelper(struct Parser *parser, struct Set *vars, const char *option, int optuse)
+{
+	char *var;
+	if (optuse) {
+		xasprintf(&var, "%s_USE", option);
+	} else {
+		xasprintf(&var, "%s_VARS", option);
+	}
+	struct Array *optvars;
+	if (!parser_lookup_variable_all(parser, var, &optvars, NULL)) {
+		free(var);
+		return;
+	}
+
+	for (size_t i = 0; i < array_len(optvars); i++) {
+		const char *token = array_get(optvars, i);
+		char *suffix = strchr(token, '+');
+		if (!suffix) {
+			suffix = strchr(token, '=');
+			if (!suffix) {
+				continue;
+			}
+		} else if (*(suffix + 1) != '=') {
+			continue;
+		}
+		char *name = xstrndup(token, suffix - token);
+		for (char *p = name; *p != 0; p++) {
+			*p = toupper(*p);
+		}
+		if (optuse) {
+			char *tmp = name;
+			xasprintf(&name, "USE_%s", tmp);
+			free(tmp);
+		}
+		if (variable_order_block(parser, name) == BLOCK_UNKNOWN &&
+		    !set_contains(vars, name)) {
+			parser_enqueue_output(parser, name);
+			parser_enqueue_output(parser, "\n");
+			set_add(vars, name);
+		} else {
+			free(name);
+		}
+	}
+	free(var);
+	array_free(optvars);
+}
 
 static struct Array *
 output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
@@ -68,6 +117,11 @@ output_unknown_variables(struct Parser *parser, struct Array *tokens, enum Parse
 			parser_enqueue_output(parser, "\n");
 			set_add(vars, xstrdup(name));
 		}
+	}
+	struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
+	SET_FOREACH (options, const char *, option) {
+		check_opthelper(parser, vars, option, 1);
+		check_opthelper(parser, vars, option, 0);
 	}
 	if (unknowns) {
 		*unknowns = vars;
