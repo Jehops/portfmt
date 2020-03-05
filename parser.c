@@ -1161,7 +1161,7 @@ parser_output_reformatted_helper(struct Parser *parser, struct Array *arr /* uno
 	}
 
 	if (!(parser->settings.behavior & PARSER_UNSORTED_VARIABLES) &&
-	    !leave_unsorted(parser, token_variable(t0))) {
+	    should_sort(parser, token_variable(t0))) {
 		arr = parser_output_sort_opt_use(parser, arr);
 		array_sort(arr, compare_tokens, parser);
 	}
