@@ -151,6 +151,9 @@ static const char *target_order_[] = {
 	"pre-package",
 	"do-package",
 	"post-package",
+	"pre-clean",
+	"do-clean",
+	"post-clean",
 	"makesum",
 };
 
