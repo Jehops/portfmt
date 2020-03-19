@@ -127,7 +127,6 @@ static const char *use_gnome_rel[] = {
 	"pygobject",
 	"pygobject3",
 	"pygtk2",
-	"pygtksourceview",
 	"referencehack",
 	"vte",
 	"vte3",
@@ -147,7 +146,6 @@ static const char *use_gnome_rel[] = {
 	"pygobject:build",
 	"pygobject3:build",
 	"pygtk2:build",
-	"pygtksourceview:build",
 	"dconf:run",
 	"gnomecontrolcenter3:run",
 	"gnomemenus3:run",
@@ -163,7 +161,6 @@ static const char *use_gnome_rel[] = {
 	"pygobject:run",
 	"pygobject3:run",
 	"pygtk2:run",
-	"pygtksourceview:run",
 };
 static const char *use_kde_rel[] = {
 	"activities",
