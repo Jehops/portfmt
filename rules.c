@@ -60,6 +60,7 @@ static int compare_use_pyqt(struct Variable *, const char *, const char *, int *
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static char *extract_subpkg(struct Parser *, const char *, char **);
 static int is_flavors_helper(struct Parser *, const char *, char **, char **);
+static int is_shebang_lang(struct Parser *, const char *, char **, char **);
 static int is_valid_license(struct Parser *, const char *);
 static int matches_license_name(struct Parser *, const char *);
 static char *remove_plist_keyword(const char *);
@@ -520,83 +521,8 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_SHEBANGFIX, "SHEBANG_GLOB", VAR_SORTED },
 	{ BLOCK_SHEBANGFIX, "SHEBANG_REGEX", VAR_SORTED },
 	{ BLOCK_SHEBANGFIX, "SHEBANG_LANG", VAR_SORTED },
-
-	// There might be more like these.  Doing the check dynamically
-	// might case more false positives than it would be worth the effort.
-	{ BLOCK_SHEBANGFIX, "awk_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "awk_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "bash_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "bash_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "bltwish_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "bltwish_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "cw_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "cw_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "env_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "env_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "expect_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "expect_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "gawk_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "gawk_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "gjs_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "gjs_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "hhvm_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "hhvm_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "icmake_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "icmake_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "kaptain_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "kaptain_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "ksh_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "ksh_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "lua_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "lua_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "make_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "make_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "netscript_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "netscript_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "nobash_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "nobash_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "nviz_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "nviz_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "octave_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "octave_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "perl_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "perl_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "perl2_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "perl2_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "php_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "php_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "python_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "python_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "python2_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "python2_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "python3_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "python3_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "r_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "r_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "rackup_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "rackup_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "rc_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "rc_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "rep_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "rep_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "ruby_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "ruby_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "ruby2_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "ruby2_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "sed_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "sed_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "sh_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "sh_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "swipl_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "swipl_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "tclsh_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "tclsh_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "tk_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "tk_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "wish_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "wish_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "zsh_OLD_CMD", VAR_DEFAULT },
-	{ BLOCK_SHEBANGFIX, "zsh_CMD", VAR_DEFAULT },
+	{ BLOCK_SHEBANGFIX, "OLD_CMD", VAR_SORTED | VAR_NOT_COMPARABLE },
+	{ BLOCK_SHEBANGFIX, "CMD", VAR_SORTED | VAR_NOT_COMPARABLE },
 
 	{ BLOCK_UNIQUEFILES, "UNIQUE_PREFIX", VAR_DEFAULT },
 	{ BLOCK_UNIQUEFILES, "UNIQUE_PREFIX_FILES", VAR_SORTED },
@@ -1121,6 +1047,20 @@ variable_has_flag(struct Parser *parser, const char *var, int flag)
 			}
 		}
 		free(helper);
+	}
+
+	char *suffix;
+	if (is_shebang_lang(parser, var, NULL, &suffix)) {
+		for (size_t i = 0; i < nitems(variable_order_); i++) {
+			if (variable_order_[i].block == BLOCK_SHEBANGFIX &&
+			    (variable_order_[i].flags & VAR_NOT_COMPARABLE) &&
+			    (variable_order_[i].flags & flag) &&
+			    strcmp(suffix, variable_order_[i].var) == 0) {
+				free(suffix);
+				return 1;
+			}
+		}
+		free(suffix);
 	}
 
 	for (size_t i = 0; i < nitems(variable_order_); i++) {
@@ -1834,6 +1774,81 @@ matches_options_group(struct Parser *parser, const char *s)
 
 }
 
+static int
+is_shebang_lang_helper(const char *var, const char *lang, char **prefix, char **suffix)
+{
+	char *buf;
+
+	xasprintf(&buf, "%s_OLD_CMD", lang);
+	if (strcmp(var, buf) == 0) {
+		if (prefix) {
+			*prefix = xstrdup(lang);
+		}
+		if (suffix) {
+			*suffix = xstrdup("OLD_CMD");
+		}
+		free(buf);
+		return 1;
+	}
+	free(buf);
+
+	xasprintf(&buf, "%s_CMD", lang);
+	if (strcmp(var, buf) == 0) {
+		if (prefix) {
+			*prefix = xstrdup(lang);
+		}
+		if (suffix) {
+			*suffix = xstrdup("CMD");
+		}
+		free(buf);
+		return 1;
+	}
+	free(buf);
+
+	return 0;
+}
+
+int
+is_shebang_lang(struct Parser *parser, const char *var, char **prefix, char **suffix)
+{
+	if (parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) {
+		if (str_endswith(var, "_OLD_CMD")) {
+			if (suffix) {
+				*suffix = xstrdup("OLD_CMD");
+			}
+			return 1;
+		}
+		if (str_endswith(var, "_CMD")) {
+			if (suffix) {
+				*suffix = xstrdup("CMD");
+			}
+			return 1;
+		}
+	}
+
+	// Do we have USES=shebangfix?
+	if (!set_contains(parser_metadata(parser, PARSER_METADATA_USES), (void*)"shebangfix")) {
+		return 0;
+	}
+
+	for (size_t i = 0; i < nitems(static_shebang_langs_); i++) {
+		const char *lang = static_shebang_langs_[i];
+		if (is_shebang_lang_helper(var, lang, prefix, suffix)) {
+			return 1;
+		}
+	}
+
+	int ok = 0;
+	SET_FOREACH (parser_metadata(parser, PARSER_METADATA_SHEBANG_LANGS), const char *, lang) {
+		if (is_shebang_lang_helper(var, lang, prefix, suffix)) {
+			ok = 1;
+			break;
+		}
+	}
+
+	return ok;
+}
+
 enum BlockType
 variable_order_block(struct Parser *parser, const char *var)
 {
@@ -1858,6 +1873,10 @@ variable_order_block(struct Parser *parser, const char *var)
 
 	if (is_flavors_helper(parser, var, NULL, NULL)) {
 		return BLOCK_FLAVORS_HELPER;
+	}
+
+	if (is_shebang_lang(parser, var, NULL, NULL)) {
+		return BLOCK_SHEBANGFIX;
 	}
 
 	if (is_options_helper(parser, var, NULL, NULL, NULL)) {
@@ -1984,6 +2003,65 @@ compare_order(const void *ap, const void *bp, void *userdata)
 			return 1;
 		} else {
 			return strcmp(a, b);
+		}
+	} else if (ablock == BLOCK_SHEBANGFIX) {
+		if (str_endswith(a, "_CMD") && !str_endswith(b, "_CMD")) {
+			return 1;
+		} else if (!str_endswith(a, "_CMD") && str_endswith(b, "_CMD")) {
+			return -1;
+		} else if (str_endswith(a, "_CMD") && str_endswith(b, "_CMD")) {
+			char *alang = NULL;
+			char *asuffix = NULL;
+			char *blang = NULL;
+			char *bsuffix = NULL;
+			is_shebang_lang(parser, a, &alang, &asuffix);
+			is_shebang_lang(parser, b, &blang, &bsuffix);
+			assert(alang);
+			assert(asuffix);
+			assert(blang);
+			assert(bsuffix);
+
+			ssize_t ascore = -1;
+			ssize_t bscore = -1;
+			for (size_t i = 0; i < nitems(static_shebang_langs_); i++) {
+				const char *lang = static_shebang_langs_[i];
+				if (strcmp(alang, lang) == 0) {
+					ascore = i;
+				}
+				if (strcmp(blang, lang) == 0) {
+					bscore = i;
+				}
+			}
+			size_t i = 0;
+			SET_FOREACH (parser_metadata(parser, PARSER_METADATA_SHEBANG_LANGS), const char *, lang) {
+				if (strcmp(alang, lang) == 0) {
+					ascore = i;
+				}
+				if (strcmp(blang, lang) == 0) {
+					bscore = i;
+				}
+				i++;
+			}
+
+			int aold = strcmp(asuffix, "OLD_CMD") == 0;
+			int bold = strcmp(bsuffix, "OLD_CMD") == 0;
+			free(alang);
+			free(asuffix);
+			free(blang);
+			free(bsuffix);
+			if (ascore == bscore) {
+				if (aold && !bold) {
+					return -1;
+				} else if (!aold && bold) {
+					return 1;
+				} else {
+					return 0;
+				}
+			} else if (ascore < bscore) {
+				return -1;
+			} else {
+				return 1;
+			}
 		}
 	} else if (ablock == BLOCK_OPTDESC) {
 		return strcmp(a, b);

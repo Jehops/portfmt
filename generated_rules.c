@@ -1060,3 +1060,14 @@ static const char *static_flavors_[] = {
 	"py37",
 	"py38",
 };
+static const char *static_shebang_langs_[] = {
+	"bash",
+	"java",
+	"ksh",
+	"perl",
+	"php",
+	"python",
+	"ruby",
+	"tcl",
+	"tk",
+};

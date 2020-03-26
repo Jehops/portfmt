@@ -81,9 +81,13 @@ struct Parser {
 
 	struct Set *licenses;
 	int licenses_looked_up;
+	struct Set *shebang_langs;
+	int shebang_langs_looked_up;
 	struct Set *port_options;
 	struct Set *port_options_groups;
 	int port_options_looked_up;
+	struct Set *uses;
+	int uses_looked_up;
 
 #if PORTFMT_SUBPACKAGES
 	struct Set *subpackages;
@@ -103,8 +107,8 @@ static size_t consume_var(const char *);
 static int is_empty_line(const char *);
 static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
-static struct Set *parser_licenses(struct Parser *);
 static struct Variable *parser_lookup_variable_internal(struct Parser *, const char *, struct Array **, struct Array **, int);
+static void parser_meta_values(struct Parser *, const char *, struct Set *);
 static void parser_output_dump_tokens(struct Parser *);
 static void parser_port_options(struct Parser *, struct Set **, struct Set **);
 static void parser_output_prepare(struct Parser *);
@@ -337,8 +341,10 @@ parser_new(struct ParserSettings *settings)
 	parser->result = array_new();
 	parser->tokens = array_new();
 	parser->licenses = set_new(str_compare, NULL, free);
+	parser->shebang_langs = set_new(str_compare, NULL, free);
 	parser->port_options = set_new(str_compare, NULL, free);
 	parser->port_options_groups = set_new(str_compare, NULL, free);
+	parser->uses = set_new(str_compare, NULL, free);
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
 	parser->lines.start = 1;
@@ -372,8 +378,10 @@ parser_free(struct Parser *parser)
 	}
 
 	set_free(parser->licenses);
+	set_free(parser->shebang_langs);
 	set_free(parser->port_options);
 	set_free(parser->port_options_groups);
+	set_free(parser->uses);
 
 #if PORTFMT_SUBPACKAGES
 	set_free(parser->subpackages);
@@ -1972,19 +1980,15 @@ struct ParserSettings parser_settings(struct Parser *parser)
 	return parser->settings;
 }
 
-struct Set *
-parser_licenses(struct Parser *parser)
+void
+parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 {
-	if (parser->licenses_looked_up) {
-		return parser->licenses;
-	}
-
 	struct Array *tmp = NULL;
-	if (parser_lookup_variable_all(parser, "LICENSE", &tmp, NULL)) {
+	if (parser_lookup_variable_all(parser, var, &tmp, NULL)) {
 		for (size_t i = 0; i < array_len(tmp); i++) {
-			char *license = array_get(tmp, i);
-			if (!set_contains(parser->licenses, license)) {
-				set_add(parser->licenses, xstrdup(license));
+			char *value = array_get(tmp, i);
+			if (!set_contains(set, value)) {
+				set_add(set, xstrdup(value));
 			}
 		}
 		array_free(tmp);
@@ -1997,26 +2001,43 @@ parser_licenses(struct Parser *parser)
 		xasprintf(&buf, "%s_VARS", opt);
 		if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
 			for (size_t i = 0; i < array_len(tmp); i++) {
-				char *var = array_get(tmp, i);
-				if (str_startswith(var, "LICENSE+=")) {
-					var += strlen("LICENSE+=");
-				} else if (str_startswith(var, "LICENSE+=")) {
-					var += strlen("LICENSE=");
+				char *value = array_get(tmp, i);
+				char *buf;
+				xasprintf(&buf, "%s+=", var);
+				if (str_startswith(value, buf)) {
+					value += strlen(buf);
 				} else {
-					continue;
+					free(buf);
+					xasprintf(&buf, "%s=", var);
+					if (str_startswith(value, buf)) {
+						value += strlen(buf);
+					} else {
+						free(buf);
+						continue;
+					}
 				}
-				if (!set_contains(parser->licenses, var)) {
-					set_add(parser->licenses, xstrdup(var));
+				free(buf);
+				if (!set_contains(set, value)) {
+					set_add(set, xstrdup(value));
 				}
 			}
 			array_free(tmp);
 		}
 		free(buf);
+		if (strcmp(var, "USES") == 0) {
+			xasprintf(&buf, "%s_USES", opt);
+			if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
+				for (size_t i = 0; i < array_len(tmp); i++) {
+					char *value = array_get(tmp, i);
+					if (!set_contains(set, value)) {
+						set_add(set, xstrdup(value));
+					}
+				}
+				array_free(tmp);
+			}
+			free(buf);
+		}
 	}
-
-	parser->licenses_looked_up = 1;
-
-	return parser->licenses;
 }
 
 static void
@@ -2159,7 +2180,17 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 
 	switch (meta) {
 	case PARSER_METADATA_LICENSES:
-		return parser_licenses(parser);
+		if (!parser->licenses_looked_up) {
+			parser_meta_values(parser, "LICENSE", parser->licenses);
+			parser->licenses_looked_up = 1;
+		}
+		return parser->licenses;
+	case PARSER_METADATA_SHEBANG_LANGS:
+		if (!parser->shebang_langs_looked_up) {
+			parser_meta_values(parser, "SHEBANG_LANG", parser->shebang_langs);
+			parser->shebang_langs_looked_up = 1;
+		}
+		return parser->shebang_langs;
 	case PARSER_METADATA_OPTION_GROUPS:
 		parser_port_options(parser, &tmp, NULL);
 		return tmp;
@@ -2170,6 +2201,12 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 	case PARSER_METADATA_SUBPACKAGES:
 		return parser_subpackages(parser);
 #endif
+	case PARSER_METADATA_USES:
+		if (!parser->uses_looked_up) {
+			parser_meta_values(parser, "USES", parser->uses);
+			parser->uses_looked_up = 1;
+		}
+		return parser->uses;
 	}
 
 	abort();

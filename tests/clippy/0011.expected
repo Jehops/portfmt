@@ -1,0 +1,11 @@
+# USES block
+USES
+
+# USES=shebangfix related variables
+SHEBANG_LANG
++awk_OLD_CMD
+awk_CMD
+bltwish_OLD_CMD
+bltwish_CMD
+python_CMD
+-awk_OLD_CMD

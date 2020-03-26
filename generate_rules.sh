@@ -120,4 +120,8 @@ echo "static const char *static_flavors_[] = {"
 ) | sed -e 's/^/	"/' -e 's/$/",/'
 echo "};"
 
+echo "static const char *static_shebang_langs_[] = {"
+_make "Mk" USES=shebangfix -V SHEBANG_LANG | sed -e 's/^/	"/' -e 's/$/",/'
+echo "};"
+
 rm -f "${TMP}"

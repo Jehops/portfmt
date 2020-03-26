@@ -1,0 +1,7 @@
+USES=			shebangfix
+SHEBANG_LANG=		awk bltwish
+awk_CMD=		foo
+bltwish_OLD_CMD=	foo
+bltwish_CMD=		foo
+python_CMD=		foo
+awk_OLD_CMD=		foo
