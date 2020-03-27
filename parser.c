@@ -121,9 +121,6 @@ static void parser_output_diff(struct Parser *);
 static void parser_propagate_goalcol(struct Parser *, size_t, size_t, int);
 static void parser_read_internal(struct Parser *);
 static void parser_read_line(struct Parser *, char *);
-#if PORTFMT_SUBPACKAGES
-static struct Set *parser_subpackages(struct Parser *);
-#endif
 static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_t);
 static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
@@ -2040,8 +2037,12 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 			array_free(tmp);
 		}
 		free(buf);
+#if PORTFMT_SUBPACKAGES
+		if (strcmp(var, "USES") == 0 || strcmp(var, "SUBPACKAGES") == 0) {
+#else
 		if (strcmp(var, "USES") == 0) {
-			xasprintf(&buf, "%s_USES", opt);
+#endif
+			xasprintf(&buf, "%s_%s", opt, var);
 			if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
 				for (size_t i = 0; i < array_len(tmp); i++) {
 					parser_meta_values_helper(set, var, array_get(tmp, i));
@@ -2145,47 +2146,6 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 	}
 }
 
-#if PORTFMT_SUBPACKAGES
-struct Set *
-parser_subpackages(struct Parser *parser)
-{
-	if (parser->subpackages_looked_up) {
-		return parser->subpackages;
-	}
-
-	struct Array *subpkgs = NULL;
-	if (parser_lookup_variable_all(parser, "SUBPACKAGES", &subpkgs, NULL)) {
-		for (size_t i = 0; i < array_len(subpkgs); i++) {
-			char *subpkg = array_get(subpkgs, i);
-			if (!set_contains(parser->subpackages, subpkg)) {
-				set_add(parser->subpackages, xstrdup(subpkg));
-			}
-		}
-		array_free(subpkgs);
-		subpkgs = NULL;
-	}
-
-	struct Set *options = NULL;
-	parser_port_options(parser, NULL, &options);
-	SET_FOREACH (options, char *, opt) {
-		char *var;
-		xasprintf(&var, "%s_SUBPACKAGES", opt);
-		if (parser_lookup_variable_all(parser, var, &subpkgs, NULL)) {
-			for (size_t j = 0; j < array_len(subpkgs); j++) {
-				char *subpkg = array_get(subpkgs, j);
-				if (!set_contains(parser->subpackages, subpkg)) {
-					set_add(parser->subpackages, xstrdup(subpkg));
-				}
-			}
-			array_free(subpkgs);
-		}
-		free(var);
-	}
-
-	return parser->subpackages;
-}
-#endif
-
 struct Set *
 parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 {
@@ -2212,7 +2172,11 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 		return tmp;
 #if PORTFMT_SUBPACKAGES
 	case PARSER_METADATA_SUBPACKAGES:
-		return parser_subpackages(parser);
+		if (!parser->subpackages_looked_up) {
+			parser_meta_values(parser, "SUBPACKAGES", parser->subpackages);
+			parser->subpackages_looked_up = 1;
+		}
+		return parser->subpackages;
 #endif
 	case PARSER_METADATA_USES:
 		if (!parser->uses_looked_up) {
