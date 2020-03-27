@@ -93,7 +93,6 @@ int is_include_bsd_port_mk(struct Token *);
 int is_known_target(struct Parser *, const char *);
 int is_special_target(const char *);
 int is_options_helper(struct Parser *, const char *, char **, char **, char **);
-struct Set *known_architectures(void);
 int leave_unformatted(struct Parser *, struct Variable *);
 regex_t *regex(enum RegularExpression);
 int matches(enum RegularExpression, const char *);

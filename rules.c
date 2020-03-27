@@ -1502,35 +1502,16 @@ is_flavors_helper(struct Parser *parser, const char *var, char **prefix_ret, cha
 
 	char *prefix = xstrndup(var, len - 1);
 	int found = 0;
-	// XXX: This can still be made a lot more strict
-	for (size_t i = 0; i < nitems(static_flavors_); i++) {
-		const char *flavor = static_flavors_[i];
+	SET_FOREACH(parser_metadata(parser, PARSER_METADATA_FLAVORS), const char *, flavor) {
 		if (strcmp(prefix, flavor) == 0) {
 			found = 1;
 			break;
 		}
 	}
-	if (!found) {
-		struct Array *flavors = NULL;
-		if (!parser_lookup_variable_all(parser, "FLAVORS", &flavors, NULL)) {
-			free(prefix);
-			return 0;
-		}
-		for (size_t i = 0; i < array_len(flavors); i++) {
-			const char *flavor = array_get(flavors, i);
-			if (strcmp(prefix, flavor) == 0) {
-				found = 1;
-				break;
-			}
-		}
-		array_free(flavors);
-		if (!found) {
-			free(prefix);
-			return 0;
-		}
-	}
 	free(prefix);
-
+	if (!found) {
+		return 0;
+	}
 done:
 	if (prefix_ret) {
 		*prefix_ret = xstrndup(var, len);
@@ -2475,16 +2456,6 @@ sub(enum RegularExpression re, const char *replacement, const char *s)
 	}
 
 	return buf;
-}
-
-struct Set *
-known_architectures()
-{
-	struct Set *set = set_new(str_compare, NULL, NULL);
-	for (size_t i = 0; i < nitems(known_architectures_); i++) {
-		set_add(set, (void*)known_architectures_[i]);
-	}
-	return set;
 }
 
 void

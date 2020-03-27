@@ -72,7 +72,7 @@ diff.o: config.h diff.h
 diffutil.o: config.h array.h diff.h diffutil.h util.h
 mainutils.o: config.h array.h mainutils.h parser.h util.h
 map.o: config.h array.h map.h util.h
-parser.o: config.h array.h conditional.h diffutil.h parser.h parser/plugin.h regexp.h rules.h set.h target.h token.h util.h variable.h
+parser.o: config.h array.h conditional.h diffutil.h parser.h parser/constants.c parser/plugin.h regexp.h rules.h set.h target.h token.h util.h variable.h
 parser/plugin.o: config.h parser.h parser/plugin.h util.h
 parser/plugin.edit.bump-revision.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h
 parser/plugin.edit.merge.o: config.h array.h parser.h parser/plugin.h rules.h token.h util.h variable.h

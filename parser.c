@@ -79,6 +79,8 @@ struct Parser {
 	struct Array *result;
 	struct Array *rawlines;
 
+	struct Set *flavors;
+	int flavors_looked_up;
 	struct Set *licenses;
 	int licenses_looked_up;
 	struct Set *shebang_langs;
@@ -125,6 +127,8 @@ static void parser_tokenize(struct Parser *, const char *, enum TokenType, size_
 static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
 static char *range_tostring(struct Range *);
+
+#include "parser/constants.c"
 
 size_t
 consume_comment(const char *buf)
@@ -337,6 +341,7 @@ parser_new(struct ParserSettings *settings)
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
+	parser->flavors = set_new(str_compare, NULL, free);
 	parser->licenses = set_new(str_compare, NULL, free);
 	parser->shebang_langs = set_new(str_compare, NULL, free);
 	parser->port_options = set_new(str_compare, NULL, free);
@@ -374,6 +379,7 @@ parser_free(struct Parser *parser)
 		return;
 	}
 
+	set_free(parser->flavors);
 	set_free(parser->licenses);
 	set_free(parser->shebang_langs);
 	set_free(parser->port_options);
@@ -2110,11 +2116,10 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 		return;
 	}
 
-	struct Set *archs = known_architectures();
 #define FOR_EACH_ARCH(f, var) \
-	SET_FOREACH (archs, const char *, arch) { \
+	for (size_t i = 0; i < nitems(known_architectures_); i++) { \
 		char *buf; \
-		xasprintf(&buf, "%s_%s", var, arch); \
+		xasprintf(&buf, "%s_%s", var, known_architectures_[i]); \
 		f(parser, buf); \
 		free(buf); \
 	}
@@ -2135,7 +2140,6 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 	FOR_EACH_ARCH(parser_port_options_add_from_group, "OPTIONS_SINGLE");
 
 #undef FOR_EACH_ARCH
-	set_free(archs);
 
 	parser->port_options_looked_up = 1;
 	if (groups) {
@@ -2152,6 +2156,20 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 	struct Set *tmp;
 
 	switch (meta) {
+	case PARSER_METADATA_FLAVORS:
+		if (!parser->flavors_looked_up) {
+			parser_meta_values(parser, "FLAVORS", parser->flavors);
+			struct Set *uses = parser_metadata(parser, PARSER_METADATA_USES);
+			// XXX: Does not take into account USE_PYTHON=noflavors etc.
+			for (size_t i = 0; i < nitems(static_flavors_); i++) {
+				if (set_contains(uses, (void*)static_flavors_[i].uses) &&
+				    !set_contains(parser->flavors, (void*)static_flavors_[i].flavor)) {
+					set_add(parser->flavors, xstrdup(static_flavors_[i].flavor));
+				}
+			}
+			parser->flavors_looked_up = 1;
+		}
+		return parser->flavors;
 	case PARSER_METADATA_LICENSES:
 		if (!parser->licenses_looked_up) {
 			parser_meta_values(parser, "LICENSE", parser->licenses);
