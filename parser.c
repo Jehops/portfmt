@@ -1980,16 +1980,34 @@ struct ParserSettings parser_settings(struct Parser *parser)
 	return parser->settings;
 }
 
+static void
+parser_meta_values_helper(struct Set *set, const char *var, char *value)
+{
+	if (strcmp(var, "USES") == 0) {
+		char *buf = strchr(value, ':');
+		if (buf != NULL) {
+			char *val = xstrndup(value, buf - value);
+			if (set_contains(set, val)) {
+				free(val);
+			} else {
+				set_add(set, val);
+			}
+			return;
+		}
+	}
+
+	if (!set_contains(set, value)) {
+		set_add(set, xstrdup(value));
+	}
+}
+
 void
 parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 {
 	struct Array *tmp = NULL;
 	if (parser_lookup_variable_all(parser, var, &tmp, NULL)) {
 		for (size_t i = 0; i < array_len(tmp); i++) {
-			char *value = array_get(tmp, i);
-			if (!set_contains(set, value)) {
-				set_add(set, xstrdup(value));
-			}
+			parser_meta_values_helper(set, var, array_get(tmp, i));
 		}
 		array_free(tmp);
 	}
@@ -2017,9 +2035,7 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 					}
 				}
 				free(buf);
-				if (!set_contains(set, value)) {
-					set_add(set, xstrdup(value));
-				}
+				parser_meta_values_helper(set, var, value);
 			}
 			array_free(tmp);
 		}
@@ -2028,10 +2044,7 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 			xasprintf(&buf, "%s_USES", opt);
 			if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
 				for (size_t i = 0; i < array_len(tmp); i++) {
-					char *value = array_get(tmp, i);
-					if (!set_contains(set, value)) {
-						set_add(set, xstrdup(value));
-					}
+					parser_meta_values_helper(set, var, array_get(tmp, i));
 				}
 				array_free(tmp);
 			}
