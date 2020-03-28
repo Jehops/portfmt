@@ -117,11 +117,13 @@ set_iterator(struct Set *set)
 }
 
 void
-set_iterator_free(struct SetIterator *iter)
+set_iterator_free(struct SetIterator **iter_)
 {
+	struct SetIterator *iter = *iter_;
 	if (iter != NULL) {
-		map_iterator_free(iter->iter);
+		map_iterator_free(&iter->iter);
 		free(iter);
+		*iter_ = NULL;
 	}
 }
 
@@ -132,7 +134,7 @@ set_iterator_next(struct SetIterator **iter_)
 	struct SetIterator *iter = *iter_;
 	void *next = map_iterator_next(&iter->iter, &element);
 	if (next == NULL) {
-		set_iterator_free(iter);
+		set_iterator_free(iter_);
 		*iter_ = NULL;
 		return NULL;
 	}

@@ -5,7 +5,7 @@ include Makefile.configure
 MKDIR?=		mkdir -p
 LN?=		ln
 
-CFLAGS+=	-std=c99 -I.
+CFLAGS+=	-std=gnu99 -I.
 LDADD+=		${LIBDL} -lm
 
 OBJS=		array.o compats.o conditional.o diff.o diffutil.o mainutils.o \

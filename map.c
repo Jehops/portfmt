@@ -188,10 +188,11 @@ map_iterator(struct Map *map)
 }
 
 void
-map_iterator_free(struct MapIterator *iter)
+map_iterator_free(struct MapIterator **iter)
 {
-	if (iter != NULL) {
-		free(iter);
+	if (*iter != NULL) {
+		free(*iter);
+		*iter = NULL;
 	}
 }
 
@@ -200,8 +201,7 @@ map_iterator_next(struct MapIterator **iter_, void **value)
 {
 	struct MapIterator *iter = *iter_;
 	if (iter->current == NULL) {
-		map_iterator_free(iter);
-		*iter_ = NULL;
+		map_iterator_free(iter_);
 		return NULL;
 	}
 

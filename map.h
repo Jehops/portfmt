@@ -41,10 +41,10 @@ size_t map_len(struct Map *);
 void map_truncate(struct Map *);
 
 struct MapIterator *map_iterator(struct Map *);
-void map_iterator_free(struct MapIterator *);
+void map_iterator_free(struct MapIterator **);
 void *map_iterator_next(struct MapIterator **, void **);
 
 #define MAP_FOREACH(MAP, KEYTYPE, KEYVAR, VALTYPE, VALVAR) \
-	for (struct MapIterator *__##KEYVAR##_iter = map_iterator(MAP); __##KEYVAR##_iter != NULL;) \
-	for (VALTYPE VALVAR = NULL; __##KEYVAR##_iter != NULL;) \
+	for (struct MapIterator *__##KEYVAR##_iter __attribute__((cleanup(map_iterator_free))) = map_iterator(MAP); __##KEYVAR##_iter != NULL; map_iterator_free(&__##KEYVAR##_iter)) \
+	for (VALTYPE VALVAR = NULL; __##KEYVAR##_iter != NULL; map_iterator_free(&__##KEYVAR##_iter)) \
 	for (KEYTYPE KEYVAR = map_iterator_next(&__##KEYVAR##_iter, (void **)&VALVAR); KEYVAR != NULL; KEYVAR = map_iterator_next(&__##KEYVAR##_iter, (void **)&VALVAR))
