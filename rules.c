@@ -998,6 +998,7 @@ static struct VariableOrderEntry variable_order_[] = {
 // We can set special formatting rules for them here instead of in
 // variable_order_.
 static struct VariableOrderEntry special_variables_[] = {
+	{ BLOCK_UNKNOWN, "_DISABLE_TESTS", VAR_SORTED },
 	{ BLOCK_UNKNOWN, "_IPXE_BUILDCFG", VAR_PRINT_AS_NEWLINES },
 	{ BLOCK_UNKNOWN, "CARGO_CARGO_RUN", VAR_IGNORE_WRAPCOL },
 	{ BLOCK_UNKNOWN, "CO_ENV", VAR_PRINT_AS_NEWLINES },
