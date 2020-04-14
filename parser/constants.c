@@ -2,6 +2,9 @@
 static struct { const char *uses; const char *flavor; } static_flavors_[] = {
 	{ "lazarus", "gtk2" },
 	{ "lazarus", "qt5" },
+	{ "lua", "lua51" },
+	{ "lua", "lua52" },
+	{ "lua", "lua53" },
 	{ "php", "php72" },
 	{ "php", "php73" },
 	{ "php", "php74" },
