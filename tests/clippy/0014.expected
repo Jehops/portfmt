@@ -1,0 +1,8 @@
+# Out of order targets
++do-patch:
++post-install:
++post-install-FOO-on:
+post-install-FOO-off:
+-post-install-FOO-on:
+-post-install:
+-do-patch:
