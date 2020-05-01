@@ -2281,10 +2281,10 @@ compare_target_order(const void *ap, const void *bp, void *userdata)
 		}
 
 		if (aoptstate && !boptstate) {
-			retval = 1;
+			retval = -1;
 			goto cleanup;
 		} else if (!aoptstate && boptstate) {
-			retval = -1;
+			retval = 1;
 			goto cleanup;
 		} else {
 			// should not happen
