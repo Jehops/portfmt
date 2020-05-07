@@ -519,7 +519,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags)
 void
 usage()
 {
-	fprintf(stderr, "usage: portscan [-l <logdir>] [-o] -p <portsdir> [<origin1> ...]\n");
+	fprintf(stderr, "usage: portscan [-l <logdir>] [-o <flag>] -p <portsdir> [<origin1> ...]\n");
 	exit(EX_USAGE);
 }
 
@@ -529,14 +529,24 @@ main(int argc, char *argv[])
 	const char *portsdir_path = NULL;
 	const char *logdir_path = NULL;
 	int ch;
-	enum ScanFlags flags = SCAN_CLONES | SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
-	while ((ch = getopt(argc, argv, "l:op:")) != -1) {
+	enum ScanFlags flags = SCAN_NOTHING;
+	while ((ch = getopt(argc, argv, "l:o:p:")) != -1) {
 		switch (ch) {
 		case 'l':
 			logdir_path = optarg;
 			break;
 		case 'o':
-			flags |= SCAN_OPTIONS;
+			if (strcasecmp(optarg, "all") == 0) {
+				flags = ~SCAN_NOTHING;
+			} else if (strcasecmp(optarg, "clones") == 0) {
+				flags |= SCAN_CLONES;
+			} else if (strcasecmp(optarg, "options") == 0) {
+				flags |= SCAN_OPTIONS;
+			} else if (strcasecmp(optarg, "unknown-targets") == 0) {
+				flags |= SCAN_UNKNOWN_TARGETS;
+			} else if (strcasecmp(optarg, "unknown-variables") == 0) {
+				flags |= SCAN_UNKNOWN_VARIABLES;
+			}
 			break;
 		case 'p':
 			portsdir_path = optarg;
@@ -548,6 +558,10 @@ main(int argc, char *argv[])
 	}
 	argc -= optind;
 	argv += optind;
+
+	if (flags == SCAN_NOTHING) {
+		flags = SCAN_CLONES | SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
+	}
 
 	int portsdir = -1;
 	if (portsdir_path == NULL) {
