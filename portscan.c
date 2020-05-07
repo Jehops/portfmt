@@ -56,6 +56,14 @@
 #include "token.h"
 #include "util.h"
 
+enum ScanFlags {
+	SCAN_NOTHING = 0,
+	SCAN_CLONES = 1 << 0,
+	SCAN_OPTIONS = 1 << 1,
+	SCAN_UNKNOWN_TARGETS = 1 << 2,
+	SCAN_UNKNOWN_VARIABLES = 1 << 3,
+};
+
 struct ScanResult {
 	char *origin;
 	struct Set *unknown_variables;
@@ -63,7 +71,7 @@ struct ScanResult {
 	struct Set *clones;
 	struct Set *option_groups;
 	struct Set *options;
-	int include_options;
+	enum ScanFlags flags;
 };
 
 struct CategoryReaderData {
@@ -78,7 +86,7 @@ struct PortReaderData {
 	struct Array *origins;
 	size_t start;
 	size_t end;
-	int include_options;
+	enum ScanFlags flags;
 };
 
 // Ignore these ports when processing .include
@@ -89,14 +97,14 @@ static const char *ports_include_blacklist_[] = {
 };
 
 static struct Array *lookup_subdirs(int, const char *);
-static void lookup_unknowns(int, const char *, struct ScanResult *);
+static void scan_port(int, const char *, struct ScanResult *);
 static void *lookup_origins_worker(void *);
 static enum ParserError process_include(struct Parser *, const char *, int, const char *);
 static struct Array *extract_includes(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int);
-static struct PortscanLog *scan_ports(int, struct Array *, int);
+static struct PortscanLog *scan_ports(int, struct Array *, enum ScanFlags);
 static void usage(void);
 
 FILE *
@@ -243,7 +251,7 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 }
 
 void
-lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
+scan_port(int portsdir, const char *path, struct ScanResult *retval)
 {
 	retval->option_groups = set_new(str_compare, NULL, free);
 	retval->options = set_new(str_compare, NULL, free);
@@ -296,25 +304,37 @@ lookup_unknowns(int portsdir, const char *path, struct ScanResult *retval)
 		goto cleanup;
 	}
 
-	error = parser_edit(parser, "output.unknown-variables", &retval->unknown_variables);
-	if (error != PARSER_ERROR_OK) {
-		warnx("%s: %s", path, parser_error_tostring(parser));
-		goto cleanup;
+	if (retval->flags & SCAN_UNKNOWN_VARIABLES) {
+		error = parser_edit(parser, "output.unknown-variables", &retval->unknown_variables);
+		if (error != PARSER_ERROR_OK) {
+			warnx("%s: %s", path, parser_error_tostring(parser));
+			goto cleanup;
+		}
+	} else {
+		retval->unknown_variables = set_new(str_compare, NULL, free);
 	}
 
-	error = parser_edit(parser, "output.unknown-targets", &retval->unknown_targets);
-	if (error != PARSER_ERROR_OK) {
-		warnx("%s: %s", path, parser_error_tostring(parser));
-		goto cleanup;
+	if (retval->flags & SCAN_UNKNOWN_TARGETS) {
+		error = parser_edit(parser, "output.unknown-targets", &retval->unknown_targets);
+		if (error != PARSER_ERROR_OK) {
+			warnx("%s: %s", path, parser_error_tostring(parser));
+			goto cleanup;
+		}
+	} else {
+		retval->unknown_targets = set_new(str_compare, NULL, free);
 	}
 
-	error = parser_edit(parser, "lint.clones", &retval->clones);
-	if (error != PARSER_ERROR_OK) {
-		warnx("%s: %s", path, parser_error_tostring(parser));
-		goto cleanup;
+	if (retval->flags & SCAN_CLONES) {
+		error = parser_edit(parser, "lint.clones", &retval->clones);
+		if (error != PARSER_ERROR_OK) {
+			warnx("%s: %s", path, parser_error_tostring(parser));
+			goto cleanup;
+		}
+	} else {
+		retval->clones = set_new(str_compare, NULL, free);
 	}
 
-	if (retval->include_options) {
+	if (retval->flags & SCAN_OPTIONS) {
 		struct Set *groups = parser_metadata(parser, PARSER_METADATA_OPTION_GROUPS);
 		SET_FOREACH (groups, const char *, group) { 
 			set_add(retval->option_groups, xstrdup(group));
@@ -349,8 +369,8 @@ scan_ports_worker(void *userdata)
 		xasprintf(&path, "%s/Makefile", origin);
 		struct ScanResult *result = xmalloc(sizeof(struct ScanResult));
 		result->origin = xstrdup(origin);
-		result->include_options = data->include_options;
-		lookup_unknowns(data->portsdir, path, result);
+		result->flags = data->flags;
+		scan_port(data->portsdir, path, result);
 		free(path);
 		array_append(retval, result);
 	}
@@ -443,7 +463,7 @@ lookup_origins(int portsdir)
 }
 
 struct PortscanLog *
-scan_ports(int portsdir, struct Array *origins, int include_options)
+scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags)
 {
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
@@ -463,7 +483,7 @@ scan_ports(int portsdir, struct Array *origins, int include_options)
 		data->origins = origins;
 		data->start = start;
 		data->end = end;
-		data->include_options = include_options;
+		data->flags = flags;
 		if (pthread_create(&tid[i], NULL, scan_ports_worker, data) != 0) {
 			err(1, "pthread_create");
 		}
@@ -509,14 +529,14 @@ main(int argc, char *argv[])
 	const char *portsdir_path = NULL;
 	const char *logdir_path = NULL;
 	int ch;
-	int oflag = 0;
+	enum ScanFlags flags = SCAN_CLONES | SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
 	while ((ch = getopt(argc, argv, "l:op:")) != -1) {
 		switch (ch) {
 		case 'l':
 			logdir_path = optarg;
 			break;
 		case 'o':
-			oflag = 1;
+			flags |= SCAN_OPTIONS;
 			break;
 		case 'p':
 			portsdir_path = optarg;
@@ -582,7 +602,7 @@ main(int argc, char *argv[])
 	}
 
 	int status = 0;
-	struct PortscanLog *result = scan_ports(portsdir, origins, oflag);
+	struct PortscanLog *result = scan_ports(portsdir, origins, flags);
 	if (portscan_log_len(result) > 0) {
 		if (logdir != NULL) {
 			struct PortscanLog *prev_result = portscan_log_read_all(logdir, PORTSCAN_LOG_LATEST);
