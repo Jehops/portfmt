@@ -100,6 +100,7 @@ struct PortReaderData {
 // Ignore these ports when processing .include
 static const char *ports_include_blacklist_[] = {
 	"devel/llvm",
+	"editors/vscode",
 	"ports-mgmt/wanted-ports",
 	"lang/gnatdroid-armv7",
 };
