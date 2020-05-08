@@ -331,8 +331,6 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 			warnx("%s: %s", path, parser_error_tostring(parser));
 			goto cleanup;
 		}
-	} else {
-		retval->unknown_variables = set_new(str_compare, NULL, free);
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_TARGETS) {
@@ -341,8 +339,6 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 			warnx("%s: %s", path, parser_error_tostring(parser));
 			goto cleanup;
 		}
-	} else {
-		retval->unknown_targets = set_new(str_compare, NULL, free);
 	}
 
 	if (retval->flags & SCAN_CLONES) {
@@ -351,8 +347,6 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 			warnx("%s: %s", path, parser_error_tostring(parser));
 			goto cleanup;
 		}
-	} else {
-		retval->clones = set_new(str_compare, NULL, free);
 	}
 
 	if (retval->flags & SCAN_OPTIONS) {

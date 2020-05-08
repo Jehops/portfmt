@@ -157,6 +157,10 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 void
 portscan_log_add_entries(struct PortscanLog *log, enum PortscanLogEntryType type, const char *origin, struct Set *values)
 {
+	if (values == NULL) {
+		return;
+	}
+
 	SET_FOREACH (values, const char *, value) {
 		portscan_log_add_entry(log, type, origin, value);
 	}
