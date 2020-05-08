@@ -138,6 +138,15 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 	case PORTSCAN_LOG_ENTRY_OPTION:
 		xasprintf(&buf, "%-7c %-40s %s\n", 'O', entry->origin, entry->value);
 		break;
+	case PORTSCAN_LOG_ENTRY_CATEGORY_NONEXISTENT_PORT:
+		xasprintf(&buf, "%-7s %-40s %s\n", "Ce", entry->origin, entry->value);
+		break;
+	case PORTSCAN_LOG_ENTRY_CATEGORY_UNHOOKED_PORT:
+		xasprintf(&buf, "%-7s %-40s %s\n", "Cu", entry->origin, entry->value);
+		break;
+	case PORTSCAN_LOG_ENTRY_CATEGORY_UNSORTED:
+		xasprintf(&buf, "%-7c %-40s %s\n", 'C', entry->origin, entry->value);
+		break;
 	default:
 		abort();
 	}
@@ -146,16 +155,22 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 }
 
 void
-portscan_log_add_entry(struct PortscanLog *log, enum PortscanLogEntryType type, const char *origin, struct Set *values)
+portscan_log_add_entries(struct PortscanLog *log, enum PortscanLogEntryType type, const char *origin, struct Set *values)
 {
 	SET_FOREACH (values, const char *, value) {
-		struct PortscanLogEntry *entry = xmalloc(sizeof(struct PortscanLogEntry));
-		entry->type = type;
-		entry->origin = xstrdup(origin);
-		entry->value = xstrdup(value);
-		array_append(log->entries, entry);
+		portscan_log_add_entry(log, type, origin, value);
 	}
 	set_free(values);
+}
+
+void
+portscan_log_add_entry(struct PortscanLog *log, enum PortscanLogEntryType type, const char *origin, const char *value)
+{
+	struct PortscanLogEntry *entry = xmalloc(sizeof(struct PortscanLogEntry));
+	entry->type = type;
+	entry->origin = xstrdup(origin);
+	entry->value = xstrdup(value);
+	array_append(log->entries, entry);
 }
 
 struct PortscanLogEntry *
@@ -176,6 +191,15 @@ log_entry_parse(const char *s)
 		s += 2;
 	} else if (str_startswith(s, "O ")) {
 		type = PORTSCAN_LOG_ENTRY_OPTION;
+		s++;
+	} else if (str_startswith(s, "Ce ")) {
+		type = PORTSCAN_LOG_ENTRY_CATEGORY_NONEXISTENT_PORT;
+		s += 2;
+	} else if (str_startswith(s, "Cu ")) {
+		type = PORTSCAN_LOG_ENTRY_CATEGORY_UNHOOKED_PORT;
+		s += 2;
+	} else if (str_startswith(s, "C ")) {
+		type = PORTSCAN_LOG_ENTRY_CATEGORY_UNSORTED;
 		s++;
 	} else {
 		fprintf(stderr, "unable to parse log entry: %s\n", s);

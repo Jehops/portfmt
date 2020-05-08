@@ -37,6 +37,9 @@ enum PortscanLogEntryType {
 	PORTSCAN_LOG_ENTRY_DUPLICATE_VAR,
 	PORTSCAN_LOG_ENTRY_OPTION_GROUP,
 	PORTSCAN_LOG_ENTRY_OPTION,
+	PORTSCAN_LOG_ENTRY_CATEGORY_NONEXISTENT_PORT,
+	PORTSCAN_LOG_ENTRY_CATEGORY_UNHOOKED_PORT,
+	PORTSCAN_LOG_ENTRY_CATEGORY_UNSORTED,
 };
 
 #define PORTSCAN_LOG_LATEST "portscan-latest.log"
@@ -50,7 +53,8 @@ struct PortscanLog *portscan_log_read_all(struct PortscanLogDir *, const char *)
 void portscan_log_free(struct PortscanLog *);
 
 size_t portscan_log_len(struct PortscanLog *);
-void portscan_log_add_entry(struct PortscanLog *, enum PortscanLogEntryType, const char *, struct Set *);
+void portscan_log_add_entries(struct PortscanLog *, enum PortscanLogEntryType, const char *, struct Set *);
+void portscan_log_add_entry(struct PortscanLog *, enum PortscanLogEntryType, const char *, const char *);
 int portscan_log_compare(struct PortscanLog *, struct PortscanLog *);
 int portscan_log_serialize_to_file(struct PortscanLog *, FILE *);
 int portscan_log_serialize_to_dir(struct PortscanLog *, struct PortscanLogDir *);
