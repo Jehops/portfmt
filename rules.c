@@ -1229,6 +1229,9 @@ should_sort(struct Parser *parser, struct Variable *var)
 	if (variable_modifier(var) == MODIFIER_SHELL) {
 		return 0;
 	}
+	if ((parser_settings(parser).behavior & PARSER_ALWAYS_SORT_VARIABLES)) {
+		return 1;
+	}
 	return variable_has_flag(parser, variable_name(var), VAR_SORTED);
 }
 

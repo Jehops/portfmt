@@ -46,7 +46,7 @@ static void usage(void);
 void
 usage()
 {
-	fprintf(stderr, "usage: portfmt [-Dditu] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portfmt [-DdituU] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
@@ -62,7 +62,7 @@ main(int argc, char *argv[])
 
 	parser_plugin_load_all();
 
-	if (!read_common_args(&argc, &argv, &settings, "Ddituw:", NULL)) {
+	if (!read_common_args(&argc, &argv, &settings, "DdituUw:", NULL)) {
 		usage();
 	}
 

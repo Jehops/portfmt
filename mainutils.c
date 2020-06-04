@@ -109,6 +109,9 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 		case 'u':
 			settings->behavior |= PARSER_UNSORTED_VARIABLES;
 			break;
+		case 'U':
+			settings->behavior |= PARSER_ALWAYS_SORT_VARIABLES;
+			break;
 		case 'w': {
 			const char *errstr = NULL;
 			settings->wrapcol = strtonum(optarg, -1, INT_MAX, &errstr);

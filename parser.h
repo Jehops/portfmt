@@ -44,6 +44,7 @@ enum ParserBehavior {
 	PARSER_UNSORTED_VARIABLES = 1 << 12,
 	PARSER_ALLOW_FUZZY_MATCHING = 1 << 13,
 	PARSER_SANITIZE_COMMENTS = 1 << 14,
+	PARSER_ALWAYS_SORT_VARIABLES = 1 << 15,
 };
 
 enum ParserMergeBehavior {
