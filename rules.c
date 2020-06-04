@@ -63,6 +63,7 @@ static int is_flavors_helper(struct Parser *, const char *, char **, char **);
 static int is_shebang_lang(struct Parser *, const char *, char **, char **);
 static int is_valid_license(struct Parser *, const char *);
 static int matches_license_name(struct Parser *, const char *);
+static int matches_options_group(struct Parser *, const char *, char **);
 static char *remove_plist_keyword(const char *);
 static void target_extract_opt(struct Parser *, const char *, char **, char **, int *);
 static int variable_has_flag(struct Parser *, const char *, int);
@@ -1069,6 +1070,19 @@ variable_has_flag(struct Parser *parser, const char *var, int flag)
 		free(suffix);
 	}
 
+	char *prefix;
+	if (matches_options_group(parser, var, &prefix)) {
+		for (size_t i = 0; i < nitems(variable_order_); i++) {
+			if (variable_order_[i].block == BLOCK_OPTDEF &&
+			    (variable_order_[i].flags & flag) &&
+			    strcmp(prefix, variable_order_[i].var) == 0) {
+				free(prefix);
+				return 1;
+			}
+		}
+		free(prefix);
+	}
+
 	for (size_t i = 0; i < nitems(variable_order_); i++) {
 		if ((!(variable_order_[i].flags & VAR_NOT_COMPARABLE)) &&
 		    (variable_order_[i].flags & flag) &&
@@ -1709,8 +1723,8 @@ done:
 	return 1;
 }
 
-static int
-matches_options_group(struct Parser *parser, const char *s)
+int
+matches_options_group(struct Parser *parser, const char *s, char **prefix)
 {
 	size_t i = 0;
 	// ^_?
@@ -1718,6 +1732,7 @@ matches_options_group(struct Parser *parser, const char *s)
 		i++;
 	}
 
+	const char *var = NULL;
 	// OPTIONS_(GROUP|MULTI|RADIO|SINGLE)_
 	const char *opts[] = {
 		"OPTIONS_GROUP_",
@@ -1730,6 +1745,7 @@ matches_options_group(struct Parser *parser, const char *s)
 		if (str_startswith(s + i, opts[j])) {
 			matched = 1;
 			i += strlen(opts[j]);
+			var = opts[j];
 			break;
 		}
 	}
@@ -1747,12 +1763,18 @@ matches_options_group(struct Parser *parser, const char *s)
 				return 0;
 			}
 		}
+		if (prefix) {
+			*prefix = xstrndup(var, strlen(var) - 1);
+		}
 		return 1;
 	} else {
 		struct Set *groups = parser_metadata(parser, PARSER_METADATA_OPTION_GROUPS);
 		// XXX: This could be stricter by checking the group type too
 		SET_FOREACH (groups, const char *, group) {
 			if (strcmp(s + i, group) == 0) {
+				if (prefix) {
+					*prefix = xstrndup(var, strlen(var) - 1);
+				}
 				return 1;
 			}
 		}
@@ -1874,7 +1896,7 @@ variable_order_block(struct Parser *parser, const char *var)
 		}
 	}
 
-	if (matches_options_group(parser, var)) {
+	if (matches_options_group(parser, var, NULL)) {
 		return BLOCK_OPTDEF;
 	}
 
