@@ -35,6 +35,7 @@
 # include "capsicum_helpers.h"
 #endif
 #include <assert.h>
+#include <dirent.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -86,6 +87,7 @@ struct CategoryReaderData {
 
 struct CategoryReaderResult {
 	struct Array *nonexistent;
+	struct Array *unhooked;
 	struct Array *origins;
 };
 
@@ -105,16 +107,37 @@ static const char *ports_include_blacklist_[] = {
 	"lang/gnatdroid-armv7",
 };
 
-static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *);
+static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *);
 static void scan_port(int, const char *, struct ScanResult *);
 static void *lookup_origins_worker(void *);
 static enum ParserError process_include(struct Parser *, const char *, int, const char *);
 static struct Array *extract_includes(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
+static DIR *diropenat(int, const char *);
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int, enum ScanFlags, struct PortscanLog *);
 static void scan_ports(int, struct Array *, enum ScanFlags, struct PortscanLog *);
 static void usage(void);
+
+DIR *
+diropenat(int root, const char *path)
+{
+	int fd = openat(root, path, O_RDONLY | O_DIRECTORY);
+	if (fd == -1) {
+		return NULL;
+	}
+#if HAVE_CAPSICUM
+	if (caph_limit_stream(fd, CAPH_READ) < 0) {
+		err(1, "caph_limit_stream: %s", path);
+	}
+#endif
+
+	DIR *dir = fdopendir(fd);
+	if (dir == NULL) {
+		close(fd);
+	}
+	return dir;
+}
 
 FILE *
 fileopenat(int root, const char *path)
@@ -138,11 +161,11 @@ fileopenat(int root, const char *path)
 }
 
 void
-lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFlags flags, struct Array *subdirs, struct Array *nonexistent)
+lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFlags flags, struct Array *subdirs, struct Array *nonexistent, struct Array *unhooked)
 {
 	FILE *in = fileopenat(portsdir, path);
 	if (in == NULL) {
-		warn("open_file: %s", path);
+		warn("fileopenat: %s", path);
 		return;
 	}
 
@@ -164,6 +187,34 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 	struct Array *tmp;
 	if (parser_lookup_variable_all(parser, "SUBDIR", &tmp, NULL) == NULL) {
 		goto cleanup;
+	}
+
+	if (unhooked && (flags & SCAN_CATEGORIES)) {
+		DIR *dir = diropenat(portsdir, category);
+		if (dir == NULL) {
+			warn("diropenat: %s", category);
+		} else {
+			struct dirent *dp;
+			while ((dp = readdir(dir)) != NULL) {
+				if (dp->d_name[0] == '.') {
+					continue;
+				}
+				char *path;
+				xasprintf(&path, "%s/%s", category, dp->d_name);
+				struct stat sb;
+				if (fstatat(portsdir, path, &sb, 0) == -1 ||
+				    !S_ISDIR(sb.st_mode)) {
+					free(path);
+					continue;
+				}
+				if (array_find(tmp, dp->d_name, str_compare, NULL) == -1) {
+					array_append(unhooked, path);
+				} else {
+					free(path);
+				}
+			}
+			closedir(dir);
+		}
 	}
 
 	for (size_t i = 0; i < array_len(tmp); i++) {
@@ -220,7 +271,7 @@ process_include(struct Parser *parser, const char *curdir, int portsdir, const c
 	}
 	FILE *f = fileopenat(portsdir, path);
 	if (f == NULL) {
-		warn("open_file: %s", path);
+		warn("fileopenat: %s", path);
 		free(path);
 		return PARSER_ERROR_OK;
 	}
@@ -283,7 +334,7 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 
 	FILE *in = fileopenat(portsdir, path);
 	if (in == NULL) {
-		warn("open_file: %s", path);
+		warn("fileopenat: %s", path);
 		return;
 	}
 
@@ -399,13 +450,14 @@ lookup_origins_worker(void *userdata)
 	struct CategoryReaderData *data = userdata;
 	struct CategoryReaderResult *result = xmalloc(sizeof(struct CategoryReaderResult));
 	result->nonexistent = array_new();
+	result->unhooked = array_new();
 	result->origins = array_new();
 
 	for (size_t i = data->start; i < data->end; i++) {
 		char *category = array_get(data->categories, i);
 		char *path;
 		xasprintf(&path, "%s/Makefile", category);
-		lookup_subdirs(data->portsdir, category, path, data->flags, result->origins, result->nonexistent);
+		lookup_subdirs(data->portsdir, category, path, data->flags, result->origins, result->nonexistent, result->unhooked);
 		free(path);
 	}
 
@@ -420,7 +472,7 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 	struct Array *retval = array_new();
 
 	struct Array *categories = array_new();
-	lookup_subdirs(portsdir, "", "Makefile", SCAN_NOTHING, categories, NULL);
+	lookup_subdirs(portsdir, "", "Makefile", SCAN_NOTHING, categories, NULL, NULL);
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
 		err(1, "sysconf");
@@ -448,6 +500,7 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 	}
 
 	struct Array *nonexistent = array_new();
+	struct Array *unhooked = array_new();
 	for (ssize_t i = 0; i < n_threads; i++) {
 		void *data;
 		if (pthread_join(tid[i], &data) != 0) {
@@ -459,11 +512,16 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 			char *origin = array_get(result->nonexistent, j);
 			array_append(nonexistent, origin);
 		}
+		for (size_t j = 0; j < array_len(result->unhooked); j++) {
+			char *origin = array_get(result->unhooked, j);
+			array_append(unhooked, origin);
+		}
 		for (size_t j = 0; j < array_len(result->origins); j++) {
 			char *origin = array_get(result->origins, j);
 			array_append(retval, origin);
 		}
 		array_free(result->nonexistent);
+		array_free(result->unhooked);
 		array_free(result->origins);
 		free(result);
 	}
@@ -475,6 +533,14 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 		free(origin);
 	}
 	array_free(nonexistent);
+
+	array_sort(unhooked, str_compare, NULL);
+	for (size_t j = 0; j < array_len(unhooked); j++) {
+		char *origin = array_get(unhooked, j);
+		portscan_log_add_entry(log, PORTSCAN_LOG_ENTRY_CATEGORY_UNHOOKED_PORT, origin, "unhooked port");
+		free(origin);
+	}
+	array_free(unhooked);
 
 	for (size_t i = 0; i < array_len(categories); i++) {
 		free(array_get(categories, i));
