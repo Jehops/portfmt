@@ -1778,6 +1778,12 @@ parser_read_finish(struct Parser *parser)
 		return parser->error;
 	}
 
+	parser->flavors_looked_up = 0;
+	parser->licenses_looked_up = 0;
+	parser->shebang_langs_looked_up = 0;
+	parser->port_options_looked_up = 0;
+	parser->uses_looked_up = 0;
+
 	if (!parser->continued) {
 		parser->lines.end++;
 	}
