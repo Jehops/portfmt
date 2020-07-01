@@ -79,6 +79,8 @@ struct Parser {
 	struct Array *result;
 	struct Array *rawlines;
 
+	struct Set *cabal_executables;
+	int cabal_executables_looked_up;
 	struct Set *flavors;
 	int flavors_looked_up;
 	struct Set *licenses;
@@ -341,6 +343,7 @@ parser_new(struct ParserSettings *settings)
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
+	parser->cabal_executables = set_new(str_compare, NULL, free);
 	parser->flavors = set_new(str_compare, NULL, free);
 	parser->licenses = set_new(str_compare, NULL, free);
 	parser->shebang_langs = set_new(str_compare, NULL, free);
@@ -1778,6 +1781,7 @@ parser_read_finish(struct Parser *parser)
 		return parser->error;
 	}
 
+	parser->cabal_executables_looked_up = 0;
 	parser->flavors_looked_up = 0;
 	parser->licenses_looked_up = 0;
 	parser->shebang_langs_looked_up = 0;
@@ -2162,6 +2166,21 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 	struct Set *tmp;
 
 	switch (meta) {
+	case PARSER_METADATA_CABAL_EXECUTABLES:
+		if (!parser->cabal_executables_looked_up) {
+			struct Set *uses = parser_metadata(parser, PARSER_METADATA_USES);
+			if (set_contains(uses, (void*)"cabal")) {
+				parser_meta_values(parser, "EXECUTABLES", parser->cabal_executables);
+				if (set_len(parser->cabal_executables) == 0) {
+					char *portname;
+					if (parser_lookup_variable_str(parser, "PORTNAME", &portname, NULL)) {
+						set_add(parser->cabal_executables, portname);
+					}
+				}
+				parser->cabal_executables_looked_up = 1;
+			}
+		}
+		return parser->cabal_executables;
 	case PARSER_METADATA_FLAVORS:
 		if (!parser->flavors_looked_up) {
 			parser_meta_values(parser, "FLAVORS", parser->flavors);

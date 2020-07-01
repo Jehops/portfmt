@@ -59,6 +59,7 @@ static int compare_use_kde(struct Variable *, const char *, const char *, int *)
 static int compare_use_pyqt(struct Variable *, const char *, const char *, int *);
 static int compare_use_qt(struct Variable *, const char *, const char *, int *);
 static char *extract_subpkg(struct Parser *, const char *, char **);
+static int is_cabal_datadir_vars(struct Parser *, const char *, char **, char **);
 static int is_flavors_helper(struct Parser *, const char *, char **, char **);
 static int is_shebang_lang(struct Parser *, const char *, char **, char **);
 static int is_valid_license(struct Parser *, const char *);
@@ -608,9 +609,11 @@ static struct VariableOrderEntry variable_order_[] = {
 	{ BLOCK_SCONS, "LINKFLAGS", VAR_SORTED },
 	{ BLOCK_SCONS, "LIBPATH", VAR_DEFAULT },
 
-	{ BLOCK_CABAL, "USE_CABAL", VAR_PRINT_AS_NEWLINES | VAR_SKIP_GOALCOL | VAR_SORTED },
+	{ BLOCK_CABAL, "USE_CABAL", VAR_PRINT_AS_NEWLINES | VAR_SORTED },
 	{ BLOCK_CABAL, "CABAL_FLAGS", VAR_SORTED },
 	{ BLOCK_CABAL, "EXECUTABLES", VAR_SORTED },
+	{ BLOCK_CABAL, "DATADIR_VARS", VAR_NOT_COMPARABLE | VAR_SKIP_GOALCOL | VAR_SORTED },
+	{ BLOCK_CABAL, "SKIP_CABAL_PLIST", VAR_SKIP_GOALCOL | VAR_SORTED },
 
 	{ BLOCK_CARGO, "CARGO_CRATES", VAR_PRINT_AS_NEWLINES | VAR_SKIP_GOALCOL },
 	{ BLOCK_CARGO, "CARGO_USE_GITHUB", VAR_DEFAULT },
@@ -1066,6 +1069,19 @@ variable_has_flag(struct Parser *parser, const char *var, int flag)
 	if (is_shebang_lang(parser, var, NULL, &suffix)) {
 		for (size_t i = 0; i < nitems(variable_order_); i++) {
 			if (variable_order_[i].block == BLOCK_SHEBANGFIX &&
+			    (variable_order_[i].flags & VAR_NOT_COMPARABLE) &&
+			    (variable_order_[i].flags & flag) &&
+			    strcmp(suffix, variable_order_[i].var) == 0) {
+				free(suffix);
+				return 1;
+			}
+		}
+		free(suffix);
+	}
+
+	if (is_cabal_datadir_vars(parser, var, NULL, &suffix)) {
+		for (size_t i = 0; i < nitems(variable_order_); i++) {
+			if (variable_order_[i].block == BLOCK_CABAL &&
 			    (variable_order_[i].flags & VAR_NOT_COMPARABLE) &&
 			    (variable_order_[i].flags & flag) &&
 			    strcmp(suffix, variable_order_[i].var) == 0) {
@@ -1793,6 +1809,56 @@ matches_options_group(struct Parser *parser, const char *s, char **prefix)
 }
 
 static int
+is_cabal_datadir_vars_helper(const char *var, const char *exe, char **prefix, char **suffix)
+{
+	char *buf;
+
+	xasprintf(&buf, "%s_DATADIR_VARS", exe);
+	if (strcmp(var, buf) == 0) {
+		if (prefix) {
+			*prefix = xstrdup(exe);
+		}
+		if (suffix) {
+			*suffix = xstrdup("DATADIR_VARS");
+		}
+		free(buf);
+		return 1;
+	}
+	free(buf);
+
+	return 0;
+}
+
+int
+is_cabal_datadir_vars(struct Parser *parser, const char *var, char **prefix, char **suffix)
+{
+	if (parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) {
+		if (str_endswith(var, "_DATADIR_VARS")) {
+			if (prefix) {
+				*prefix = xstrndup(var, strlen(var) - strlen("_DATADIR_VARS"));
+			}
+			if (suffix) {
+				*suffix = xstrdup("DATADIR_VARS");
+			}
+			return 1;
+		}
+	}
+
+	// Do we have USES=cabal?
+	if (!set_contains(parser_metadata(parser, PARSER_METADATA_USES), (void*)"cabal")) {
+		return 0;
+	}
+
+	SET_FOREACH (parser_metadata(parser, PARSER_METADATA_CABAL_EXECUTABLES), const char *, exe) {
+		if (is_cabal_datadir_vars_helper(var, exe, prefix, suffix)) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int
 is_shebang_lang_helper(const char *var, const char *lang, char **prefix, char **suffix)
 {
 	char *buf;
@@ -1831,12 +1897,18 @@ is_shebang_lang(struct Parser *parser, const char *var, char **prefix, char **su
 {
 	if (parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) {
 		if (str_endswith(var, "_OLD_CMD")) {
+			if (prefix) {
+				*prefix = xstrndup(var, strlen(var) - strlen("_OLD_CMD"));
+			}
 			if (suffix) {
 				*suffix = xstrdup("OLD_CMD");
 			}
 			return 1;
 		}
 		if (str_endswith(var, "_CMD")) {
+			if (prefix) {
+				*prefix = xstrndup(var, strlen(var) - strlen("_CMD"));
+			}
 			if (suffix) {
 				*suffix = xstrdup("CMD");
 			}
@@ -1895,6 +1967,10 @@ variable_order_block(struct Parser *parser, const char *var)
 
 	if (is_shebang_lang(parser, var, NULL, NULL)) {
 		return BLOCK_SHEBANGFIX;
+	}
+
+	if (is_cabal_datadir_vars(parser, var, NULL, NULL)) {
+		return BLOCK_CABAL;
 	}
 
 	if (is_options_helper(parser, var, NULL, NULL, NULL)) {
@@ -2066,6 +2142,61 @@ compare_order(const void *ap, const void *bp, void *userdata)
 			free(alang);
 			free(asuffix);
 			free(blang);
+			free(bsuffix);
+			if (ascore == bscore) {
+				if (aold && !bold) {
+					return -1;
+				} else if (!aold && bold) {
+					return 1;
+				} else {
+					return 0;
+				}
+			} else if (ascore < bscore) {
+				return -1;
+			} else {
+				return 1;
+			}
+		}
+	} else if (ablock == BLOCK_CABAL) {
+		// XXX: Yikes!
+		if (strcmp(a, "SKIP_CABAL_PLIST") == 0) {
+			return 1;
+		} else if (strcmp(b, "SKIP_CABAL_PLIST") == 0) {
+			return -1;
+		} else if (str_endswith(a, "_DATADIR_VARS") && !str_endswith(b, "_DATADIR_VARS")) {
+			return 1;
+		} else if (!str_endswith(a, "_DATADIR_VARS") && str_endswith(b, "_DATADIR_VARS")) {
+			return -1;
+		} else if (str_endswith(a, "_DATADIR_VARS") && str_endswith(b, "_DATADIR_VARS")) {
+			char *aexe = NULL;
+			char *asuffix = NULL;
+			char *bexe = NULL;
+			char *bsuffix = NULL;
+			is_cabal_datadir_vars(parser, a, &aexe, &asuffix);
+			is_cabal_datadir_vars(parser, b, &bexe, &bsuffix);
+			assert(aexe);
+			assert(asuffix);
+			assert(bexe);
+			assert(bsuffix);
+
+			ssize_t ascore = -1;
+			ssize_t bscore = -1;
+			size_t i = 0;
+			SET_FOREACH (parser_metadata(parser, PARSER_METADATA_CABAL_EXECUTABLES), const char *, exe) {
+				if (strcmp(aexe, exe) == 0) {
+					ascore = i;
+				}
+				if (strcmp(bexe, exe) == 0) {
+					bscore = i;
+				}
+				i++;
+			}
+
+			int aold = strcmp(asuffix, "DATADIR_VARS") == 0;
+			int bold = strcmp(bsuffix, "DATADIR_VARS") == 0;
+			free(aexe);
+			free(asuffix);
+			free(bexe);
 			free(bsuffix);
 			if (ascore == bscore) {
 				if (aold && !bold) {
