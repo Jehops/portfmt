@@ -541,7 +541,7 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 		char c = line[i];
 		if (escape) {
 			escape = 0;
-			if (c == '#' || c == '\\' || c == '$') {
+			if (c == '#' || c == '\\' || c == '$' || isspace(c)) {
 				continue;
 			}
 		}
