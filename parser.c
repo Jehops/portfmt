@@ -1850,8 +1850,9 @@ enum ParserError
 parser_output_write_to_file(struct Parser *parser, FILE *fp)
 {
 	parser_output_prepare(parser);
-	if (parser->error != PARSER_ERROR_OK &&
-	    parser->error != PARSER_ERROR_DIFFERENCES_FOUND) {
+	if (fp == NULL ||
+	    (parser->error != PARSER_ERROR_OK &&
+	     parser->error != PARSER_ERROR_DIFFERENCES_FOUND)) {
 		return parser->error;
 	}
 

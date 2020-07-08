@@ -87,8 +87,9 @@ struct CategoryReaderData {
 
 struct CategoryReaderResult {
 	struct Array *nonexistent;
-	struct Array *unhooked;
 	struct Array *origins;
+	struct Array *unhooked;
+	struct Array *unsorted;
 };
 
 struct PortReaderData {
@@ -107,7 +108,7 @@ static const char *ports_include_blacklist_[] = {
 	"lang/gnatdroid-armv7",
 };
 
-static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *);
+static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *, struct Array *);
 static void scan_port(int, const char *, struct ScanResult *);
 static void *lookup_origins_worker(void *);
 static enum ParserError process_include(struct Parser *, const char *, int, const char *);
@@ -161,7 +162,7 @@ fileopenat(int root, const char *path)
 }
 
 void
-lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFlags flags, struct Array *subdirs, struct Array *nonexistent, struct Array *unhooked)
+lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFlags flags, struct Array *subdirs, struct Array *nonexistent, struct Array *unhooked, struct Array *unsorted)
 {
 	FILE *in = fileopenat(portsdir, path);
 	if (in == NULL) {
@@ -171,6 +172,9 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 
 	struct ParserSettings settings;
 	parser_init_settings(&settings);
+	if (flags & SCAN_CATEGORIES) {
+		settings.behavior |= PARSER_OUTPUT_REFORMAT | PARSER_OUTPUT_DIFF;
+	}
 
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, in);
@@ -236,6 +240,11 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 		array_append(subdirs, origin);
 	}
 	array_free(tmp);
+
+	if ((flags & SCAN_CATEGORIES) && unsorted &&
+	    parser_output_write_to_file(parser, NULL) == PARSER_ERROR_DIFFERENCES_FOUND) {
+		array_append(unsorted, xstrdup(category));
+	}
 
 cleanup:
 	parser_free(parser);
@@ -451,13 +460,14 @@ lookup_origins_worker(void *userdata)
 	struct CategoryReaderResult *result = xmalloc(sizeof(struct CategoryReaderResult));
 	result->nonexistent = array_new();
 	result->unhooked = array_new();
+	result->unsorted = array_new();
 	result->origins = array_new();
 
 	for (size_t i = data->start; i < data->end; i++) {
 		char *category = array_get(data->categories, i);
 		char *path;
 		xasprintf(&path, "%s/Makefile", category);
-		lookup_subdirs(data->portsdir, category, path, data->flags, result->origins, result->nonexistent, result->unhooked);
+		lookup_subdirs(data->portsdir, category, path, data->flags, result->origins, result->nonexistent, result->unhooked, result->unsorted);
 		free(path);
 	}
 
@@ -472,7 +482,7 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 	struct Array *retval = array_new();
 
 	struct Array *categories = array_new();
-	lookup_subdirs(portsdir, "", "Makefile", SCAN_NOTHING, categories, NULL, NULL);
+	lookup_subdirs(portsdir, "", "Makefile", SCAN_NOTHING, categories, NULL, NULL, NULL);
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
 		err(1, "sysconf");
@@ -501,6 +511,7 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 
 	struct Array *nonexistent = array_new();
 	struct Array *unhooked = array_new();
+	struct Array *unsorted = array_new();
 	for (ssize_t i = 0; i < n_threads; i++) {
 		void *data;
 		if (pthread_join(tid[i], &data) != 0) {
@@ -516,12 +527,17 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 			char *origin = array_get(result->unhooked, j);
 			array_append(unhooked, origin);
 		}
+		for (size_t j = 0; j < array_len(result->unsorted); j++) {
+			char *origin = array_get(result->unsorted, j);
+			array_append(unsorted, origin);
+		}
 		for (size_t j = 0; j < array_len(result->origins); j++) {
 			char *origin = array_get(result->origins, j);
 			array_append(retval, origin);
 		}
 		array_free(result->nonexistent);
 		array_free(result->unhooked);
+		array_free(result->unsorted);
 		array_free(result->origins);
 		free(result);
 	}
@@ -541,6 +557,14 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 		free(origin);
 	}
 	array_free(unhooked);
+
+	array_sort(unsorted, str_compare, NULL);
+	for (size_t j = 0; j < array_len(unsorted); j++) {
+		char *origin = array_get(unsorted, j);
+		portscan_log_add_entry(log, PORTSCAN_LOG_ENTRY_CATEGORY_UNSORTED, origin, "unsorted category or other formatting issues");
+		free(origin);
+	}
+	array_free(unsorted);
 
 	for (size_t i = 0; i < array_len(categories); i++) {
 		free(array_get(categories, i));
