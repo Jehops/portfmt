@@ -281,7 +281,7 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	if (!read_common_args(&argc, &argv, settings, "De:iuUw:", expressions)) {
 		merge_usage();
 	}
-	if (argc == 0) {
+	if (argc == 0 && array_len(expressions) == 0) {
 		merge_usage();
 	}
 
