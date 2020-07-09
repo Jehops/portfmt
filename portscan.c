@@ -39,6 +39,7 @@
 #if HAVE_ERR
 # include <err.h>
 #endif
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -123,7 +124,7 @@ diropenat(int root, const char *path)
 		return NULL;
 	}
 #if HAVE_CAPSICUM
-	if (caph_limit_stream(fd, CAPH_READ) < 0) {
+	if (caph_limit_stream(fd, CAPH_READ | CAPH_READDIR) < 0) {
 		err(1, "caph_limit_stream: %s", path);
 	}
 #endif
@@ -197,7 +198,9 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 		DIR *dir = diropenat(portsdir, category);
 		if (dir == NULL) {
 			array_append(error_origins, xstrdup(category));
-			array_append(error_msgs, xstrdup("diropenat")); // TODO: strerror(errno)
+			char *msg;
+			xasprintf(&msg, "diropenat: %s", strerror(errno));
+			array_append(error_msgs, msg);
 		} else {
 			struct dirent *dp;
 			while ((dp = readdir(dir)) != NULL) {
@@ -746,7 +749,7 @@ main(int argc, char *argv[])
 	}
 
 #if HAVE_CAPSICUM
-	if (caph_limit_stream(portsdir, CAPH_LOOKUP | CAPH_READ) < 0) {
+	if (caph_limit_stream(portsdir, CAPH_LOOKUP | CAPH_READ | CAPH_READDIR) < 0) {
 		err(1, "caph_limit_stream");
 	}
 
