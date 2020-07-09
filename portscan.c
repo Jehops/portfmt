@@ -69,6 +69,7 @@ enum ScanFlags {
 
 struct ScanResult {
 	char *origin;
+	struct Set *errors;
 	struct Set *unknown_variables;
 	struct Set *unknown_targets;
 	struct Set *clones;
@@ -86,6 +87,8 @@ struct CategoryReaderData {
 };
 
 struct CategoryReaderResult {
+	struct Array *error_origins;
+	struct Array *error_msgs;
 	struct Array *nonexistent;
 	struct Array *origins;
 	struct Array *unhooked;
@@ -108,10 +111,10 @@ static const char *ports_include_blacklist_[] = {
 	"lang/gnatdroid-armv7",
 };
 
-static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *, struct Array *);
+static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *);
 static void scan_port(int, const char *, struct ScanResult *);
 static void *lookup_origins_worker(void *);
-static enum ParserError process_include(struct Parser *, const char *, int, const char *);
+static enum ParserError process_include(struct Parser *, struct Set *, const char *, int, const char *);
 static struct Array *extract_includes(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 static DIR *diropenat(int, const char *);
 static FILE *fileopenat(int, const char *);
@@ -162,11 +165,14 @@ fileopenat(int root, const char *path)
 }
 
 void
-lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFlags flags, struct Array *subdirs, struct Array *nonexistent, struct Array *unhooked, struct Array *unsorted)
+lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFlags flags, struct Array *subdirs, struct Array *nonexistent, struct Array *unhooked, struct Array *unsorted, struct Array *error_origins, struct Array *error_msgs)
 {
 	FILE *in = fileopenat(portsdir, path);
 	if (in == NULL) {
-		warn("fileopenat: %s", path);
+		char *msg;
+		xasprintf(&msg, "fileopenat: %s", strerror(errno));
+		array_append(error_origins, xstrdup(path));
+		array_append(error_msgs, msg);
 		return;
 	}
 
@@ -179,12 +185,14 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, in);
 	if (error != PARSER_ERROR_OK) {
-		warnx("%s: %s", path, parser_error_tostring(parser));
+		array_append(error_origins, xstrdup(path));
+		array_append(error_msgs, xstrdup(parser_error_tostring(parser)));
 		goto cleanup;
 	}
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
-		warnx("%s: %s", path, parser_error_tostring(parser));
+		array_append(error_origins, xstrdup(path));
+		array_append(error_msgs, xstrdup(parser_error_tostring(parser)));
 		goto cleanup;
 	}
 
@@ -196,7 +204,8 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 	if (unhooked && (flags & SCAN_CATEGORIES)) {
 		DIR *dir = diropenat(portsdir, category);
 		if (dir == NULL) {
-			warn("diropenat: %s", category);
+			array_append(error_origins, xstrdup(category));
+			array_append(error_msgs, xstrdup("diropenat")); // TODO: strerror(errno)
 		} else {
 			struct dirent *dp;
 			while ((dp = readdir(dir)) != NULL) {
@@ -252,7 +261,7 @@ cleanup:
 }
 
 enum ParserError
-process_include(struct Parser *parser, const char *curdir, int portsdir, const char *filename)
+process_include(struct Parser *parser, struct Set *errors, const char *curdir, int portsdir, const char *filename)
 {
 	char *path;
 	if (str_startswith(filename, "${MASTERDIR}/")) {
@@ -280,7 +289,9 @@ process_include(struct Parser *parser, const char *curdir, int portsdir, const c
 	}
 	FILE *f = fileopenat(portsdir, path);
 	if (f == NULL) {
-		warn("fileopenat: %s", path);
+		char *msg;
+		xasprintf(&msg, "cannot open include: %s: %s", path, strerror(errno));
+		set_add(errors, msg);
 		free(path);
 		return PARSER_ERROR_OK;
 	}
@@ -334,6 +345,7 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 void
 scan_port(int portsdir, const char *path, struct ScanResult *retval)
 {
+	retval->errors = set_new(str_compare, NULL, free);
 	retval->option_groups = set_new(str_compare, NULL, free);
 	retval->options = set_new(str_compare, NULL, free);
 
@@ -343,14 +355,16 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 
 	FILE *in = fileopenat(portsdir, path);
 	if (in == NULL) {
-		warn("fileopenat: %s", path);
+		char *msg;
+		xasprintf(&msg, "fileopenat: %s", strerror(errno));
+		set_add(retval->errors, msg);
 		return;
 	}
 
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, in);
 	if (error != PARSER_ERROR_OK) {
-		warnx("%s: %s", path, parser_error_tostring(parser));
+		set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
 		goto cleanup;
 	}
 
@@ -365,14 +379,14 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 		struct Array *includes = NULL;
 		error = parser_edit_with_fn(parser, extract_includes, &includes);
 		if (error != PARSER_ERROR_OK) {
-			warnx("%s: %s", path, parser_error_tostring(parser));
+			set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
 			goto cleanup;
 		}
 		for (size_t i = 0; i < array_len(includes); i++) {
-			error = process_include(parser, retval->origin, portsdir, array_get(includes, i));
+			error = process_include(parser, retval->errors, retval->origin, portsdir, array_get(includes, i));
 			if (error != PARSER_ERROR_OK) {
 				array_free(includes);
-				warnx("%s: %s", path, parser_error_tostring(parser));
+				set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
 				goto cleanup;
 			}
 		}
@@ -381,14 +395,16 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
-		warnx("%s: %s", path, parser_error_tostring(parser));
+		set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
 		goto cleanup;
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_VARIABLES) {
 		error = parser_edit(parser, "output.unknown-variables", &retval->unknown_variables);
 		if (error != PARSER_ERROR_OK) {
-			warnx("%s: %s", path, parser_error_tostring(parser));
+			char *msg;
+			xasprintf(&msg, "output.unknown-variables: %s", parser_error_tostring(parser));
+			set_add(retval->errors, msg);
 			goto cleanup;
 		}
 	}
@@ -396,7 +412,9 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 	if (retval->flags & SCAN_UNKNOWN_TARGETS) {
 		error = parser_edit(parser, "output.unknown-targets", &retval->unknown_targets);
 		if (error != PARSER_ERROR_OK) {
-			warnx("%s: %s", path, parser_error_tostring(parser));
+			char *msg;
+			xasprintf(&msg, "output.unknown-targets: %s", parser_error_tostring(parser));
+			set_add(retval->errors, msg);
 			goto cleanup;
 		}
 	}
@@ -404,7 +422,9 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 	if (retval->flags & SCAN_CLONES) {
 		error = parser_edit(parser, "lint.clones", &retval->clones);
 		if (error != PARSER_ERROR_OK) {
-			warnx("%s: %s", path, parser_error_tostring(parser));
+			char *msg;
+			xasprintf(&msg, "lint.clones: %s", parser_error_tostring(parser));
+			set_add(retval->errors, msg);
 			goto cleanup;
 		}
 	}
@@ -458,6 +478,8 @@ lookup_origins_worker(void *userdata)
 {
 	struct CategoryReaderData *data = userdata;
 	struct CategoryReaderResult *result = xmalloc(sizeof(struct CategoryReaderResult));
+	result->error_origins = array_new();
+	result->error_msgs = array_new();
 	result->nonexistent = array_new();
 	result->unhooked = array_new();
 	result->unsorted = array_new();
@@ -467,7 +489,7 @@ lookup_origins_worker(void *userdata)
 		char *category = array_get(data->categories, i);
 		char *path;
 		xasprintf(&path, "%s/Makefile", category);
-		lookup_subdirs(data->portsdir, category, path, data->flags, result->origins, result->nonexistent, result->unhooked, result->unsorted);
+		lookup_subdirs(data->portsdir, category, path, data->flags, result->origins, result->nonexistent, result->unhooked, result->unsorted, result->error_origins, result->error_msgs);
 		free(path);
 	}
 
@@ -482,7 +504,9 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 	struct Array *retval = array_new();
 
 	struct Array *categories = array_new();
-	lookup_subdirs(portsdir, "", "Makefile", SCAN_NOTHING, categories, NULL, NULL, NULL);
+	struct Array *error_origins = array_new();
+	struct Array *error_msgs = array_new();
+	lookup_subdirs(portsdir, "", "Makefile", SCAN_NOTHING, categories, NULL, NULL, NULL, error_origins, error_msgs);
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
 		err(1, "sysconf");
@@ -519,6 +543,12 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 		}
 
 		struct CategoryReaderResult *result = data;
+		for (size_t j = 0; j < array_len(result->error_origins); j++) {
+			char *origin = array_get(result->error_origins, j);
+			char *msg = array_get(result->error_msgs, j);
+			array_append(error_origins, origin);
+			array_append(error_msgs, msg);
+		}
 		for (size_t j = 0; j < array_len(result->nonexistent); j++) {
 			char *origin = array_get(result->nonexistent, j);
 			array_append(nonexistent, origin);
@@ -535,12 +565,24 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 			char *origin = array_get(result->origins, j);
 			array_append(retval, origin);
 		}
+		array_free(result->error_origins);
+		array_free(result->error_msgs);
 		array_free(result->nonexistent);
 		array_free(result->unhooked);
 		array_free(result->unsorted);
 		array_free(result->origins);
 		free(result);
 	}
+
+	for (size_t i = 0; i < array_len(error_origins); i++) {
+		char *origin = array_get(error_origins, i);
+		char *msg = array_get(error_msgs, i);
+		portscan_log_add_entry(log, PORTSCAN_LOG_ENTRY_ERROR, origin, msg);
+		free(origin);
+		free(msg);
+	}
+	array_free(error_origins);
+	array_free(error_msgs);
 
 	array_sort(nonexistent, str_compare, NULL);
 	for (size_t j = 0; j < array_len(nonexistent); j++) {
@@ -624,6 +666,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Por
 		struct Array *result = data;
 		for (size_t j = 0; j < array_len(result); j++) {
 			struct ScanResult *r = array_get(result, j);
+			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_ERROR, r->origin, r->errors);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_VAR, r->origin, r->unknown_variables);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_TARGET, r->origin, r->unknown_targets);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);

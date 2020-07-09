@@ -147,6 +147,9 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 	case PORTSCAN_LOG_ENTRY_CATEGORY_UNSORTED:
 		xasprintf(&buf, "%-7c %-40s %s\n", 'C', entry->origin, entry->value);
 		break;
+	case PORTSCAN_LOG_ENTRY_ERROR:
+		xasprintf(&buf, "%-7c %-40s %s\n", 'E', entry->origin, entry->value);
+		break;
 	default:
 		abort();
 	}
@@ -204,6 +207,9 @@ log_entry_parse(const char *s)
 		s += 2;
 	} else if (str_startswith(s, "C ")) {
 		type = PORTSCAN_LOG_ENTRY_CATEGORY_UNSORTED;
+		s++;
+	} else if (str_startswith(s, "E ")) {
+		type = PORTSCAN_LOG_ENTRY_ERROR;
 		s++;
 	} else {
 		fprintf(stderr, "unable to parse log entry: %s\n", s);
