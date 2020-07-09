@@ -103,14 +103,6 @@ struct PortReaderData {
 	enum ScanFlags flags;
 };
 
-// Ignore these ports when processing .include
-static const char *ports_include_blacklist_[] = {
-	"devel/llvm",
-	"editors/vscode",
-	"ports-mgmt/wanted-ports",
-	"lang/gnatdroid-armv7",
-};
-
 static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *);
 static void scan_port(int, const char *, struct ScanResult *);
 static void *lookup_origins_worker(void *);
@@ -368,30 +360,21 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 		goto cleanup;
 	}
 
-	int ignore_port = 0;
-	for (size_t i = 0; i < nitems(ports_include_blacklist_); i++) {
-		if (strcmp(retval->origin, ports_include_blacklist_[i]) == 0) {
-			ignore_port = 1;
-			break;
-		}
+	struct Array *includes = NULL;
+	error = parser_edit_with_fn(parser, extract_includes, &includes);
+	if (error != PARSER_ERROR_OK) {
+		set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
+		goto cleanup;
 	}
-	if (!ignore_port) {
-		struct Array *includes = NULL;
-		error = parser_edit_with_fn(parser, extract_includes, &includes);
+	for (size_t i = 0; i < array_len(includes); i++) {
+		error = process_include(parser, retval->errors, retval->origin, portsdir, array_get(includes, i));
 		if (error != PARSER_ERROR_OK) {
+			array_free(includes);
 			set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
 			goto cleanup;
 		}
-		for (size_t i = 0; i < array_len(includes); i++) {
-			error = process_include(parser, retval->errors, retval->origin, portsdir, array_get(includes, i));
-			if (error != PARSER_ERROR_OK) {
-				array_free(includes);
-				set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
-				goto cleanup;
-			}
-		}
-		array_free(includes);
 	}
+	array_free(includes);
 
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
