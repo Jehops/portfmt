@@ -699,6 +699,8 @@ main(int argc, char *argv[])
 				flags |= SCAN_UNKNOWN_TARGETS;
 			} else if (strcasecmp(optarg, "unknown-variables") == 0) {
 				flags |= SCAN_UNKNOWN_VARIABLES;
+			} else {
+				usage();
 			}
 			break;
 		case 'p':
