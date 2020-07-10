@@ -39,6 +39,14 @@ struct ParserPluginEdit {
 	enum ParserMergeBehavior merge_behavior;
 };
 
+struct ParserPluginOutput {
+	int (*filter)(struct Parser *, const char *, const char *, void *);
+	void *userdata;
+	int return_values;
+	struct Array *keys;
+	struct Array *values;
+};
+
 void parser_plugin_load_all(void);
 struct ParserPluginInfo *parser_plugin_info(const char *);
 void parser_plugin_register(struct ParserPluginInfo *);

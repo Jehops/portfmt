@@ -57,7 +57,7 @@ portscan: ${LIBNAME}.${LIBSUFFIX} portscan.o
 portclippy.o: portclippy.c config.h mainutils.h parser.h parser/plugin.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portedit.o: portedit.c config.h array.h mainutils.h parser.h parser/plugin.h set.h util.h
+portedit.o: portedit.c config.h array.h mainutils.h parser.h parser/plugin.h regexp.h set.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 portfmt.o: portfmt.c config.h mainutils.h parser.h parser/plugin.h
@@ -82,7 +82,7 @@ parser/plugin.lint.clones.o: config.h array.h conditional.h parser.h parser/plug
 parser/plugin.lint.order.o: config.h array.h conditional.h diff.h parser.h parser/plugin.h rules.h target.h token.h util.h variable.h
 parser/plugin.output.unknown-targets.o: config.h array.h parser.h parser/plugin.h rules.h set.h target.h token.h util.h
 parser/plugin.output.unknown-variables.o: config.h array.h parser.h parser/plugin.h rules.h set.h token.h util.h variable.h
-parser/plugin.output.variable-value.o: config.h array.h parser.h parser/plugin.h regexp.h token.h variable.h
+parser/plugin.output.variable-value.o: config.h array.h parser.h parser/plugin.h token.h util.h variable.h
 parser/plugin.refactor.collapse-adjacent-variables.o: config.h array.h parser.h parser/plugin.h set.h token.h util.h variable.h
 parser/plugin.refactor.dedup-tokens.o: config.h array.h parser.h parser/plugin.h set.h token.h util.h variable.h
 parser/plugin.refactor.sanitize-append-modifier.o: config.h array.h parser.h parser/plugin.h rules.h set.h token.h variable.h

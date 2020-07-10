@@ -64,6 +64,7 @@ struct PortscanLog {
 
 struct PortscanLogEntry {
 	enum PortscanLogEntryType type;
+	size_t index;
 	char *origin;
 	char *value;
 };
@@ -150,6 +151,9 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 	case PORTSCAN_LOG_ENTRY_ERROR:
 		xasprintf(&buf, "%-7c %-40s %s\n", 'E', entry->origin, entry->value);
 		break;
+	case PORTSCAN_LOG_ENTRY_VARIABLE_VALUE:
+		xasprintf(&buf, "%-7s %-40s %s\n", "Vv", entry->origin, entry->value);
+		break;
 	default:
 		abort();
 	}
@@ -175,6 +179,7 @@ portscan_log_add_entry(struct PortscanLog *log, enum PortscanLogEntryType type, 
 {
 	struct PortscanLogEntry *entry = xmalloc(sizeof(struct PortscanLogEntry));
 	entry->type = type;
+	entry->index = array_len(log->entries);
 	entry->origin = xstrdup(origin);
 	entry->value = xstrdup(value);
 	array_append(log->entries, entry);
@@ -262,7 +267,19 @@ log_entry_compare(const void *ap, const void *bp, void *userdata)
 		} else if (a->type < b->type) {
 			retval = -1;
 		} else {
-			retval = strcmp(a->value, b->value);
+			if (a->type == PORTSCAN_LOG_ENTRY_VARIABLE_VALUE) {
+				char *aeq = strstr(a->value, "=");
+				char *beq = strstr(b->value, "=");
+				if (aeq == NULL || beq == NULL ||
+				    ((aeq - a->value) == (beq - b->value) &&
+				     strncmp(a->value, b->value, aeq - a->value) == 0)) {
+					retval = (a->index > b->index) - (a->index < b->index);
+				} else {
+					retval = strcmp(a->value, b->value);
+				}
+			} else {
+				retval = strcmp(a->value, b->value);
+			}
 		}
 	}
 

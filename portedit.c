@@ -33,6 +33,7 @@
 #endif
 #include <fcntl.h>
 #include <limits.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +44,7 @@
 #include "mainutils.h"
 #include "parser.h"
 #include "parser/plugin.h"
+#include "regexp.h"
 #include "set.h"
 #include "util.h"
 
@@ -228,6 +230,13 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 	return status;
 }
 
+static int
+get_variable_filter(struct Parser *parser, const char *key, const char *value, void *userdata)
+{
+	struct Regexp *regexp = userdata;
+	return regexp_exec(regexp, key) == 0;
+}
+
 int
 get_variable(struct ParserSettings *settings, int argc, char *argv[])
 {
@@ -247,10 +256,17 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 		get_variable_usage();
 	}
 
-	int error = parser_edit(parser, "output.variable-value", var);
+	regex_t re;
+	if (regcomp(&re, var, REG_EXTENDED) != 0) {
+		errx(1, "invalid regexp");
+	}
+	struct Regexp *regexp = regexp_new(&re);
+	struct ParserPluginOutput param = { get_variable_filter, regexp, 0, NULL, NULL };
+	int error = parser_edit(parser, "output.variable-value", &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
+	regexp_free(regexp);
 
 	error = parser_output_write_to_file(parser, fp_out);
 	if (error != PARSER_ERROR_OK) {

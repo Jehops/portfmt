@@ -66,6 +66,7 @@ enum ScanFlags {
 	SCAN_OPTIONS = 1 << 2,
 	SCAN_UNKNOWN_TARGETS = 1 << 3,
 	SCAN_UNKNOWN_VARIABLES = 1 << 4,
+	SCAN_VARIABLE_VALUES = 1 << 5,
 };
 
 struct ScanResult {
@@ -76,6 +77,7 @@ struct ScanResult {
 	struct Set *clones;
 	struct Set *option_groups;
 	struct Set *options;
+	struct Array *variable_values;
 	enum ScanFlags flags;
 };
 
@@ -337,12 +339,19 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 	return NULL;
 }
 
+static int
+variable_value_filter(struct Parser *parser, const char *key, const char *value, void *userdata)
+{
+	return 1;
+}
+
 void
 scan_port(int portsdir, const char *path, struct ScanResult *retval)
 {
 	retval->errors = set_new(str_compare, NULL, free);
 	retval->option_groups = set_new(str_compare, NULL, free);
 	retval->options = set_new(str_compare, NULL, free);
+	retval->variable_values = array_new();
 
 	struct ParserSettings settings;
 	parser_init_settings(&settings);
@@ -425,6 +434,27 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 		SET_FOREACH (options, const char *, option) {
 			set_add(retval->options, xstrdup(option));
 		}
+	}
+
+	if (retval->flags & SCAN_VARIABLE_VALUES) {
+		struct ParserPluginOutput param = { variable_value_filter, NULL, 1, NULL, NULL };
+		error = parser_edit(parser, "output.variable-value", &param);
+		if (error != PARSER_ERROR_OK) {
+			char *msg;
+			xasprintf(&msg, "output.variable-values: %s", parser_error_tostring(parser));
+			set_add(retval->errors, msg);
+			goto cleanup;
+		}
+
+		for (size_t i = 0; i < array_len(param.values); i++) {
+			char *key = array_get(param.keys, i);
+			char *value = array_get(param.values, i);
+			char *buf;
+			xasprintf(&buf, "%s=%s", key, value);
+			array_append(retval->variable_values, buf);
+			free(value);
+		}
+		array_free(param.values);
 	}
 
 cleanup:
@@ -614,7 +644,8 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Por
 	if (!(flags & (SCAN_CLONES |
 		       SCAN_OPTIONS |
 		       SCAN_UNKNOWN_TARGETS |
-		       SCAN_UNKNOWN_VARIABLES))) {
+		       SCAN_UNKNOWN_VARIABLES |
+		       SCAN_VARIABLE_VALUES))) {
 		return;
 	}
 
@@ -658,6 +689,12 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Por
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION, r->origin, r->options);
+			for (size_t k = 0; k < array_len(r->variable_values); k++) {
+				char *value = array_get(r->variable_values, k);
+				portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_VARIABLE_VALUE, r->origin, value);
+				free(value);
+			}
+			free(r->variable_values);
 			free(r->origin);
 			free(r);
 		}
@@ -699,6 +736,8 @@ main(int argc, char *argv[])
 				flags |= SCAN_UNKNOWN_TARGETS;
 			} else if (strcasecmp(optarg, "unknown-variables") == 0) {
 				flags |= SCAN_UNKNOWN_VARIABLES;
+			} else if (strcasecmp(optarg, "variable-values") == 0) {
+				flags |= SCAN_VARIABLE_VALUES;
 			} else {
 				usage();
 			}

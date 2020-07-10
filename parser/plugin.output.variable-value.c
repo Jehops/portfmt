@@ -36,8 +36,8 @@
 #include "array.h"
 #include "parser.h"
 #include "parser/plugin.h"
-#include "regexp.h"
 #include "token.h"
+#include "util.h"
 #include "variable.h"
 
 static struct Array *
@@ -46,27 +46,33 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		return NULL;
 	}
-
-	regex_t re;
-	if (userdata == NULL || regcomp(&re, userdata, REG_EXTENDED) != 0) {
-		*error = PARSER_ERROR_INVALID_REGEXP;
+	if (userdata == NULL) {
+		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		return NULL;
 	}
 
-	struct Regexp *regexp = regexp_new(&re);
+	struct ParserPluginOutput *param = (struct ParserPluginOutput *)userdata;
+	if (param->return_values) {
+		param->keys = array_new();
+		param->values= array_new();
+	}
 	int found = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 
 		switch (token_type(t)) {
 		case VARIABLE_START:
-			if (regexp_exec(regexp, variable_name(token_variable(t))) == 0) {
+			if (param->filter(parser, variable_name(token_variable(t)), NULL, param->userdata)) {
 				found = 1;
 			}
 			break;
 		case VARIABLE_TOKEN:
 			if (found && token_data(t) &&
-			    regexp_exec(regexp, variable_name(token_variable(t))) == 0) {
+			    param->filter(parser, variable_name(token_variable(t)), token_data(t), param->userdata)) {
+				if (param->return_values) {
+					array_append(param->keys, xstrdup(variable_name(token_variable(t))));
+					array_append(param->values, xstrdup(token_data(t)));
+				}
 				parser_enqueue_output(parser, token_data(t));
 				parser_enqueue_output(parser, "\n");
 			}
@@ -79,8 +85,6 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 	if (!found) {
 		*error = PARSER_ERROR_NOT_FOUND;
 	}
-
-	regexp_free(regexp);
 
 	return NULL;
 }
