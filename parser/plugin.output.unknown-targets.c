@@ -66,7 +66,7 @@ output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserE
 		if (!is_special_target(name) &&
 		    !is_known_target(parser, name) &&
 		    !set_contains(targets, name) &&
-		    param->filter(parser, name, name, param->userdata)) {
+		    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
 			set_add(targets, name);

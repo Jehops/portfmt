@@ -62,13 +62,14 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 
 		switch (token_type(t)) {
 		case VARIABLE_START:
-			if (param->filter(parser, variable_name(token_variable(t)), NULL, param->userdata)) {
+			if ((param->keyfilter == NULL || param->keyfilter(parser, variable_name(token_variable(t)), param->keyuserdata))) {
 				found = 1;
 			}
 			break;
 		case VARIABLE_TOKEN:
 			if (found && token_data(t) &&
-			    param->filter(parser, variable_name(token_variable(t)), token_data(t), param->userdata)) {
+			    (param->keyfilter == NULL || param->keyfilter(parser, variable_name(token_variable(t)), param->keyuserdata)) &&
+			    (param->filter == NULL || param->filter(parser, token_data(t), param->userdata))) {
 				if (param->return_values) {
 					array_append(param->keys, xstrdup(variable_name(token_variable(t))));
 					array_append(param->values, xstrdup(token_data(t)));

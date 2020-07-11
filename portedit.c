@@ -231,7 +231,7 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 }
 
 static int
-get_variable_filter(struct Parser *parser, const char *key, const char *value, void *userdata)
+get_variable_filter(struct Parser *parser, const char *key, void *userdata)
 {
 	struct Regexp *regexp = userdata;
 	return regexp_exec(regexp, key) == 0;
@@ -261,7 +261,7 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 		errx(1, "invalid regexp");
 	}
 	struct Regexp *regexp = regexp_new(&re);
-	struct ParserPluginOutput param = { get_variable_filter, regexp, 0, 0, NULL, NULL };
+	struct ParserPluginOutput param = { get_variable_filter, regexp, NULL, NULL, 0, 0, NULL, NULL };
 	int error = parser_edit(parser, "output.variable-value", &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
@@ -449,11 +449,6 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 	return status;
 }
 
-static int
-unknown_targets_filter(struct Parser *parser, const char *key, const char *value, void *userdata) {
-	return 1;
-}
-
 int
 unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 {
@@ -469,7 +464,7 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_targets_usage();
 	}
 
-	struct ParserPluginOutput param = { unknown_targets_filter, NULL, 0, 0, NULL, NULL };
+	struct ParserPluginOutput param = { NULL, NULL, NULL, NULL, 0, 0, NULL, NULL };
 	enum ParserError error = parser_edit(parser, "output.unknown-targets", &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
@@ -492,11 +487,6 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 	return 0;
 }
 
-static int
-unknown_vars_filter(struct Parser *parser, const char *key, const char *value, void *userdata) {
-	return 1;
-}
-
 int
 unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 {
@@ -512,7 +502,7 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_vars_usage();
 	}
 
-	struct ParserPluginOutput param = { unknown_vars_filter, NULL, 0, 0, NULL, NULL };
+	struct ParserPluginOutput param = { NULL, NULL, NULL, NULL, 0, 0, NULL, NULL };
 	enum ParserError error = parser_edit(parser, "output.unknown-variables", &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));

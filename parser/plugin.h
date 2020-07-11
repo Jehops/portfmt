@@ -40,7 +40,9 @@ struct ParserPluginEdit {
 };
 
 struct ParserPluginOutput {
-	int (*filter)(struct Parser *, const char *, const char *, void *);
+	int (*keyfilter)(struct Parser *, const char *, void *);
+	void *keyuserdata;
+	int (*filter)(struct Parser *, const char *, void *);
 	void *userdata;
 	int found;
 	int return_values;

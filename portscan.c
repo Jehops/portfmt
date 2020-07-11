@@ -343,10 +343,30 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 }
 
 static int
-variable_value_filter(struct Parser *parser, const char *key, const char *value, void *userdata)
+variable_value_filter(struct Parser *parser, const char *value, void *userdata)
 {
 	struct Regexp *query = userdata;
-	if (!value || !query) {
+	if (!query) {
+		return 1;
+	}
+	return regexp_exec(query, value) == 0;
+}
+
+static int
+unknown_targets_filter(struct Parser *parser, const char *value, void *userdata)
+{
+	struct Regexp *query = userdata;
+	if (!query) {
+		return 1;
+	}
+	return regexp_exec(query, value) == 0;
+}
+
+static int
+unknown_variables_filter(struct Parser *parser, const char *value, void *userdata)
+{
+	struct Regexp *query = userdata;
+	if (!query) {
 		return 1;
 	}
 	return regexp_exec(query, value) == 0;
@@ -404,7 +424,7 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_VARIABLES) {
-		struct ParserPluginOutput param = { variable_value_filter, query, 0, 1, NULL, NULL };
+		struct ParserPluginOutput param = { unknown_variables_filter, query, NULL, NULL, 0, 1, NULL, NULL };
 		error = parser_edit(parser, "output.unknown-variables", &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -423,7 +443,7 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_TARGETS) {
-		struct ParserPluginOutput param = { variable_value_filter, query, 0, 1, NULL, NULL };
+		struct ParserPluginOutput param = { unknown_targets_filter, query, NULL, NULL, 0, 1, NULL, NULL };
 		error = parser_edit(parser, "output.unknown-targets", &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -469,7 +489,7 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	}
 
 	if (retval->flags & SCAN_VARIABLE_VALUES) {
-		struct ParserPluginOutput param = { variable_value_filter, query, 0, 1, NULL, NULL };
+		struct ParserPluginOutput param = { NULL, NULL, variable_value_filter, query, 0, 1, NULL, NULL };
 		error = parser_edit(parser, "output.variable-value", &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -548,7 +568,7 @@ lookup_origins_worker(void *userdata)
 }
 
 struct Array *
-lookup_origins(int portsdir, enum ScanFlags flags, struct Regexp *query, struct PortscanLog *log)
+lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 {
 	struct Array *retval = array_new();
 
@@ -844,7 +864,7 @@ main(int argc, char *argv[])
 	struct PortscanLog *result = portscan_log_new();
 	struct Array *origins = NULL;
 	if (argc == 0) {
-		origins = lookup_origins(portsdir, flags, query_regexp, result);
+		origins = lookup_origins(portsdir, flags, result);
 	} else {
 		origins = array_new();
 		for (int i = 0; i < argc; i++) {

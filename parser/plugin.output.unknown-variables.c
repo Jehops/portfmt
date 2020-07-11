@@ -118,7 +118,7 @@ output_unknown_variables(struct Parser *parser, struct Array *tokens, enum Parse
 		char *name = variable_name(token_variable(t));
 		if (variable_order_block(parser, name) == BLOCK_UNKNOWN &&
 		    !set_contains(vars, name) &&
-		    param->filter(parser, name, name, param->userdata)) {
+		    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
 			set_add(vars, xstrdup(name));
