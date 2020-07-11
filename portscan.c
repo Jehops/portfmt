@@ -358,6 +358,8 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	retval->errors = set_new(str_compare, NULL, free);
 	retval->option_groups = set_new(str_compare, NULL, free);
 	retval->options = set_new(str_compare, NULL, free);
+	retval->unknown_variables = set_new(str_compare, NULL, free);
+	retval->unknown_targets = set_new(str_compare, NULL, free);
 	retval->variable_values = set_new(str_compare, NULL, free);
 
 	struct ParserSettings settings;
@@ -402,23 +404,41 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_VARIABLES) {
-		error = parser_edit(parser, "output.unknown-variables", &retval->unknown_variables);
+		struct ParserPluginOutput param = { variable_value_filter, query, 0, 1, NULL, NULL };
+		error = parser_edit(parser, "output.unknown-variables", &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
 			xasprintf(&msg, "output.unknown-variables: %s", parser_error_tostring(parser));
 			set_add(retval->errors, msg);
 			goto cleanup;
 		}
+		for (size_t i = 0; i < array_len(param.keys); i++) {
+			char *key = array_get(param.keys, i);
+			char *value = array_get(param.values, i);
+			set_add(retval->unknown_variables, key);
+			free(value);
+		}
+		array_free(param.keys);
+		array_free(param.values);
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_TARGETS) {
-		error = parser_edit(parser, "output.unknown-targets", &retval->unknown_targets);
+		struct ParserPluginOutput param = { variable_value_filter, query, 0, 1, NULL, NULL };
+		error = parser_edit(parser, "output.unknown-targets", &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
 			xasprintf(&msg, "output.unknown-targets: %s", parser_error_tostring(parser));
 			set_add(retval->errors, msg);
 			goto cleanup;
 		}
+		for (size_t i = 0; i < array_len(param.keys); i++) {
+			char *key = array_get(param.keys, i);
+			char *value = array_get(param.values, i);
+			set_add(retval->unknown_targets, key);
+			free(value);
+		}
+		array_free(param.keys);
+		array_free(param.values);
 	}
 
 	if (retval->flags & SCAN_CLONES) {
@@ -444,7 +464,7 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	}
 
 	if (retval->flags & SCAN_VARIABLE_VALUES) {
-		struct ParserPluginOutput param = { variable_value_filter, query, 1, NULL, NULL };
+		struct ParserPluginOutput param = { variable_value_filter, query, 0, 1, NULL, NULL };
 		error = parser_edit(parser, "output.variable-value", &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;

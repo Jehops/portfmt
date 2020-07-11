@@ -44,7 +44,7 @@
 #include "variable.h"
 
 static void
-check_opthelper(struct Parser *parser, struct Set *vars, const char *option, int optuse)
+check_opthelper(struct Parser *parser, struct ParserPluginOutput *param, struct Set *vars, const char *option, int optuse)
 {
 	char *var;
 	if (optuse) {
@@ -83,6 +83,10 @@ check_opthelper(struct Parser *parser, struct Set *vars, const char *option, int
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
 			set_add(vars, name);
+			if (param->return_values) {
+				array_append(param->keys, xstrdup(name));
+				array_append(param->values, xstrdup(name));
+			}
 		} else {
 			free(name);
 		}
@@ -94,15 +98,16 @@ check_opthelper(struct Parser *parser, struct Set *vars, const char *option, int
 static struct Array *
 output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	struct Set **unknowns = (struct Set **)userdata;
+	struct ParserPluginOutput *param = (struct ParserPluginOutput *)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 
-	if (unknowns) {
-		*unknowns = NULL;
+	if (param->return_values) {
+		param->keys = array_new();
+		param->values = array_new();
 	}
 	struct Set *vars = set_new(str_compare, NULL, free);
 	for (size_t i = 0; i < array_len(tokens); i++) {
@@ -112,22 +117,24 @@ output_unknown_variables(struct Parser *parser, struct Array *tokens, enum Parse
 		}
 		char *name = variable_name(token_variable(t));
 		if (variable_order_block(parser, name) == BLOCK_UNKNOWN &&
-		    !set_contains(vars, name)) {
+		    !set_contains(vars, name) &&
+		    param->filter(parser, name, name, param->userdata)) {
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
 			set_add(vars, xstrdup(name));
+			param->found = 1;
+			if (param->return_values) {
+				array_append(param->keys, xstrdup(name));
+				array_append(param->values, xstrdup(name));
+			}
 		}
 	}
 	struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
 	SET_FOREACH (options, const char *, option) {
-		check_opthelper(parser, vars, option, 1);
-		check_opthelper(parser, vars, option, 0);
+		check_opthelper(parser, param, vars, option, 1);
+		check_opthelper(parser, param, vars, option, 0);
 	}
-	if (unknowns) {
-		*unknowns = vars;
-	} else {
-		set_free(vars);
-	}
+	set_free(vars);
 
 	return NULL;
 }

@@ -45,14 +45,18 @@
 static struct Array *
 output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	struct Set **unknowns = (struct Set **)userdata;
+	struct ParserPluginOutput *param = (struct ParserPluginOutput *)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 
-	struct Set *targets = set_new(str_compare, NULL, free);
+	if (param->return_values) {
+		param->keys = array_new();
+		param->values = array_new();
+	}
+	struct Set *targets = set_new(str_compare, NULL, NULL);
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 		if (token_type(t) != TARGET_START) {
@@ -61,18 +65,20 @@ output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserE
 		char *name = target_name(token_target(t));
 		if (!is_special_target(name) &&
 		    !is_known_target(parser, name) &&
-		    !set_contains(targets, name)) {
+		    !set_contains(targets, name) &&
+		    param->filter(parser, name, name, param->userdata)) {
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
-			set_add(targets, xstrdup(name));
+			set_add(targets, name);
+			param->found = 1;
+			if (param->return_values) {
+				array_append(param->keys, xstrdup(name));
+				array_append(param->values, xstrdup(name));
+			}
 		}
 	}
 
-	if (unknowns) {
-		*unknowns = targets;
-	} else {
-		set_free(targets);
-	}
+	set_free(targets);
 
 	return NULL;
 }

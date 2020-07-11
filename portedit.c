@@ -261,7 +261,7 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 		errx(1, "invalid regexp");
 	}
 	struct Regexp *regexp = regexp_new(&re);
-	struct ParserPluginOutput param = { get_variable_filter, regexp, 0, NULL, NULL };
+	struct ParserPluginOutput param = { get_variable_filter, regexp, 0, 0, NULL, NULL };
 	int error = parser_edit(parser, "output.variable-value", &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
@@ -449,6 +449,11 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 	return status;
 }
 
+static int
+unknown_targets_filter(struct Parser *parser, const char *key, const char *value, void *userdata) {
+	return 1;
+}
+
 int
 unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 {
@@ -464,8 +469,8 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_targets_usage();
 	}
 
-	struct Set *unknowns = NULL;
-	enum ParserError error = parser_edit(parser, "output.unknown-targets", &unknowns);
+	struct ParserPluginOutput param = { unknown_targets_filter, NULL, 0, 0, NULL, NULL };
+	enum ParserError error = parser_edit(parser, "output.unknown-targets", &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -481,13 +486,15 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	if (set_len(unknowns) > 0) {
-		set_free(unknowns);
+	if (param.found) {
 		return 1;
 	}
-	set_free(unknowns);
-
 	return 0;
+}
+
+static int
+unknown_vars_filter(struct Parser *parser, const char *key, const char *value, void *userdata) {
+	return 1;
 }
 
 int
@@ -505,8 +512,8 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_vars_usage();
 	}
 
-	struct Set *unknowns = NULL;
-	enum ParserError error = parser_edit(parser, "output.unknown-variables", &unknowns);
+	struct ParserPluginOutput param = { unknown_vars_filter, NULL, 0, 0, NULL, NULL };
+	enum ParserError error = parser_edit(parser, "output.unknown-variables", &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -522,12 +529,9 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	if (set_len(unknowns) > 0) {
-		set_free(unknowns);
+	if (param.found) {
 		return 1;
 	}
-	set_free(unknowns);
-
 	return 0;
 }
 
