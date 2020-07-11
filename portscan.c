@@ -105,20 +105,21 @@ struct PortReaderData {
 	struct Array *origins;
 	size_t start;
 	size_t end;
+	struct Regexp *keyquery;
 	struct Regexp *query;
 	enum ScanFlags flags;
 };
 
 static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *);
-static void scan_port(int, const char *, struct Regexp *, struct ScanResult *);
+static void scan_port(int, const char *, struct Regexp *, struct Regexp *, struct ScanResult *);
 static void *lookup_origins_worker(void *);
 static enum ParserError process_include(struct Parser *, struct Set *, const char *, int, const char *);
 static struct Array *extract_includes(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 static DIR *diropenat(int, const char *);
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
-static struct Array *lookup_origins(int, enum ScanFlags, struct Regexp *, struct PortscanLog *);
-static void scan_ports(int, struct Array *, enum ScanFlags, struct Regexp *, struct PortscanLog *);
+static struct Array *lookup_origins(int, enum ScanFlags, struct PortscanLog *);
+static void scan_ports(int, struct Array *, enum ScanFlags, struct Regexp *, struct Regexp *, struct PortscanLog *);
 static void usage(void);
 
 DIR *
@@ -346,34 +347,25 @@ static int
 variable_value_filter(struct Parser *parser, const char *value, void *userdata)
 {
 	struct Regexp *query = userdata;
-	if (!query) {
-		return 1;
-	}
-	return regexp_exec(query, value) == 0;
+	return !query || regexp_exec(query, value) == 0;
 }
 
 static int
 unknown_targets_filter(struct Parser *parser, const char *value, void *userdata)
 {
 	struct Regexp *query = userdata;
-	if (!query) {
-		return 1;
-	}
-	return regexp_exec(query, value) == 0;
+	return !query || regexp_exec(query, value) == 0;
 }
 
 static int
 unknown_variables_filter(struct Parser *parser, const char *value, void *userdata)
 {
 	struct Regexp *query = userdata;
-	if (!query) {
-		return 1;
-	}
-	return regexp_exec(query, value) == 0;
+	return !query || regexp_exec(query, value) == 0;
 }
 
 void
-scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResult *retval)
+scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp *query, struct ScanResult *retval)
 {
 	retval->errors = set_new(str_compare, NULL, free);
 	retval->option_groups = set_new(str_compare, NULL, free);
@@ -489,7 +481,7 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	}
 
 	if (retval->flags & SCAN_VARIABLE_VALUES) {
-		struct ParserPluginOutput param = { NULL, NULL, variable_value_filter, query, 0, 1, NULL, NULL };
+		struct ParserPluginOutput param = { variable_value_filter, keyquery, variable_value_filter, query, 0, 1, NULL, NULL };
 		error = parser_edit(parser, "output.variable-value", &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -534,7 +526,7 @@ scan_ports_worker(void *userdata)
 		struct ScanResult *result = xmalloc(sizeof(struct ScanResult));
 		result->origin = xstrdup(origin);
 		result->flags = data->flags;
-		scan_port(data->portsdir, path, data->query, result);
+		scan_port(data->portsdir, path, data->keyquery, data->query, result);
 		free(path);
 		array_append(retval, result);
 	}
@@ -692,7 +684,7 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 }
 
 void
-scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Regexp *query, struct PortscanLog *retval)
+scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Regexp *keyquery, struct Regexp *query, struct PortscanLog *retval)
 {
 	if (!(flags & (SCAN_CLONES |
 		       SCAN_OPTIONS |
@@ -720,6 +712,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 		data->origins = origins;
 		data->start = start;
 		data->end = end;
+		data->keyquery = keyquery;
 		data->query = query;
 		data->flags = flags;
 		if (pthread_create(&tid[i], NULL, scan_ports_worker, data) != 0) {
@@ -765,6 +758,7 @@ main(int argc, char *argv[])
 {
 	const char *portsdir_path = NULL;
 	const char *logdir_path = NULL;
+	const char *keyquery = NULL;
 	const char *query = NULL;
 	int ch;
 	enum ScanFlags flags = SCAN_NOTHING;
@@ -789,6 +783,9 @@ main(int argc, char *argv[])
 				flags |= SCAN_UNKNOWN_TARGETS;
 			} else if (strcasecmp(optarg, "unknown-variables") == 0) {
 				flags |= SCAN_UNKNOWN_VARIABLES;
+			} else if (strncasecmp(optarg, "variable-values=", strlen("variable-values=")) == 0) {
+				keyquery = optarg + strlen("variable-values=");
+				flags |= SCAN_VARIABLE_VALUES;
 			} else if (strcasecmp(optarg, "variable-values") == 0) {
 				flags |= SCAN_VARIABLE_VALUES;
 			} else {
@@ -852,6 +849,13 @@ main(int argc, char *argv[])
 	}
 #endif
 
+	struct Regexp *keyquery_regexp = NULL;
+	if (keyquery) {
+		keyquery_regexp = regexp_new_from_str(keyquery, REG_EXTENDED);
+		if (keyquery_regexp == NULL) {
+			errx(1, "invalid regexp");
+		}
+	}
 	struct Regexp *query_regexp = NULL;
 	if (query) {
 		query_regexp = regexp_new_from_str(query, REG_EXTENDED);
@@ -872,7 +876,7 @@ main(int argc, char *argv[])
 	}
 
 	int status = 0;
-	scan_ports(portsdir, origins, flags, query_regexp, result);
+	scan_ports(portsdir, origins, flags, keyquery_regexp, query_regexp, result);
 	if (portscan_log_len(result) > 0) {
 		if (logdir != NULL) {
 			struct PortscanLog *prev_result = portscan_log_read_all(logdir, PORTSCAN_LOG_LATEST);
@@ -892,6 +896,7 @@ main(int argc, char *argv[])
 	}
 
 cleanup:
+	regexp_free(keyquery_regexp);
 	regexp_free(query_regexp);
 	portscan_log_dir_close(logdir);
 	portscan_log_free(result);
