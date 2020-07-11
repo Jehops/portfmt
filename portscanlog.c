@@ -216,6 +216,9 @@ log_entry_parse(const char *s)
 	} else if (str_startswith(s, "E ")) {
 		type = PORTSCAN_LOG_ENTRY_ERROR;
 		s++;
+	} else if (str_startswith(s, "Vv ")) {
+		type = PORTSCAN_LOG_ENTRY_VARIABLE_VALUE;
+		s += 2;
 	} else {
 		fprintf(stderr, "unable to parse log entry: %s\n", s);
 		return NULL;
@@ -267,19 +270,7 @@ log_entry_compare(const void *ap, const void *bp, void *userdata)
 		} else if (a->type < b->type) {
 			retval = -1;
 		} else {
-			if (a->type == PORTSCAN_LOG_ENTRY_VARIABLE_VALUE) {
-				char *aeq = strstr(a->value, "=");
-				char *beq = strstr(b->value, "=");
-				if (aeq == NULL || beq == NULL ||
-				    ((aeq - a->value) == (beq - b->value) &&
-				     strncmp(a->value, b->value, aeq - a->value) == 0)) {
-					retval = (a->index > b->index) - (a->index < b->index);
-				} else {
-					retval = strcmp(a->value, b->value);
-				}
-			} else {
-				retval = strcmp(a->value, b->value);
-			}
+			retval = strcmp(a->value, b->value);
 		}
 	}
 

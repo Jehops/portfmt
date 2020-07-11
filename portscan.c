@@ -77,7 +77,7 @@ struct ScanResult {
 	struct Set *clones;
 	struct Set *option_groups;
 	struct Set *options;
-	struct Array *variable_values;
+	struct Set *variable_values;
 	enum ScanFlags flags;
 };
 
@@ -351,7 +351,7 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 	retval->errors = set_new(str_compare, NULL, free);
 	retval->option_groups = set_new(str_compare, NULL, free);
 	retval->options = set_new(str_compare, NULL, free);
-	retval->variable_values = array_new();
+	retval->variable_values = set_new(str_compare, NULL, free);
 
 	struct ParserSettings settings;
 	parser_init_settings(&settings);
@@ -450,8 +450,9 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 			char *key = array_get(param.keys, i);
 			char *value = array_get(param.values, i);
 			char *buf;
-			xasprintf(&buf, "%s=%s", key, value);
-			array_append(retval->variable_values, buf);
+			xasprintf(&buf, "%-30s\t%s", key, value);
+			set_add(retval->variable_values, buf);
+			free(key);
 			free(value);
 		}
 		array_free(param.values);
@@ -689,12 +690,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Por
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION, r->origin, r->options);
-			for (size_t k = 0; k < array_len(r->variable_values); k++) {
-				char *value = array_get(r->variable_values, k);
-				portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_VARIABLE_VALUE, r->origin, value);
-				free(value);
-			}
-			free(r->variable_values);
+			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_VARIABLE_VALUE, r->origin, r->variable_values);
 			free(r->origin);
 			free(r);
 		}
