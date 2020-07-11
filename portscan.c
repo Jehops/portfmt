@@ -442,6 +442,7 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	}
 
 	if (retval->flags & SCAN_CLONES) {
+		// XXX: Limit by query?
 		error = parser_edit(parser, "lint.clones", &retval->clones);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -454,12 +455,16 @@ scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResul
 	if (retval->flags & SCAN_OPTIONS) {
 		struct Set *groups = parser_metadata(parser, PARSER_METADATA_OPTION_GROUPS);
 		SET_FOREACH (groups, const char *, group) { 
-			set_add(retval->option_groups, xstrdup(group));
+			if (query == NULL || regexp_exec(query, group) == 0) {
+				set_add(retval->option_groups, xstrdup(group));
+			}
 		}
 		struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
 		retval->options = set_new(str_compare, NULL, free);
 		SET_FOREACH (options, const char *, option) {
-			set_add(retval->options, xstrdup(option));
+			if (query == NULL || regexp_exec(query, option) == 0) {
+				set_add(retval->options, xstrdup(option));
+			}
 		}
 	}
 
