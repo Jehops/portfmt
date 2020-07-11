@@ -63,7 +63,7 @@ portedit.o: portedit.c config.h array.h mainutils.h parser.h parser/plugin.h reg
 portfmt.o: portfmt.c config.h mainutils.h parser.h parser/plugin.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
-portscan.o: portscan.c config.h array.h conditional.h diff.h mainutils.h parser.h parser/plugin.h portscanlog.h set.h token.h util.h
+portscan.o: portscan.c config.h array.h conditional.h diff.h mainutils.h parser.h parser/plugin.h portscanlog.h regexp.h set.h token.h util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 array.o: config.h array.h diff.h util.h

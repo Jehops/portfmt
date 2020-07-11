@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,6 +56,7 @@
 #include "parser.h"
 #include "parser/plugin.h"
 #include "portscanlog.h"
+#include "regexp.h"
 #include "set.h"
 #include "token.h"
 #include "util.h"
@@ -103,19 +105,20 @@ struct PortReaderData {
 	struct Array *origins;
 	size_t start;
 	size_t end;
+	struct Regexp *query;
 	enum ScanFlags flags;
 };
 
 static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *);
-static void scan_port(int, const char *, struct ScanResult *);
+static void scan_port(int, const char *, struct Regexp *, struct ScanResult *);
 static void *lookup_origins_worker(void *);
 static enum ParserError process_include(struct Parser *, struct Set *, const char *, int, const char *);
 static struct Array *extract_includes(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 static DIR *diropenat(int, const char *);
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
-static struct Array *lookup_origins(int, enum ScanFlags, struct PortscanLog *);
-static void scan_ports(int, struct Array *, enum ScanFlags, struct PortscanLog *);
+static struct Array *lookup_origins(int, enum ScanFlags, struct Regexp *, struct PortscanLog *);
+static void scan_ports(int, struct Array *, enum ScanFlags, struct Regexp *, struct PortscanLog *);
 static void usage(void);
 
 DIR *
@@ -342,11 +345,15 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 static int
 variable_value_filter(struct Parser *parser, const char *key, const char *value, void *userdata)
 {
-	return 1;
+	struct Regexp *query = userdata;
+	if (!value || !query) {
+		return 1;
+	}
+	return regexp_exec(query, value) == 0;
 }
 
 void
-scan_port(int portsdir, const char *path, struct ScanResult *retval)
+scan_port(int portsdir, const char *path, struct Regexp *query, struct ScanResult *retval)
 {
 	retval->errors = set_new(str_compare, NULL, free);
 	retval->option_groups = set_new(str_compare, NULL, free);
@@ -437,7 +444,7 @@ scan_port(int portsdir, const char *path, struct ScanResult *retval)
 	}
 
 	if (retval->flags & SCAN_VARIABLE_VALUES) {
-		struct ParserPluginOutput param = { variable_value_filter, NULL, 1, NULL, NULL };
+		struct ParserPluginOutput param = { variable_value_filter, query, 1, NULL, NULL };
 		error = parser_edit(parser, "output.variable-value", &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -482,7 +489,7 @@ scan_ports_worker(void *userdata)
 		struct ScanResult *result = xmalloc(sizeof(struct ScanResult));
 		result->origin = xstrdup(origin);
 		result->flags = data->flags;
-		scan_port(data->portsdir, path, result);
+		scan_port(data->portsdir, path, data->query, result);
 		free(path);
 		array_append(retval, result);
 	}
@@ -516,7 +523,7 @@ lookup_origins_worker(void *userdata)
 }
 
 struct Array *
-lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
+lookup_origins(int portsdir, enum ScanFlags flags, struct Regexp *query, struct PortscanLog *log)
 {
 	struct Array *retval = array_new();
 
@@ -640,7 +647,7 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 }
 
 void
-scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct PortscanLog *retval)
+scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Regexp *query, struct PortscanLog *retval)
 {
 	if (!(flags & (SCAN_CLONES |
 		       SCAN_OPTIONS |
@@ -668,6 +675,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Por
 		data->origins = origins;
 		data->start = start;
 		data->end = end;
+		data->query = query;
 		data->flags = flags;
 		if (pthread_create(&tid[i], NULL, scan_ports_worker, data) != 0) {
 			err(1, "pthread_create");
@@ -703,7 +711,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Por
 void
 usage()
 {
-	fprintf(stderr, "usage: portscan [-l <logdir>] [-o <flag>] -p <portsdir> [<origin1> ...]\n");
+	fprintf(stderr, "usage: portscan [-l <logdir>] [-o <flag>] [-q <regexp>] -p <portsdir> [<origin1> ...]\n");
 	exit(EX_USAGE);
 }
 
@@ -712,12 +720,16 @@ main(int argc, char *argv[])
 {
 	const char *portsdir_path = NULL;
 	const char *logdir_path = NULL;
+	const char *query = NULL;
 	int ch;
 	enum ScanFlags flags = SCAN_NOTHING;
-	while ((ch = getopt(argc, argv, "l:o:p:")) != -1) {
+	while ((ch = getopt(argc, argv, "l:q:o:p:")) != -1) {
 		switch (ch) {
 		case 'l':
 			logdir_path = optarg;
+			break;
+		case 'q':
+			query = optarg;
 			break;
 		case 'o':
 			if (strcasecmp(optarg, "all") == 0) {
@@ -795,10 +807,19 @@ main(int argc, char *argv[])
 	}
 #endif
 
+	struct Regexp *query_regexp = NULL;
+	if (query) {
+		regex_t re;
+		if (regcomp(&re, query, REG_EXTENDED) != 0) {
+			errx(1, "invalid regexp");
+		}
+		query_regexp = regexp_new(&re);
+	}
+
 	struct PortscanLog *result = portscan_log_new();
 	struct Array *origins = NULL;
 	if (argc == 0) {
-		origins = lookup_origins(portsdir, flags, result);
+		origins = lookup_origins(portsdir, flags, query_regexp, result);
 	} else {
 		origins = array_new();
 		for (int i = 0; i < argc; i++) {
@@ -807,7 +828,7 @@ main(int argc, char *argv[])
 	}
 
 	int status = 0;
-	scan_ports(portsdir, origins, flags, result);
+	scan_ports(portsdir, origins, flags, query_regexp, result);
 	if (portscan_log_len(result) > 0) {
 		if (logdir != NULL) {
 			struct PortscanLog *prev_result = portscan_log_read_all(logdir, PORTSCAN_LOG_LATEST);
@@ -827,6 +848,7 @@ main(int argc, char *argv[])
 	}
 
 cleanup:
+	regexp_free(query_regexp);
 	portscan_log_dir_close(logdir);
 	portscan_log_free(result);
 
