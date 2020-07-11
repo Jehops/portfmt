@@ -56,20 +56,20 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 		param->keys = array_new();
 		param->values= array_new();
 	}
-	int found = 0;
 	for (size_t i = 0; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
 
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			if ((param->keyfilter == NULL || param->keyfilter(parser, variable_name(token_variable(t)), param->keyuserdata))) {
-				found = 1;
+				param->found = 1;
 			}
 			break;
 		case VARIABLE_TOKEN:
-			if (found && token_data(t) &&
+			if (param->found && token_data(t) &&
 			    (param->keyfilter == NULL || param->keyfilter(parser, variable_name(token_variable(t)), param->keyuserdata)) &&
 			    (param->filter == NULL || param->filter(parser, token_data(t), param->userdata))) {
+				param->found = 1;
 				if (param->return_values) {
 					array_append(param->keys, xstrdup(variable_name(token_variable(t))));
 					array_append(param->values, xstrdup(token_data(t)));
@@ -81,10 +81,6 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 		default:
 			break;
 		}
-	}
-
-	if (!found) {
-		*error = PARSER_ERROR_NOT_FOUND;
 	}
 
 	return NULL;

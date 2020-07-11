@@ -284,7 +284,10 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 		fclose(fp_in);
 	}
 
-	return 0;
+	if (param.found) {
+		return 0;
+	}
+	return 1;
 }
 
 int
