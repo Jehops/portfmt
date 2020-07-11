@@ -30,6 +30,7 @@
 struct Regexp;
 
 struct Regexp *regexp_new(regex_t *);
+struct Regexp *regexp_new_from_str(const char *, int);
 void regexp_free(struct Regexp *);
 size_t regexp_end(struct Regexp *, size_t);
 size_t regexp_length(struct Regexp *, size_t);

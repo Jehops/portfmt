@@ -854,11 +854,10 @@ main(int argc, char *argv[])
 
 	struct Regexp *query_regexp = NULL;
 	if (query) {
-		regex_t re;
-		if (regcomp(&re, query, REG_EXTENDED) != 0) {
+		query_regexp = regexp_new_from_str(query, REG_EXTENDED);
+		if (query_regexp == NULL) {
 			errx(1, "invalid regexp");
 		}
-		query_regexp = regexp_new(&re);
 	}
 
 	struct PortscanLog *result = portscan_log_new();

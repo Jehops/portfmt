@@ -41,15 +41,15 @@
 struct Regexp {
 	int exec;
 	regex_t *regex;
+	regex_t restorage;
 	regmatch_t *match;
 	size_t nmatch;
 	const char *buf;
 };
 
-struct Regexp *
-regexp_new(regex_t *regex)
+static void
+regexp_init(struct Regexp *regexp, regex_t *regex)
 {
-	struct Regexp *regexp = xmalloc(sizeof(struct Regexp));
 	regexp->regex = regex;
 	regexp->nmatch = 8;
 	regexp->match = reallocarray(NULL, regexp->nmatch, sizeof(regmatch_t));
@@ -57,6 +57,26 @@ regexp_new(regex_t *regex)
 		warn("reallocarray");
 		abort();
 	}
+}
+
+struct Regexp *
+regexp_new_from_str(const char *pattern, int flags)
+{
+	struct Regexp *regexp = xmalloc(sizeof(struct Regexp));
+	if (regcomp(&regexp->restorage, pattern, flags) != 0) {
+		free(regexp);
+		return NULL;
+	}
+	regexp_init(regexp, &regexp->restorage);
+	return regexp;
+}
+
+
+struct Regexp *
+regexp_new(regex_t *regex)
+{
+	struct Regexp *regexp = xmalloc(sizeof(struct Regexp));
+	regexp_init(regexp, regex);
 	return regexp;
 }
 
@@ -65,6 +85,9 @@ regexp_free(struct Regexp *regexp)
 {
 	if (regexp == NULL) {
 		return;
+	}
+	if (regexp->regex == &regexp->restorage) {
+		regfree(regexp->regex);
 	}
 	free(regexp->match);
 	free(regexp);

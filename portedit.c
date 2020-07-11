@@ -262,11 +262,10 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 		get_variable_usage();
 	}
 
-	regex_t re;
-	if (regcomp(&re, var, REG_EXTENDED) != 0) {
+	struct Regexp *regexp = regexp_new_from_str(var, REG_EXTENDED);
+	if (regexp == NULL) {
 		errx(1, "invalid regexp");
 	}
-	struct Regexp *regexp = regexp_new(&re);
 	struct ParserPluginOutput param = { get_variable_filter, regexp, NULL, NULL, 0, 0, NULL, NULL };
 	int error = parser_edit(parser, "output.variable-value", &param);
 	if (error != PARSER_ERROR_OK) {
