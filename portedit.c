@@ -122,10 +122,16 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 		apply_usage();
 	}
 
-	int error = parser_edit(parser, apply_edit, NULL);
+	void *userdata = NULL;
+	if (str_startswith(apply_edit, "output.")) {
+		userdata = xmalloc(sizeof(struct ParserPluginOutput));
+	}
+
+	int error = parser_edit(parser, apply_edit, userdata);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s: %s", apply_edit, parser_error_tostring(parser));
 	}
+	free(userdata);
 
 	int status = 0;
 	error = parser_output_write_to_file(parser, fp_out);
