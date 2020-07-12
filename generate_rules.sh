@@ -146,7 +146,7 @@ done
 echo
 
 echo "static const char *static_shebang_langs_[] = {"
-_make "Mk" USES=shebangfix -V SHEBANG_LANG | sed -e 's/^/	"/' -e 's/$/",/'
+_make "Mk" USES="lua shebangfix" -V SHEBANG_LANG | sed -e 's/^/	"/' -e 's/$/",/'
 echo "};"
 
 rm -f "${TMP}"

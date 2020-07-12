@@ -1036,6 +1036,7 @@ static const char *static_shebang_langs_[] = {
 	"bash",
 	"java",
 	"ksh",
+	"lua",
 	"perl",
 	"php",
 	"python",
