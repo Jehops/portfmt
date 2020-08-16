@@ -208,6 +208,7 @@ enum VariableOrderFlag {
 	VAR_SKIP_GOALCOL = 16,
 	VAR_SORTED = 32,
 	VAR_SUBPKG_HELPER = 64,
+	VAR_DEDUP = 128,
 };
 
 struct VariableOrderEntry {
@@ -1029,7 +1030,7 @@ static struct VariableOrderEntry special_variables_[] = {
 	{ BLOCK_UNKNOWN, "MASTER_SITES_ABBREVS", VAR_PRINT_AS_NEWLINES },
 	{ BLOCK_UNKNOWN, "MOZ_OPTIONS", VAR_PRINT_AS_NEWLINES },
 	{ BLOCK_UNKNOWN, "QA_ENV", VAR_PRINT_AS_NEWLINES },
-	{ BLOCK_UNKNOWN, "SUBDIR", VAR_PRINT_AS_NEWLINES },
+	{ BLOCK_UNKNOWN, "SUBDIR", VAR_DEDUP | VAR_PRINT_AS_NEWLINES },
 };
 
 #undef VAR_FOR_EACH_ARCH
@@ -1293,7 +1294,7 @@ print_as_newlines(struct Parser *parser, struct Variable *var)
 int
 skip_dedup(struct Parser *parser, struct Variable *var)
 {
-	return !should_sort(parser, var);
+	return !should_sort(parser, var) && !variable_has_flag(parser, variable_name(var), VAR_DEDUP);
 }
 
 int
