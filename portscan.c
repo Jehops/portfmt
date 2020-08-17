@@ -804,7 +804,7 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (flags == SCAN_NOTHING) {
-		flags = SCAN_CLONES | SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
+		flags = SCAN_CATEGORIES | SCAN_CLONES | SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
 	}
 
 	int portsdir = -1;
