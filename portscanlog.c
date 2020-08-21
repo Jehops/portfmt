@@ -322,7 +322,7 @@ portscan_log_serialize_to_file(struct PortscanLog *log, FILE *out)
 FILE *
 log_open(struct PortscanLogDir *logdir, const char *log_path)
 {
-	int outfd = openat(logdir->fd, log_path, O_CREAT | O_WRONLY, 0660);
+	int outfd = openat(logdir->fd, log_path, O_CREAT | O_WRONLY, 0644);
 	if (outfd == -1) {
 		return NULL;
 	}
