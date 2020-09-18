@@ -868,7 +868,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 		if (command &&
 		    (strcmp(command, "${SED}") == 0 ||
 		     strcmp(command, "${REINPLACE_CMD}") == 0)) {
-			if (strcmp(word, "-e") == 0) {
+			if (strcmp(word, "-e") == 0 || strcmp(word, "-i") == 0) {
 				array_append(merge, word);
 				wrap_after = 1;
 				continue;
