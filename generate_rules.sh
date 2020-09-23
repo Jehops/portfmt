@@ -38,6 +38,7 @@ printf 'static const char *known_architectures_[] = {\n'
 	echo "/mipselhf"
 	echo "/mipshf"
 	echo "/mipsn32"
+	echo "/powerpc64le"
 	echo "/powerpcspe"
 	echo "/sparc64"
 ) | awk -F/ 'NR > 1 { printf "\t\"%s\",\n", $2 }' | sort -u
