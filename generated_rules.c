@@ -21,6 +21,7 @@
 	{ block, var "mipsn32", flags }, \
 	{ block, var "powerpc", flags }, \
 	{ block, var "powerpc64", flags }, \
+	{ block, var "powerpc64le", flags }, \
 	{ block, var "powerpcspe", flags }, \
 	{ block, var "riscv64", flags }, \
 	{ block, var "riscv64sf", flags }, \

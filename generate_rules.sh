@@ -69,6 +69,7 @@ printf '#define VAR_FOR_EACH_ARCH(block, var, flags) \\\n'
 	echo "/mipselhf"
 	echo "/mipshf"
 	echo "/mipsn32"
+	echo "/powerpc64le"
 	echo "/powerpcspe"
 	echo "/sparc64"
 ) | awk -F/ 'NR > 1 { print $2 }' | sort -u | awk '{ lines[NR] = $1 }
