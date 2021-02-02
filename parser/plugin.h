@@ -52,11 +52,20 @@ struct ParserPluginOutput {
 
 void parser_plugin_load_all(void);
 struct ParserPluginInfo *parser_plugin_info(const char *);
-void parser_plugin_register(struct ParserPluginInfo *);
 
+#ifdef PORTFMT_STATIC
+#define PLUGIN(name, f) \
+	struct Array *f##_dispatch(struct Parser *, struct Array *, enum ParserError *, char **, const void *); \
+	struct Array *f##_dispatch(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata) \
+	{ \
+		return f(parser, tokens, error, error_msg, userdata); \
+	}
+#else
+void parser_plugin_register(struct ParserPluginInfo *);
 #define PLUGIN(name, f) \
 	static struct ParserPluginInfo plugin_info = { 0, name, f }; \
 	void register_plugin(void); \
 	void register_plugin() { \
 		parser_plugin_register(&plugin_info); \
 	}
+#endif

@@ -1,5 +1,7 @@
 .ccls-cache
 *.core
+*.a
+*.dylib
 *.o
 *.so
 config.h
@@ -13,3 +15,4 @@ Makefile.configure
 /portfmt
 /portscan
 TODO
+parser/plugin_registry.h

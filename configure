@@ -79,6 +79,7 @@ INSTALL_PROGRAM=
 INSTALL_LIB=
 INSTALL_MAN=
 INSTALL_DATA=
+STATIC=1
 
 #----------------------------------------------------------------------
 # Allow certain variables to be overriden on the command line.
@@ -116,6 +117,8 @@ do
 		SBINDIR="$val" ;;
 	INCLUDEDIR)
 		INCLUDEDIR="$val" ;;
+	STATIC)
+		STATIC="$val" ;;
 	*)
 		echo "$0: invalid key: $key" 1>&2
 		exit 1
@@ -315,25 +318,38 @@ runtest __progname	__PROGNAME			  || true
 
 [ -z "${LIBDIR}"     ] && LIBDIR="${PREFIX}/lib"
 
-# TODO: This should all be auto-discovered
 case $(uname -s) in
 Darwin)
 	LIBDL="-ldl"
 	LIBSUFFIX="dylib"
-	PLUGIN_LDFLAGS="-dynamiclib"
-	SHARED_LDFLAGS="-dynamiclib"
+	PLUGINSUFFIX="dylib"
+	LINK_LIBRARY='${CC} ${LDFLAGS} -dynamiclib -o ${LIBNAME}.${LIBSUFFIX} ${LDADD}'
+	LINK_PROGRAM="/bin/sh -c '\${CC} \${LDFLAGS} -o \$\$1 \$\$1.o \${LIBNAME}.\${LIBSUFFIX} \$\$2' link_program"
+	LINK_PLUGIN='${CC} ${LDFLAGS} -dynamiclib -o'
 	;;
 OpenBSD)
 	LIBSUFFIX="so"
-	PLUGIN_LDFLAGS="-shared"
-	SHARED_LDFLAGS="-shared"
+	PLUGINSUFFIX="so"
+	LINK_LIBRARY='${CC} ${LDFLAGS} -shared -o ${LIBNAME}.${LIBSUFFIX} ${LDADD}'
+	LINK_PROGRAM="/bin/sh -c '\${CC} \${LDFLAGS} -o \$\$1 \$\$1.o \${LIBNAME}.\${LIBSUFFIX} \$\$2' link_program"
+	LINK_PLUGIN='${CC} ${LDFLAGS} -shared -o'
 	;;
 *)
 	LIBDL="-ldl"
 	LIBSUFFIX="so"
-	PLUGIN_LDFLAGS="-shared"
-	SHARED_LDFLAGS='-shared -Wl,-soname=${LIBNAME}.${LIBSUFFIX}'
+	PLUGINSUFFIX="so"
+	LINK_LIBRARY='${CC} ${LDFLAGS} -shared -Wl,-soname=${LIBNAME}.${LIBSUFFIX} -o ${LIBNAME}.${LIBSUFFIX} ${LDADD}'
+	LINK_PROGRAM="/bin/sh -c '\${CC} \${LDFLAGS} -o \$\$1 \$\$1.o \${LIBNAME}.\${LIBSUFFIX} \$\$2' link_program"
+	LINK_PLUGIN='${CC} ${LDFLAGS} -shared -o'
 esac
+
+if [ "${STATIC}" = "1" ]; then
+	LIBDL=""
+	LIBSUFFIX="a"
+	PLUGINSUFFIX="o"
+	LINK_LIBRARY='${AR} rcs ${LIBNAME}.${LIBSUFFIX} ${PLUGINS}'
+	LINK_PROGRAM="/bin/sh -c '\${CC} \${LDFLAGS} -o \$\$1 \$\$1.o \${LIBNAME}.\${LIBSUFFIX} \$\$2 \${LDADD}' link_program"
+fi
 
 exec > config.h
 
@@ -1222,9 +1238,13 @@ name##_RB_MINMAX(struct name *head, int val)				\\
 __HEREDOC__
 fi
 
-echo "#define PORTFMT_PLUGIN_PATH \"${LIBDIR}/portfmt\""
-echo "#define PORTFMT_PLUGIN_PREFIX \"plugin.\""
-echo "#define PORTFMT_PLUGIN_SUFFIX \".${LIBSUFFIX}\""
+if [ "${STATIC}" = "0" ]; then
+	echo "#define PORTFMT_PLUGIN_PATH \"${LIBDIR}/portfmt\""
+	echo "#define PORTFMT_PLUGIN_PREFIX \"plugin.\""
+	echo "#define PORTFMT_PLUGIN_SUFFIX \".${PLUGINSUFFIX}\""
+else
+	CFLAGS="${CFLAGS} -DPORTFMT_STATIC"
+fi
 cat <<__HEREDOC__
 #if !defined(PORTFMT_SUBPACKAGES)
 # define PORTFMT_SUBPACKAGES 1
@@ -1262,7 +1282,6 @@ CFLAGS		= ${CFLAGS}
 CPPFLAGS	= ${CPPFLAGS}
 LDADD		= ${LDADD}
 LDFLAGS		= ${LDFLAGS}
-STATIC		= ${STATIC}
 PREFIX		= ${PREFIX}
 BINDIR		= ${BINDIR}
 SHAREDIR	= ${SHAREDIR}
@@ -1276,10 +1295,22 @@ INSTALL_PROGRAM	= ${INSTALL_PROGRAM}
 INSTALL_LIB	= ${INSTALL_LIB}
 INSTALL_MAN	= ${INSTALL_MAN}
 INSTALL_DATA	= ${INSTALL_DATA}
-PLUGIN_LDFLAGS	= ${PLUGIN_LDFLAGS}
-SHARED_LDFLAGS	= ${SHARED_LDFLAGS}
+LINK_LIBRARY	= ${LINK_LIBRARY}
+LINK_PLUGIN	= ${LINK_PLUGIN}
+LINK_PROGRAM	= ${LINK_PROGRAM}
 LIBSUFFIX	= ${LIBSUFFIX}
+PLUGINSUFFIX	= ${PLUGINSUFFIX}
+.SUFFIXES:	.${LIBSUFFIX} .${PLUGINSUFFIX}
+all: default
 __HEREDOC__
+
+if [ "${STATIC}" = "0" ]; then
+echo '.o.${PLUGINSUFFIX}:'
+echo '	${LINK_PLUGIN} $@ $<'
+echo 'install: install-programs install-lib install-man'
+else
+echo 'install: install-programs install-man'
+fi
 
 echo "Makefile.configure: written" 1>&2
 echo "Makefile.configure: written" 1>&3

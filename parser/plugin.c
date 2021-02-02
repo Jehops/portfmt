@@ -41,6 +41,35 @@
 #include "util.h"
 #include "plugin.h"
 
+#ifdef PORTFMT_STATIC
+#undef PLUGIN
+#define PLUGIN(name, f) \
+	extern struct Array *f##_dispatch(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
+#include "parser/plugin_registry.h"
+static struct ParserPluginInfo plugins[] = {
+#undef PLUGIN
+#define PLUGIN(name, f) { 0, name, f##_dispatch },
+#include "parser/plugin_registry.h"
+};
+static size_t plugins_len = nitems(plugins);
+
+void parser_plugin_load_all()
+{}
+
+struct ParserPluginInfo *
+parser_plugin_info(const char *plugin)
+{
+	for (size_t i = 0; i < plugins_len; i++) {
+		if (strcmp(plugin, plugins[i].name) == 0) {
+			return &plugins[i];
+		}
+	}
+
+	return NULL;
+}
+
+#else
+
 static struct ParserPluginInfo *plugins[256];
 static size_t plugins_len = 0;
 
@@ -118,3 +147,4 @@ parser_plugin_register(struct ParserPluginInfo *info)
 		plugins[plugins_len++] = info;
 	}
 }
+#endif
