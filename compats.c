@@ -333,7 +333,6 @@ memrchr(const void *s, int c, size_t n)
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include <stdlib.h>
 
 #define I_AM_QSORT_R
