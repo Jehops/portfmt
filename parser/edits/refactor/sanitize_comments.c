@@ -48,8 +48,7 @@ refactor_sanitize_comments(struct Parser *parser, struct Array *ptokens, enum Pa
 
 	struct Array *tokens = array_new();
 	int in_target = 0;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case TARGET_START:
 			in_target = 1;

@@ -57,9 +57,7 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 		param->keys = array_new();
 		param->values= array_new();
 	}
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
-
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			if ((param->keyfilter == NULL || param->keyfilter(parser, variable_name(token_variable(t)), param->keyuserdata))) {

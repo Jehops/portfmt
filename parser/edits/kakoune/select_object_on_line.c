@@ -82,8 +82,7 @@ kakoune_select_object_on_line(struct Parser *parser, struct Array *tokens, enum 
 
 	int found = 0;
 	struct Range *target_start_range = NULL;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		struct Range *range = NULL;
 		switch (token_type(t)) {
 		case TARGET_START:

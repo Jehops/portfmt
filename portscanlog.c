@@ -98,8 +98,7 @@ portscan_log_free(struct PortscanLog *log)
 		return;
 	}
 
-	for (size_t i = 0; i < array_len(log->entries); i++) {
-		struct PortscanLogEntry *entry = array_get(log->entries, i);
+	ARRAY_FOREACH(log->entries, struct PortscanLogEntry *, entry) {
 		free(entry->origin);
 		free(entry->value);
 		free(entry);
@@ -307,8 +306,7 @@ portscan_log_serialize_to_file(struct PortscanLog *log, FILE *out)
 {
 	portscan_log_sort(log);
 
-	for (size_t i = 0; i < array_len(log->entries); i++) {
-		const struct PortscanLogEntry *entry = array_get(log->entries, i);
+	ARRAY_FOREACH(log->entries, struct PortscanLogEntry *, entry) {
 		char *line = log_entry_tostring(entry);
 		if (write(fileno(out), line, strlen(line)) == -1) {
 			free(line);

@@ -61,8 +61,7 @@ refactor_remove_consecutive_empty_lines(struct Parser *parser, struct Array *pto
 
 	struct Array *tokens = array_new();
 	int empty = 0;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		if (token_type(t) == COMMENT) {
 			if (is_empty_line(token_data(t))) {
 				if (empty > 0) {

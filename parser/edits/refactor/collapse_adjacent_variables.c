@@ -64,8 +64,7 @@ refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptoken
 	struct Token *last_end = NULL;
 	struct Token *last_token = NULL;
 	struct Set *ignored_tokens = set_new(NULL, NULL, NULL);
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			if (last_var != NULL &&
@@ -95,8 +94,7 @@ refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptoken
 		}
 	}
 
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		if (set_contains(ignored_tokens, t)) {
 			parser_mark_for_gc(parser, t);
 		} else {

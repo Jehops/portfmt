@@ -232,8 +232,7 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 		}
 	}
 
-	for (size_t i = 0; i < array_len(tmp); i++) {
-		char *port = array_get(tmp, i);
+	ARRAY_FOREACH(tmp, char *, port) {
 		char *origin;
 		if (flags != SCAN_NOTHING) {
 			xasprintf(&origin, "%s/%s", category, port);
@@ -310,8 +309,8 @@ extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *
 
 	struct Array *includes = array_new();
 	int found = 0;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case CONDITIONAL_START:
 			if (conditional_type(token_conditional(t)) == COND_INCLUDE) {
@@ -400,8 +399,8 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 		set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
 		goto cleanup;
 	}
-	for (size_t i = 0; i < array_len(includes); i++) {
-		error = process_include(parser, retval->errors, retval->origin, portsdir, array_get(includes, i));
+	ARRAY_FOREACH(includes, char *, include) {
+		error = process_include(parser, retval->errors, retval->origin, portsdir, include);
 		if (error != PARSER_ERROR_OK) {
 			array_free(includes);
 			set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
@@ -611,20 +610,16 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 			array_append(error_origins, origin);
 			array_append(error_msgs, msg);
 		}
-		for (size_t j = 0; j < array_len(result->nonexistent); j++) {
-			char *origin = array_get(result->nonexistent, j);
+		ARRAY_FOREACH(result->nonexistent, char *, origin) {
 			array_append(nonexistent, origin);
 		}
-		for (size_t j = 0; j < array_len(result->unhooked); j++) {
-			char *origin = array_get(result->unhooked, j);
+		ARRAY_FOREACH(result->unhooked, char *, origin) {
 			array_append(unhooked, origin);
 		}
-		for (size_t j = 0; j < array_len(result->unsorted); j++) {
-			char *origin = array_get(result->unsorted, j);
+		ARRAY_FOREACH(result->unsorted, char *, origin) {
 			array_append(unsorted, origin);
 		}
-		for (size_t j = 0; j < array_len(result->origins); j++) {
-			char *origin = array_get(result->origins, j);
+		ARRAY_FOREACH(result->origins, char *, origin) {
 			array_append(retval, origin);
 		}
 		array_free(result->error_origins);
@@ -647,31 +642,28 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 	array_free(error_msgs);
 
 	array_sort(nonexistent, str_compare, NULL);
-	for (size_t j = 0; j < array_len(nonexistent); j++) {
-		char *origin = array_get(nonexistent, j);
+	ARRAY_FOREACH(nonexistent, char *, origin) {
 		portscan_log_add_entry(log, PORTSCAN_LOG_ENTRY_CATEGORY_NONEXISTENT_PORT, origin, "entry without existing directory");
 		free(origin);
 	}
 	array_free(nonexistent);
 
 	array_sort(unhooked, str_compare, NULL);
-	for (size_t j = 0; j < array_len(unhooked); j++) {
-		char *origin = array_get(unhooked, j);
+	ARRAY_FOREACH(unhooked, char *, origin) {
 		portscan_log_add_entry(log, PORTSCAN_LOG_ENTRY_CATEGORY_UNHOOKED_PORT, origin, "unhooked port");
 		free(origin);
 	}
 	array_free(unhooked);
 
 	array_sort(unsorted, str_compare, NULL);
-	for (size_t j = 0; j < array_len(unsorted); j++) {
-		char *origin = array_get(unsorted, j);
+	ARRAY_FOREACH(unsorted, char *, origin) {
 		portscan_log_add_entry(log, PORTSCAN_LOG_ENTRY_CATEGORY_UNSORTED, origin, "unsorted category or other formatting issues");
 		free(origin);
 	}
 	array_free(unsorted);
 
-	for (size_t i = 0; i < array_len(categories); i++) {
-		free(array_get(categories, i));
+	ARRAY_FOREACH(categories, char *, category) {
+		free(category);
 	}
 	array_free(categories);
 
@@ -729,8 +721,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 			err(1, "pthread_join");
 		}
 		struct Array *result = data;
-		for (size_t j = 0; j < array_len(result); j++) {
-			struct ScanResult *r = array_get(result, j);
+		ARRAY_FOREACH(result, struct ScanResult *, r) {
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_ERROR, r->origin, r->errors);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_VAR, r->origin, r->unknown_variables);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_TARGET, r->origin, r->unknown_targets);
@@ -900,8 +891,8 @@ cleanup:
 	portscan_log_dir_close(logdir);
 	portscan_log_free(result);
 
-	for (size_t i = 0; i < array_len(origins); i++) {
-		free(array_get(origins, i));
+	ARRAY_FOREACH(origins, char *, origin) {
+		free(origin);
 	}
 	array_free(origins);
 

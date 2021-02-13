@@ -310,8 +310,7 @@ range_tostring(struct Range *range)
 static int
 parser_is_category_makefile(struct Parser *parser)
 {
-	for (size_t i = 0; i < array_len(parser->tokens); i++) {
-		struct Token *t = array_get(parser->tokens, i);
+	ARRAY_FOREACH(parser->tokens, struct Token *, t) {
 		if (token_type(t) == CONDITIONAL_TOKEN &&
 		    conditional_type(token_conditional(t)) == COND_INCLUDE &&
 		    strcmp(token_data(t), "<bsd.port.subdir.mk>") == 0) {
@@ -394,13 +393,13 @@ parser_free(struct Parser *parser)
 	set_free(parser->subpackages);
 #endif
 
-	for (size_t i = 0; i < array_len(parser->result); i++) {
-		free(array_get(parser->result, i));
+	ARRAY_FOREACH(parser->result, void *, x) {
+		free(x);
 	}
 	array_free(parser->result);
 
-	for (size_t i = 0; i < array_len(parser->rawlines); i++) {
-		free(array_get(parser->rawlines, i));
+	ARRAY_FOREACH(parser->rawlines, char *, line) {
+		free(line);
 	}
 	array_free(parser->rawlines);
 
@@ -850,8 +849,7 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	struct Array *merge = array_new();
 	char *command = NULL;
 	int wrap_after = 0;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		char *word = token_data(t);
 		assert(token_type(t) == TARGET_COMMAND_TOKEN);
 		assert(word && strlen(word) != 0);
@@ -911,7 +909,6 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	size_t command_i = 0;
 	for (size_t i = 0; i < array_len(commands); i++) {
 		char *word = array_get(commands, i);
-
 		if (command == NULL) {
 			command = word;
 			command_i = i;
@@ -967,7 +964,6 @@ parser_output_print_target_command(struct Parser *parser, struct Array *tokens)
 	int wrapped = 0;
 	for (size_t i = 0; i < array_len(commands); i++) {
 		const char *word = array_get(commands, i);
-
 		if (wrapped) {
 			parser_enqueue_output(parser, startlv2);
 		}

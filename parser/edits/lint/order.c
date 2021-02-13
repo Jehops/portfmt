@@ -98,8 +98,7 @@ variable_list(struct Parser *parser, struct Array *tokens)
 	struct Array *output = array_new();
 	struct Array *vars = array_new();
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		if (is_include_bsd_port_mk(t)) {
 			break;
 		}
@@ -118,8 +117,7 @@ variable_list(struct Parser *parser, struct Array *tokens)
 	enum BlockType block = BLOCK_UNKNOWN;
 	enum BlockType last_block = BLOCK_UNKNOWN;
 	int flag = 0;
-	for (size_t i = 0; i < array_len(vars); i++) {
-		char *var = array_get(vars, i);
+	ARRAY_FOREACH(vars, char *, var) {
 		block = variable_order_block(parser, var);
 		if (block != last_block) {
 			if (flag && block != last_block) {
@@ -144,8 +142,7 @@ target_list(struct Array *tokens)
 {
 	struct Array *targets = array_new();
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		developer_only = skip_developer_only(developer_only, t);
 		if (developer_only == SKIP_DEVELOPER_END ||
 		    token_type(t) != TARGET_START) {
@@ -169,8 +166,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 
 	struct Array *vars = array_new();
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		if (is_include_bsd_port_mk(t)) {
 			break;
 		}
@@ -193,8 +189,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	enum BlockType block = BLOCK_UNKNOWN;
 	enum BlockType last_block = BLOCK_UNKNOWN;
 	int flag = 0;
-	for (size_t i = 0; i < array_len(vars); i++) {
-		char *var = array_get(vars, i);
+	ARRAY_FOREACH(vars, char *, var) {
 		if ((block = variable_order_block(parser, var)) != BLOCK_UNKNOWN) {
 			if (block != last_block) {
 				if (flag && block != last_block) {
@@ -231,8 +226,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 		array_append(target, xstrdup("# whether they are framework variables or not and whether"));
 		array_append(target, xstrdup("# they are safe to remove/rename or not."));
 	}
-	for (size_t i = 0; i < array_len(unknowns); i++) {
-		char *var = array_get(unknowns, i);
+	ARRAY_FOREACH(unknowns, char *, var) {
 		array_append(target, xstrdup(var));
 	}
 
@@ -252,8 +246,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 		array_append(origin, xstrdup(""));
 	}
 	array_append(origin, xstrdup("# Out of order targets"));
-	for (size_t i = 0; i < array_len(targets); i++) {
-		char *name = array_get(targets, i);
+	ARRAY_FOREACH(targets, char *, name) {
 		if (is_known_target(parser, name)) {
 			char *buf;
 			xasprintf(&buf, "%s:", name);
@@ -268,8 +261,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 		array_append(target, xstrdup(""));
 	}
 	array_append(target, xstrdup("# Out of order targets"));
-	for (size_t i = 0; i < array_len(targets); i++) {
-		char *name = array_get(targets, i);
+	ARRAY_FOREACH(targets, char *, name) {
 		if (is_known_target(parser, name)) {
 			char *buf;
 			xasprintf(&buf, "%s:", name);
@@ -278,8 +270,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	}
 
 	struct Array *unknowns = array_new();
-	for (size_t i = 0; i< array_len(targets); i++) {
-		char *name = array_get(targets, i);
+	ARRAY_FOREACH(targets, char *, name) {
 		if (!is_known_target(parser, name) && name[0] != '_') {
 			char *buf;
 			xasprintf(&buf, "%s:", name);
@@ -306,16 +297,15 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 			parser_enqueue_output(parser, ANSI_COLOR_RESET);
 		}
 		parser_enqueue_output(parser, "\n");
-		for (size_t i = 0; i < array_len(unknowns); i++) {
-			char *name = array_get(unknowns, i);
+		ARRAY_FOREACH(unknowns, char *, name) {
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
 		}
 	}
 
 cleanup:
-	for (size_t i = 0; i < array_len(unknowns); i++) {
-		free(array_get(unknowns, i));
+	ARRAY_FOREACH(unknowns, char *, name) {
+		free(name);
 	}
 	array_free(unknowns);
 
@@ -396,13 +386,13 @@ done:
 	free(p.lcs);
 
 cleanup:
-	for (size_t i = 0; i < array_len(origin); i++) {
-		free(array_get(origin, i));
+	ARRAY_FOREACH(origin, char *, o) {
+		free(o);
 	}
 	array_free(origin);
 
-	for (size_t i = 0; i < array_len(target); i++) {
-		free(array_get(target, i));
+	ARRAY_FOREACH(target, char *, t) {
+		free(t);
 	}
 	array_free(target);
 

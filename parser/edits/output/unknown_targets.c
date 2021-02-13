@@ -58,8 +58,7 @@ output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserE
 		param->values = array_new();
 	}
 	struct Set *targets = set_new(str_compare, NULL, NULL);
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		if (token_type(t) != TARGET_START) {
 			continue;
 		}

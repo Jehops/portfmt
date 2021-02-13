@@ -53,8 +53,7 @@ refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, 
 	/* Sanitize += before bsd.options.mk */
 	struct Set *seen = set_new(variable_compare, NULL, NULL);
 	struct Array *tokens = array_new();
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START:
 		case VARIABLE_TOKEN:
@@ -68,8 +67,7 @@ refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, 
 			} else {
 				set_add(seen, token_variable(t));
 			}
-			for (size_t j = 0; j < array_len(tokens); j++) {
-				struct Token *o = array_get(tokens, j);
+			ARRAY_FOREACH(tokens, struct Token *, o) {
 				if (strcmp(variable_name(token_variable(o)), "CXXFLAGS") != 0 &&
 				    strcmp(variable_name(token_variable(o)), "CFLAGS") != 0 &&
 				    strcmp(variable_name(token_variable(o)), "LDFLAGS") != 0 &&

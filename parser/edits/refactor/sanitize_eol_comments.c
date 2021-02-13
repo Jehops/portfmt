@@ -60,8 +60,7 @@ refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enu
 	struct Token *last_token = NULL;
 	ssize_t last_token_index = -1;
 	ssize_t placeholder_index = -1;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			last_token = NULL;
@@ -93,8 +92,7 @@ refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enu
 	}
 
 	ptokens = array_new();
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		if (t != NULL) {
 			array_append(ptokens, t);
 		}

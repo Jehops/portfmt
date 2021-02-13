@@ -62,8 +62,7 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 	struct Set *seen = set_new(str_compare, NULL, NULL);
 	struct Set *uses = set_new(str_compare, NULL, free);
 	enum DedupAction action = DEFAULT;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			set_truncate(seen);

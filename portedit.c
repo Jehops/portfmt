@@ -353,8 +353,7 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	struct Parser *subparser = parser_new(settings);
 	int error = PARSER_ERROR_OK;
 	if (array_len(expressions) > 0) {
-		for (size_t i = 0; i < array_len(expressions); i++) {
-			char *expr = array_get(expressions, i);
+		ARRAY_FOREACH(expressions, char *, expr) {
 			error = parser_read_from_buffer(subparser, expr, strlen(expr));
 			if (error != PARSER_ERROR_OK) {
 				errx(1, "%s", parser_error_tostring(subparser));

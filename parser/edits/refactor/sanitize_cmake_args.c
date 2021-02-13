@@ -59,8 +59,7 @@ refactor_sanitize_cmake_args(struct Parser *parser, struct Array *ptokens, enum 
 
 	struct Array *tokens = array_new();
 	enum State state = NONE;
-	for (size_t i = 0; i < array_len(ptokens); i++) {
-		struct Token *t = array_get(ptokens, i);
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START: {
 			char *name = variable_name(token_variable(t));

@@ -59,8 +59,7 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 		return;
 	}
 
-	for (size_t i = 0; i < array_len(optvars); i++) {
-		const char *token = array_get(optvars, i);
+	ARRAY_FOREACH(optvars, const char *, token) {
 		char *suffix = strchr(token, '+');
 		if (!suffix) {
 			suffix = strchr(token, '=');
@@ -111,8 +110,7 @@ output_unknown_variables(struct Parser *parser, struct Array *tokens, enum Parse
 		param->values = array_new();
 	}
 	struct Set *vars = set_new(str_compare, NULL, free);
-	for (size_t i = 0; i < array_len(tokens); i++) {
-		struct Token *t = array_get(tokens, i);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
