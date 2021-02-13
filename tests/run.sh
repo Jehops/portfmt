@@ -1,8 +1,6 @@
 #!/bin/sh
 set -u
 ROOT="${PWD}"
-CPPCHECK="cppcheck"
-MANDOC="mandoc"
 PORTCLIPPY="${ROOT}/portclippy"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
@@ -99,23 +97,6 @@ for t in *.sh; do
 		tests_failed=$((tests_failed + 1))
 	fi
 done
-
-cd "${ROOT}"
-if type ${CPPCHECK} >/dev/null 2>&1; then
-tests_run=$((tests_run + 1))
-srcs="$(ls *.c */*.c | grep -v tests.c)"
-if ! ${CPPCHECK} --error-exitcode=1 --library=posix --quiet --force --inconclusive ${srcs}; then
-	tests_failed=$((tests_failed + 1))
-fi
-fi
-
-cd "${ROOT}/man"
-if type ${MANDOC} >/dev/null 2>&1; then
-tests_run=$((tests_run + 1))
-if ! ${MANDOC} -Tlint -Wstyle ./*.1; then
-	tests_failed=$((tests_failed + 1))
-fi
-fi
 
 printf "fail: %s ok: %s/%s\n" "${tests_failed}" "$((tests_run - tests_failed))" "${tests_run}"
 if [ "${tests_failed}" -gt 0 ]; then

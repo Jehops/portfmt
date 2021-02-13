@@ -123,7 +123,10 @@ debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \
 		LDFLAGS="-g" portfmt
 
-test: all
-	@/bin/sh run-tests.sh
+lint: all
+	@/bin/sh tests/lint.sh
 
-.PHONY: default clean debug install install-programs install-lib install-man install-symlinks regen-rules test
+test: all
+	@/bin/sh tests/run.sh
+
+.PHONY: default clean debug install install-programs install-lib install-man install-symlinks lint regen-rules test
