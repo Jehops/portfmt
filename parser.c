@@ -54,7 +54,7 @@
 
 #include "conditional.h"
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "regexp.h"
 #include "rules.h"
 #include "target.h"
@@ -1801,16 +1801,16 @@ parser_read_finish(struct Parser *parser)
 	parser->read_finished = 1;
 
 	if (parser->settings.behavior & PARSER_SANITIZE_COMMENTS &&
-	    PARSER_ERROR_OK != parser_edit(parser, "refactor.sanitize-comments", NULL)) {
+	    PARSER_ERROR_OK != parser_edit(parser, refactor_sanitize_comments, NULL)) {
 		return parser->error;
 	}
 
 	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS) &&
-	    PARSER_ERROR_OK != parser_edit(parser, "refactor.sanitize-eol-comments", NULL)) {
+	    PARSER_ERROR_OK != parser_edit(parser, refactor_sanitize_eol_comments, NULL)) {
 		return parser->error;
 	}
 
-	if (PARSER_ERROR_OK != parser_edit(parser, "refactor.sanitize-cmake-args", NULL)) {
+	if (PARSER_ERROR_OK != parser_edit(parser, refactor_sanitize_cmake_args, NULL)) {
 		return parser->error;
 	}
 
@@ -1819,21 +1819,21 @@ parser_read_finish(struct Parser *parser)
 	// of settings.
 	if ((parser_is_category_makefile(parser) ||
 	     parser->settings.behavior & PARSER_COLLAPSE_ADJACENT_VARIABLES) &&
-	    PARSER_ERROR_OK != parser_edit(parser, "refactor.collapse-adjacent-variables", NULL)) {
+	    PARSER_ERROR_OK != parser_edit(parser, refactor_collapse_adjacent_variables, NULL)) {
 		return parser->error;
 	}
 
 	if (parser->settings.behavior & PARSER_SANITIZE_APPEND &&
-	    PARSER_ERROR_OK != parser_edit(parser, "refactor.sanitize-append-modifier", NULL)) {
+	    PARSER_ERROR_OK != parser_edit(parser, refactor_sanitize_append_modifier, NULL)) {
 		return parser->error;
 	}
 
 	if (parser->settings.behavior & PARSER_DEDUP_TOKENS &&
-	    PARSER_ERROR_OK != parser_edit(parser, "refactor.dedup-tokens", NULL)) {
+	    PARSER_ERROR_OK != parser_edit(parser, refactor_dedup_tokens, NULL)) {
 		return parser->error;
 	}
 
-	if (PARSER_ERROR_OK != parser_edit(parser, "refactor.remove-consecutive-empty-lines", NULL)) {
+	if (PARSER_ERROR_OK != parser_edit(parser, refactor_remove_consecutive_empty_lines, NULL)) {
 		return parser->error;
 	}
 
@@ -1939,20 +1939,7 @@ parser_mark_edited(struct Parser *parser, struct Token *t)
 }
 
 enum ParserError
-parser_edit(struct Parser *parser, const char *edit, const void *userdata) {
-	struct ParserPluginInfo *info = parser_plugin_info(edit);
-	if (info == NULL) {
-		parser->error = PARSER_ERROR_EDIT_FAILED;
-		free(parser->error_msg);
-		xasprintf(&parser->error_msg, "cannot find %s plugin", edit);
-		return parser->error;
-	}
-
-	return parser_edit_with_fn(parser, info->edit_func, userdata);
-}
-
-enum ParserError
-parser_edit_with_fn(struct Parser *parser, ParserEditFn f, const void *userdata)
+parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
 {
 	if (!parser->read_finished) {
 		parser_read_finish(parser);
@@ -2380,16 +2367,16 @@ parser_lookup_variable_str(struct Parser *parser, const char *name, char **retva
 enum ParserError
 parser_merge(struct Parser *parser, struct Parser *subparser, enum ParserMergeBehavior settings)
 {
-	struct ParserPluginEdit params = { subparser, NULL, settings };
-	enum ParserError error = parser_edit(parser, "edit.merge", &params);
+	struct ParserEdit params = { subparser, NULL, settings };
+	enum ParserError error = parser_edit(parser, edit_merge, &params);
 
 	if (error == PARSER_ERROR_OK &&
 	    parser->settings.behavior & PARSER_DEDUP_TOKENS) {
-		error = parser_edit(parser, "refactor.dedup-tokens", NULL);
+		error = parser_edit(parser, refactor_dedup_tokens, NULL);
 	}
 
 	if (error == PARSER_ERROR_OK) {
-		error = parser_edit(parser, "refactor.remove-consecutive-empty-lines", NULL);
+		error = parser_edit(parser, refactor_remove_consecutive_empty_lines, NULL);
 	}
 
 	return error;

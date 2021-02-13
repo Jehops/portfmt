@@ -38,15 +38,15 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "target.h"
 #include "token.h"
 
-static struct Array *
+struct Array *
 output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	struct ParserPluginOutput *param = (struct ParserPluginOutput *)userdata;
+	struct ParserEditOutput *param = (struct ParserEditOutput *)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
@@ -84,4 +84,3 @@ output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserE
 	return NULL;
 }
 
-PLUGIN("output.unknown-targets", output_unknown_targets);

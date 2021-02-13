@@ -39,7 +39,6 @@
 
 #include "mainutils.h"
 #include "parser.h"
-#include "parser/plugin.h"
 
 static void usage(void);
 
@@ -59,8 +58,6 @@ main(int argc, char *argv[])
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES |
 		PARSER_DEDUP_TOKENS | PARSER_OUTPUT_REFORMAT |
 		PARSER_ALLOW_FUZZY_MATCHING | PARSER_SANITIZE_COMMENTS;
-
-	parser_plugin_load_all();
 
 	if (!read_common_args(&argc, &argv, &settings, "DdituUw:", NULL)) {
 		usage();

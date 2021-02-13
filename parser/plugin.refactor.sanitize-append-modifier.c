@@ -37,12 +37,12 @@
 #include <libias/set.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "token.h"
 #include "variable.h"
 
-static struct Array *
+struct Array *
 refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (userdata != NULL) {
@@ -96,4 +96,3 @@ end:
 	return ptokens;
 }
 
-PLUGIN("refactor.sanitize-append-modifier", refactor_sanitize_append_modifier);

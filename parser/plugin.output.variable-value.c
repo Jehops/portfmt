@@ -37,11 +37,11 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "token.h"
 #include "variable.h"
 
-static struct Array *
+struct Array *
 output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
@@ -52,7 +52,7 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 		return NULL;
 	}
 
-	struct ParserPluginOutput *param = (struct ParserPluginOutput *)userdata;
+	struct ParserEditOutput *param = (struct ParserEditOutput *)userdata;
 	if (param->return_values) {
 		param->keys = array_new();
 		param->values= array_new();
@@ -87,4 +87,3 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 	return NULL;
 }
 
-PLUGIN("output.variable-value", output_variable_value);

@@ -39,13 +39,13 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "token.h"
 #include "variable.h"
 
 static void
-check_opthelper(struct Parser *parser, struct ParserPluginOutput *param, struct Set *vars, const char *option, int optuse)
+check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Set *vars, const char *option, int optuse)
 {
 	char *var;
 	if (optuse) {
@@ -96,10 +96,10 @@ check_opthelper(struct Parser *parser, struct ParserPluginOutput *param, struct 
 	array_free(optvars);
 }
 
-static struct Array *
+struct Array *
 output_unknown_variables(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	struct ParserPluginOutput *param = (struct ParserPluginOutput *)userdata;
+	struct ParserEditOutput *param = (struct ParserEditOutput *)userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
@@ -140,4 +140,3 @@ output_unknown_variables(struct Parser *parser, struct Array *tokens, enum Parse
 	return NULL;
 }
 
-PLUGIN("output.unknown-variables", output_unknown_variables);

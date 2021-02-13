@@ -38,7 +38,7 @@
 
 #include "conditional.h"
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "token.h"
 #include "variable.h"
 
@@ -53,7 +53,7 @@ add_clones(struct Set *clones, struct Set *seen, struct Set *seen_in_cond)
 	set_truncate(seen_in_cond);
 }
 
-static struct Array *
+struct Array *
 lint_clones(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	struct Set **clones_ret = (struct Set **)userdata;
@@ -129,4 +129,3 @@ lint_clones(struct Parser *parser, struct Array *ptokens, enum ParserError *erro
 	return NULL;
 }
 
-PLUGIN("lint.clones", lint_clones);

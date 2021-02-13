@@ -38,7 +38,7 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "token.h"
 #include "variable.h"
@@ -50,7 +50,7 @@ enum DedupAction {
 	USES,
 };
 
-static struct Array *
+struct Array *
 refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (userdata != NULL) {
@@ -134,4 +134,3 @@ refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserE
 	return tokens;
 }
 
-PLUGIN("refactor.dedup-tokens", refactor_dedup_tokens);

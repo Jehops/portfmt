@@ -37,7 +37,7 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "token.h"
 #include "variable.h"
@@ -51,7 +51,7 @@ is_empty_line(const char *s)
 	return empty;
 }
 
-static struct Array *
+struct Array *
 refactor_remove_consecutive_empty_lines(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (userdata != NULL) {
@@ -84,4 +84,3 @@ refactor_remove_consecutive_empty_lines(struct Parser *parser, struct Array *pto
 	return tokens;
 }
 
-PLUGIN("refactor.remove-consecutive-empty-lines", refactor_remove_consecutive_empty_lines);

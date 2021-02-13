@@ -57,7 +57,7 @@
 #include "conditional.h"
 #include "mainutils.h"
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "portscanlog.h"
 #include "regexp.h"
 #include "token.h"
@@ -395,7 +395,7 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 	}
 
 	struct Array *includes = NULL;
-	error = parser_edit_with_fn(parser, extract_includes, &includes);
+	error = parser_edit(parser, extract_includes, &includes);
 	if (error != PARSER_ERROR_OK) {
 		set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
 		goto cleanup;
@@ -417,8 +417,8 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_VARIABLES) {
-		struct ParserPluginOutput param = { unknown_variables_filter, query, NULL, NULL, 0, 1, NULL, NULL };
-		error = parser_edit(parser, "output.unknown-variables", &param);
+		struct ParserEditOutput param = { unknown_variables_filter, query, NULL, NULL, 0, 1, NULL, NULL };
+		error = parser_edit(parser, output_unknown_variables, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
 			xasprintf(&msg, "output.unknown-variables: %s", parser_error_tostring(parser));
@@ -436,8 +436,8 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_TARGETS) {
-		struct ParserPluginOutput param = { unknown_targets_filter, query, NULL, NULL, 0, 1, NULL, NULL };
-		error = parser_edit(parser, "output.unknown-targets", &param);
+		struct ParserEditOutput param = { unknown_targets_filter, query, NULL, NULL, 0, 1, NULL, NULL };
+		error = parser_edit(parser, output_unknown_targets, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
 			xasprintf(&msg, "output.unknown-targets: %s", parser_error_tostring(parser));
@@ -456,7 +456,7 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 
 	if (retval->flags & SCAN_CLONES) {
 		// XXX: Limit by query?
-		error = parser_edit(parser, "lint.clones", &retval->clones);
+		error = parser_edit(parser, lint_clones, &retval->clones);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
 			xasprintf(&msg, "lint.clones: %s", parser_error_tostring(parser));
@@ -482,11 +482,11 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 	}
 
 	if (retval->flags & SCAN_VARIABLE_VALUES) {
-		struct ParserPluginOutput param = { variable_value_filter, keyquery, variable_value_filter, query, 0, 1, NULL, NULL };
-		error = parser_edit(parser, "output.variable-value", &param);
+		struct ParserEditOutput param = { variable_value_filter, keyquery, variable_value_filter, query, 0, 1, NULL, NULL };
+		error = parser_edit(parser, output_variable_value, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
-			xasprintf(&msg, "output.variable-values: %s", parser_error_tostring(parser));
+			xasprintf(&msg, "output.variable-value: %s", parser_error_tostring(parser));
 			set_add(retval->errors, msg);
 			goto cleanup;
 		}
@@ -812,8 +812,6 @@ main(int argc, char *argv[])
 	if (portsdir_path == NULL) {
 		usage();
 	}
-
-	parser_plugin_load_all();
 
 #if HAVE_CAPSICUM
 	if (caph_limit_stdio() < 0) {

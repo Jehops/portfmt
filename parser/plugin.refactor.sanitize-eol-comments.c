@@ -36,12 +36,12 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "token.h"
 #include "variable.h"
 
-static struct Array *
+struct Array *
 refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (userdata != NULL) {
@@ -104,4 +104,3 @@ refactor_sanitize_eol_comments(struct Parser *parser, struct Array *ptokens, enu
 	return ptokens;
 }
 
-PLUGIN("refactor.sanitize-eol-comments", refactor_sanitize_eol_comments);

@@ -35,10 +35,10 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "token.h"
 
-static struct Array *
+struct Array *
 refactor_sanitize_comments(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (userdata != NULL) {
@@ -77,4 +77,3 @@ refactor_sanitize_comments(struct Parser *parser, struct Array *ptokens, enum Pa
 	return tokens;
 }
 
-PLUGIN("refactor.sanitize-comments", refactor_sanitize_comments);

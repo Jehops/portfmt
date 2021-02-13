@@ -316,41 +316,6 @@ runtest __progname	__PROGNAME			  || true
 # You WANT to change this.
 #----------------------------------------------------------------------
 
-[ -z "${LIBDIR}"     ] && LIBDIR="${PREFIX}/lib"
-
-case $(uname -s) in
-Darwin)
-	LIBDL="-ldl"
-	LIBSUFFIX="dylib"
-	PLUGINSUFFIX="dylib"
-	LINK_LIBRARY='${CC} ${LDFLAGS} -dynamiclib -o ${LIBNAME}.${LIBSUFFIX} ${LDADD}'
-	LINK_PROGRAM="/bin/sh -c '\${CC} \${LDFLAGS} -o \$\$1 \$\$1.o \${LIBNAME}.\${LIBSUFFIX} \$\$2' link_program"
-	LINK_PLUGIN='${CC} ${LDFLAGS} -dynamiclib -o'
-	;;
-OpenBSD)
-	LIBSUFFIX="so"
-	PLUGINSUFFIX="so"
-	LINK_LIBRARY='${CC} ${LDFLAGS} -shared -o ${LIBNAME}.${LIBSUFFIX} ${LDADD}'
-	LINK_PROGRAM="/bin/sh -c '\${CC} \${LDFLAGS} -o \$\$1 \$\$1.o \${LIBNAME}.\${LIBSUFFIX} \$\$2' link_program"
-	LINK_PLUGIN='${CC} ${LDFLAGS} -shared -o'
-	;;
-*)
-	LIBDL="-ldl"
-	LIBSUFFIX="so"
-	PLUGINSUFFIX="so"
-	LINK_LIBRARY='${CC} ${LDFLAGS} -shared -Wl,-soname=${LIBNAME}.${LIBSUFFIX} -o ${LIBNAME}.${LIBSUFFIX} ${LDADD}'
-	LINK_PROGRAM="/bin/sh -c '\${CC} \${LDFLAGS} -o \$\$1 \$\$1.o \${LIBNAME}.\${LIBSUFFIX} \$\$2' link_program"
-	LINK_PLUGIN='${CC} ${LDFLAGS} -shared -o'
-esac
-
-if [ "${STATIC}" = "1" ]; then
-	LIBDL=""
-	LIBSUFFIX="a"
-	PLUGINSUFFIX="o"
-	LINK_LIBRARY='${AR} rcs ${LIBNAME}.${LIBSUFFIX} ${PLUGINS}'
-	LINK_PROGRAM="/bin/sh -c '\${CC} \${LDFLAGS} -o \$\$1 \$\$1.o \${LIBNAME}.\${LIBSUFFIX} \$\$2 \${LDADD}' link_program"
-fi
-
 exec > config.h
 
 # Start with prologue.
@@ -1238,13 +1203,6 @@ name##_RB_MINMAX(struct name *head, int val)				\\
 __HEREDOC__
 fi
 
-if [ "${STATIC}" = "0" ]; then
-	echo "#define PORTFMT_PLUGIN_PATH \"${LIBDIR}/portfmt\""
-	echo "#define PORTFMT_PLUGIN_PREFIX \"plugin.\""
-	echo "#define PORTFMT_PLUGIN_SUFFIX \".${PLUGINSUFFIX}\""
-else
-	CFLAGS="${CFLAGS} -DPORTFMT_STATIC"
-fi
 cat <<__HEREDOC__
 #if !defined(PORTFMT_SUBPACKAGES)
 # define PORTFMT_SUBPACKAGES 1
@@ -1295,22 +1253,7 @@ INSTALL_PROGRAM	= ${INSTALL_PROGRAM}
 INSTALL_LIB	= ${INSTALL_LIB}
 INSTALL_MAN	= ${INSTALL_MAN}
 INSTALL_DATA	= ${INSTALL_DATA}
-LINK_LIBRARY	= ${LINK_LIBRARY}
-LINK_PLUGIN	= ${LINK_PLUGIN}
-LINK_PROGRAM	= ${LINK_PROGRAM}
-LIBSUFFIX	= ${LIBSUFFIX}
-PLUGINSUFFIX	= ${PLUGINSUFFIX}
-.SUFFIXES:	.${LIBSUFFIX} .${PLUGINSUFFIX}
-all: default
 __HEREDOC__
-
-if [ "${STATIC}" = "0" ]; then
-echo '.o.${PLUGINSUFFIX}:'
-echo '	${LINK_PLUGIN} $@ $<'
-echo 'install: install-programs install-lib install-man'
-else
-echo 'install: install-programs install-man'
-fi
 
 echo "Makefile.configure: written" 1>&2
 echo "Makefile.configure: written" 1>&3

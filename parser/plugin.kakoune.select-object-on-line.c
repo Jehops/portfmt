@@ -38,7 +38,7 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "token.h"
 
 static void
@@ -49,7 +49,7 @@ kak_error(struct Parser *parser, const char *errstr)
 	parser_enqueue_output(parser, buf);
 }
 
-static struct Array *
+struct Array *
 kakoune_select_object_on_line(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
@@ -115,4 +115,3 @@ kakoune_select_object_on_line(struct Parser *parser, struct Array *tokens, enum 
 	return NULL;
 }
 
-PLUGIN("kakoune.select-object-on-line", kakoune_select_object_on_line);

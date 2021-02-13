@@ -41,7 +41,7 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "token.h"
 #include "variable.h"
@@ -85,10 +85,10 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 	return revision;
 }
 
-static struct Array *
+struct Array *
 edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	const struct ParserPluginEdit *params = userdata;
+	const struct ParserEdit *params = userdata;
 	if (params == NULL ||
 	    params->subparser != NULL ||
 	    params->merge_behavior != PARSER_MERGE_DEFAULT) {
@@ -128,4 +128,3 @@ cleanup:
 	return NULL;
 }
 
-PLUGIN("edit.bump-revision", edit_bump_revision);

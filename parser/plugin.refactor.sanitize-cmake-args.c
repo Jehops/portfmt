@@ -38,7 +38,7 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "token.h"
 #include "variable.h"
@@ -49,7 +49,7 @@ enum State {
 	CMAKE_D,
 };
 
-static struct Array *
+struct Array *
 refactor_sanitize_cmake_args(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (userdata != NULL) {
@@ -111,4 +111,3 @@ refactor_sanitize_cmake_args(struct Parser *parser, struct Array *ptokens, enum 
 	return tokens;
 }
 
-PLUGIN("refactor.sanitize-cmake-args", refactor_sanitize_cmake_args);

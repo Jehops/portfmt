@@ -42,7 +42,7 @@
 
 #include "conditional.h"
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "target.h"
 #include "token.h"
@@ -409,7 +409,7 @@ cleanup:
 	return status;
 }
 
-static struct Array *
+struct Array *
 lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	int *status = (int*)userdata;
@@ -442,4 +442,3 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	return NULL;
 }
 
-PLUGIN("lint.order", lint_order)

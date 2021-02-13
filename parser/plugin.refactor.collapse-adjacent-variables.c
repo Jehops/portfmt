@@ -36,7 +36,7 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "token.h"
 #include "variable.h"
 
@@ -51,7 +51,7 @@ has_valid_modifier(struct Variable *var) {
 	}
 }
 
-static struct Array *
+struct Array *
 refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
 	if (userdata != NULL) {
@@ -108,4 +108,3 @@ refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptoken
 	return tokens;
 }
 
-PLUGIN("refactor.collapse-adjacent-variables", refactor_collapse_adjacent_variables);

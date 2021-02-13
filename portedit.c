@@ -46,7 +46,7 @@
 
 #include "mainutils.h"
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "regexp.h"
 
 static int apply(struct ParserSettings *, int, char *[]);
@@ -88,6 +88,29 @@ static struct PorteditCommand cmds[] = {
 	{ "set-version", set_version },
 };
 
+struct ParserEdits {
+	const char *name;
+	ParserEditFn fn;
+};
+static struct ParserEdits parser_edits[] = {
+	{ "edit.bump-revision", edit_bump_revision },
+	{ "edit.merge", edit_merge },
+	{ "edit.set-version", edit_set_version },
+	{ "kakoune.select-object-on-line", kakoune_select_object_on_line },
+	{ "lint.clones", lint_clones },
+	{ "lint.order", lint_order },
+	{ "output.unknown-targets", output_unknown_targets },
+	{ "output.unknown-variables", output_unknown_variables },
+	{ "output.variable-value", output_variable_value },
+	{ "refactor.collapse-adjacent-variables", refactor_collapse_adjacent_variables },
+	{ "refactor.dedup-tokens", refactor_dedup_tokens },
+	{ "refactor.remove-consecutive-empty_-ines", refactor_remove_consecutive_empty_lines },
+	{ "refactor.sanitize-append_modifier", refactor_sanitize_append_modifier },
+	{ "refactor.sanitize-cmake_args", refactor_sanitize_cmake_args },
+	{ "refactor.sanitize-comments", refactor_sanitize_comments },
+	{ "refactor.sanitize-eol-comments", refactor_sanitize_eol_comments },
+};
+
 int
 apply(struct ParserSettings *settings, int argc, char *argv[])
 {
@@ -125,10 +148,20 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 
 	void *userdata = NULL;
 	if (str_startswith(apply_edit, "output.")) {
-		userdata = xmalloc(sizeof(struct ParserPluginOutput));
+		userdata = xmalloc(sizeof(struct ParserEditOutput));
 	}
 
-	int error = parser_edit(parser, apply_edit, userdata);
+	ParserEditFn editfn = NULL;
+	for (size_t i = 0; i < nitems(parser_edits); i++) {
+		if (strcmp(parser_edits[i].name, apply_edit) == 0) {
+			editfn = parser_edits[i].fn;
+			break;
+		}
+	}
+	if (editfn == NULL) {
+		errx(1, "%s not found", apply_edit);
+	}
+	int error = parser_edit(parser, editfn, userdata);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s: %s", apply_edit, parser_error_tostring(parser));
 	}
@@ -171,8 +204,8 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 		bump_epoch_usage();
 	}
 
-	struct ParserPluginEdit params = { NULL, "PORTEPOCH", PARSER_MERGE_DEFAULT };
-	int error = parser_edit(parser, "edit.bump-revision", &params);
+	struct ParserEdit params = { NULL, "PORTEPOCH", PARSER_MERGE_DEFAULT };
+	int error = parser_edit(parser, edit_bump_revision, &params);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -214,8 +247,8 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 		bump_revision_usage();
 	}
 
-	struct ParserPluginEdit params = { NULL, NULL, PARSER_MERGE_DEFAULT };
-	int error = parser_edit(parser, "edit.bump-revision", &params);
+	struct ParserEdit params = { NULL, NULL, PARSER_MERGE_DEFAULT };
+	int error = parser_edit(parser, edit_bump_revision, &params);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -267,8 +300,8 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 	if (regexp == NULL) {
 		errx(1, "invalid regexp");
 	}
-	struct ParserPluginOutput param = { get_variable_filter, regexp, NULL, NULL, 0, 0, NULL, NULL };
-	int error = parser_edit(parser, "output.variable-value", &param);
+	struct ParserEditOutput param = { get_variable_filter, regexp, NULL, NULL, 0, 0, NULL, NULL };
+	int error = parser_edit(parser, output_variable_value, &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -386,7 +419,7 @@ sanitize_append(struct ParserSettings *settings, int argc, char *argv[])
 		sanitize_append_usage();
 	}
 
-	int error = parser_edit(parser, "refactor.sanitize-append-modifier", NULL);
+	int error = parser_edit(parser, refactor_sanitize_append_modifier, NULL);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -435,8 +468,8 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 		set_version_usage();
 	}
 
-	struct ParserPluginEdit params = { NULL, version, PARSER_MERGE_DEFAULT };
-	int error = parser_edit(parser, "edit.set-version", &params);
+	struct ParserEdit params = { NULL, version, PARSER_MERGE_DEFAULT };
+	int error = parser_edit(parser, edit_set_version, &params);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -473,8 +506,8 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_targets_usage();
 	}
 
-	struct ParserPluginOutput param = { NULL, NULL, NULL, NULL, 0, 0, NULL, NULL };
-	enum ParserError error = parser_edit(parser, "output.unknown-targets", &param);
+	struct ParserEditOutput param = { NULL, NULL, NULL, NULL, 0, 0, NULL, NULL };
+	enum ParserError error = parser_edit(parser, output_unknown_targets, &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -511,8 +544,8 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_vars_usage();
 	}
 
-	struct ParserPluginOutput param = { NULL, NULL, NULL, NULL, 0, 0, NULL, NULL };
-	enum ParserError error = parser_edit(parser, "output.unknown-variables", &param);
+	struct ParserEditOutput param = { NULL, NULL, NULL, NULL, 0, 0, NULL, NULL };
+	enum ParserError error = parser_edit(parser, output_unknown_variables, &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
@@ -658,8 +691,6 @@ main(int argc, char *argv[])
 	settings.behavior = PARSER_COLLAPSE_ADJACENT_VARIABLES | PARSER_DEDUP_TOKENS |
 		PARSER_OUTPUT_REFORMAT | PARSER_OUTPUT_EDITED |
 		PARSER_KEEP_EOL_COMMENTS;
-
-	parser_plugin_load_all();
 
 	for (size_t i = 0; i < nitems(cmds); i++) {
 		if (strcmp(command, cmds[i].name) == 0) {

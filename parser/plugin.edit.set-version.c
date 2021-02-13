@@ -42,7 +42,7 @@
 #include <libias/util.h>
 
 #include "parser.h"
-#include "parser/plugin.h"
+#include "parser/edits.h"
 #include "rules.h"
 #include "token.h"
 #include "variable.h"
@@ -139,10 +139,10 @@ is_git_describe_version(const char *ver, char **distversion, char **prefix, char
 	return 1;
 }
 
-static struct Array *
+struct Array *
 edit_set_version(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
 {
-	const struct ParserPluginEdit *params = userdata;
+	const struct ParserEdit *params = userdata;
 	if (params == NULL ||
 	    params->subparser != NULL ||
 	    params->arg1 == NULL ||
@@ -285,4 +285,3 @@ cleanup:
 	return NULL;
 }
 
-PLUGIN("edit.set-version", edit_set_version);
