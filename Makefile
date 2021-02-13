@@ -4,7 +4,7 @@ MKDIR?=		mkdir -p
 LN?=		ln
 
 CFLAGS+=	-std=gnu99 -I.
-LDADD+=		-lm libias/libias.a
+LDADD+=		-lm
 
 OBJS=		conditional.o \
 		mainutils.o \
@@ -40,17 +40,26 @@ all: portclippy portedit portfmt portscan
 libportfmt.a: ${OBJS}
 	${AR} rcs libportfmt.a ${OBJS}
 
-portclippy: libportfmt.a portclippy.o
-	${CC} ${LDFLAGS} -o portclippy portclippy.o libportfmt.a ${LDADD}
+libias/config.h: config.h
+	cp config.h libias
 
-portedit: libportfmt.a portedit.o
-	${CC} ${LDFLAGS} -o portedit portedit.o libportfmt.a ${LDADD}
+libias/Makefile.configure: Makefile.configure
+	cp Makefile.configure libias
 
-portfmt: libportfmt.a portfmt.o
-	${CC} ${LDFLAGS} -o portfmt portfmt.o libportfmt.a ${LDADD}
+libias/libias.a: libias/config.h libias/Makefile.configure
+	@${MAKE} -C libias libias.a
 
-portscan: libportfmt.a portscan.o
-	${CC} ${LDFLAGS} -o portscan portscan.o libportfmt.a ${LDADD} -lpthread
+portclippy: portclippy.o libias/libias.a libportfmt.a
+	${CC} ${LDFLAGS} -o portclippy portclippy.o libportfmt.a libias/libias.a ${LDADD}
+
+portedit: portedit.o libias/libias.a libportfmt.a
+	${CC} ${LDFLAGS} -o portedit portedit.o libportfmt.a libias/libias.a ${LDADD}
+
+portfmt: portfmt.o libias/libias.a libportfmt.a
+	${CC} ${LDFLAGS} -o portfmt portfmt.o libportfmt.a libias/libias.a ${LDADD}
+
+portscan: portscan.o libias/libias.a libportfmt.a
+	${CC} ${LDFLAGS} -o portscan portscan.o libportfmt.a libias/libias.a ${LDADD} -lpthread
 
 portclippy.o: portclippy.c config.h mainutils.h parser.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
@@ -63,9 +72,6 @@ portfmt.o: portfmt.c config.h mainutils.h parser.h
 
 portscan.o: portscan.c config.h libias/array.h conditional.h libias/diff.h mainutils.h parser.h portscanlog.h regexp.h libias/set.h token.h libias/util.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
-
-parser/plugin_registry.h:
-	@echo '${PLUGINS}' | tr ' ' '\n' | sed 's/.${PLUGINSUFFIX}$$/.c/' | xargs grep -h ^PLUGIN | sed 's/;$$//' > parser/plugin_registry.h
 
 array.o: config.h libias/array.h libias/diff.h libias/util.h
 conditional.o: config.h conditional.h regexp.h rules.h libias/util.h
@@ -111,8 +117,9 @@ regen-rules:
 	@/bin/sh generate_rules.sh
 
 clean:
-	@rm -f ${OBJS} ${PLUGINS} parser/*.o *.o libportfmt.a portclippy portedit \
-		portfmt portscan config.*.old
+	@${MAKE} -C libias clean
+	@rm -f ${OBJS} *.o libportfmt.a portclippy portedit portfmt portscan \
+		config.*.old
 
 debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \

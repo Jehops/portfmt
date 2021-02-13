@@ -15,7 +15,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-OCONFIGURE_VERSION="0.1.17"
+OCONFIGURE_VERSION="0.3.3"
 
 #
 # This script outputs two files: config.h and Makefile.configure.
@@ -54,13 +54,32 @@ set -e
 exec 3> config.log
 echo "config.log: writing..."
 
+# GNU submake prints different output if invoked recursively, which
+# messes up CC and CFLAGS detection.  Pass --no-print-directory if
+# we have a MAKELEVEL (GNU and FreeBSD make) and the argument is
+# allowed.
+
+MAKE_FLAGS=""
+
+if [ -n "${MAKELEVEL}" ]; then
+	if [ "${MAKELEVEL}" -gt 0 ] ; then
+		MAKE_FLAGS="--no-print-directory"
+		echo "all:" | make ${MAKE_FLAGS} -sf - 2>/dev/null || MAKE_FLAGS=""
+	fi
+fi
+
+if [ -n "$MAKE_FLAGS" ]; then 
+	echo "GNU submake detected: using --no-print-directory" 1>&2
+	echo "GNU submake detected: using --no-print-directory" 1>&3
+fi
+
 #----------------------------------------------------------------------
 # Initialize all variables here such that nothing can leak in from the
 # environment except for CC and CFLAGS, which we might have passed in.
 #----------------------------------------------------------------------
 
-CC=`printf "all:\\n\\t@echo \\\$(CC)\\n" | make -sf -`
-CFLAGS=`printf "all:\\n\\t@echo \\\$(CFLAGS)\\n" | make -sf -`
+CC=`printf "all:\\n\\t@echo \\\$(CC)\\n" | make ${MAKE_FLAGS} -sf -`
+CFLAGS=`printf "all:\\n\\t@echo \\\$(CFLAGS)\\n" | make ${MAKE_FLAGS} -sf -`
 CFLAGS="${CFLAGS} -g -W -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes"
 CFLAGS="${CFLAGS} -Wwrite-strings -Wno-unused-parameter"
 LDADD=
@@ -79,7 +98,26 @@ INSTALL_PROGRAM=
 INSTALL_LIB=
 INSTALL_MAN=
 INSTALL_DATA=
-STATIC=1
+
+# SunOS sets "cc", but this doesn't exist.
+# It does have gcc, so try that instead.
+# Prefer clang, though.
+
+which ${CC} 2>/dev/null 1>&2 || {
+	echo "${CC} not found: trying clang" 1>&2
+	echo "${CC} not found: trying clang" 1>&3
+	CC=clang
+	which ${CC} 2>/dev/null 1>&2 || {
+		echo "${CC} not found: trying gcc" 1>&2
+		echo "${CC} not found: trying gcc" 1>&3
+		CC=gcc
+		which ${CC} 2>/dev/null 1>&2 || {
+			echo "gcc not found: giving up" 1>&2
+			echo "gcc not found: giving up" 1>&3
+			exit 1
+		}
+	}
+}
 
 #----------------------------------------------------------------------
 # Allow certain variables to be overriden on the command line.
@@ -117,8 +155,6 @@ do
 		SBINDIR="$val" ;;
 	INCLUDEDIR)
 		INCLUDEDIR="$val" ;;
-	STATIC)
-		STATIC="$val" ;;
 	*)
 		echo "$0: invalid key: $key" 1>&2
 		exit 1
@@ -152,6 +188,7 @@ HAVE_STRLCAT=
 HAVE_STRLCPY=
 HAVE_STRNDUP=
 HAVE_STRNLEN=
+HAVE_STRNSTR=
 HAVE_STRTONUM=
 HAVE_SYS_TREE=
 HAVE___PROGNAME=
@@ -205,18 +242,18 @@ singletest() {
 	extralib=""
 	cat 1>&3 << __HEREDOC__
 ${1}: testing...
-${COMP} -DTEST_${2} ${3} -o test-${1} tests.c ${4}
+${COMP} -DTEST_${2} ${3} -o test-${1} libias/tests.c ${LDFLAGS} ${4}
 __HEREDOC__
-	if ${COMP} -DTEST_${2} ${3} -o "test-${1}" tests.c ${4} 1>&3 2>&3; then
+	if ${COMP} -DTEST_${2} ${3} -o "test-${1}" libias/tests.c ${LDFLAGS} ${4} 1>&3 2>&3; then
 		echo "${1}: ${CC} succeeded" 1>&3
 	else 
 		if [ -n "${5}" ] ; then
 			echo "${1}: ${CC} failed with $? (retrying)" 1>&3
 			cat 1>&3 << __HEREDOC__
 ${1}: testing...
-${COMP} -DTEST_${2} ${3} -o test-${1} tests.c ${5}
+${COMP} -DTEST_${2} ${3} -o test-${1} libias/tests.c ${LDFLAGS} ${5}
 __HEREDOC__
-			if ${COMP} -DTEST_${2} ${3} -o "test-${1}" tests.c ${5} 1>&3 2>&3; then
+			if ${COMP} -DTEST_${2} ${3} -o "test-${1}" libias/tests.c ${LDFLAGS} ${5} 1>&3 2>&3; then
 				echo "${1}: ${CC} succeeded" 1>&3
 				extralib="(with ${5})"
 			else 
@@ -231,28 +268,20 @@ __HEREDOC__
 		fi
 	fi
 
+	if [ -n "${extralib}" ] 
+	then
+		eval "LDADD_${2}=\"${5}\""
+	elif [ -n "${4}" ]
+	then
+		eval "LDADD_${2}=\"${4}\""
+	fi
+
 	echo "${1}: yes ${extralib}" 1>&2
 	echo "${1}: yes ${extralib}" 1>&3
 	echo 1>&3
 	eval HAVE_${2}=1
 	rm "test-${1}"
 	return 0
-
-	# Don't actually run the test: none of our tests check for
-	# run-time behaviour.
-	# if ./test-${1} 1>&3 2>&3; then
-	# 	echo "${1}: yes" 1>&2
-	# 	echo "${1}: yes" 1>&3
-	# 	echo 1>&3
-	# 	eval HAVE_${2}=1
-	# 	rm "test-${1}"
-	# 	return 0
-	# else
-	# 	echo "${1}: execution failed with $?" 1>&3
-	# 	echo 1>&3
-	# 	rm "test-${1}"
-	# 	return 1
-	# fi
 }
 
 # Run a complete autoconfiguration test, including the check for
@@ -304,6 +333,7 @@ runtest strlcat		STRLCAT				  || true
 runtest strlcpy		STRLCPY				  || true
 runtest strndup		STRNDUP				  || true
 runtest strnlen		STRNLEN				  || true
+runtest strnstr		STRNSTR				  || true
 runtest strtonum	STRTONUM			  || true
 runtest sys_tree	SYS_TREE			  || true
 runtest __progname	__PROGNAME			  || true
@@ -316,6 +346,8 @@ runtest __progname	__PROGNAME			  || true
 # You WANT to change this.
 #----------------------------------------------------------------------
 
+[ -z "${LIBDIR}"     ] && LIBDIR="${PREFIX}/lib"
+
 exec > config.h
 
 # Start with prologue.
@@ -323,14 +355,28 @@ exec > config.h
 cat << __HEREDOC__
 #ifndef OCONFIGURE_CONFIG_H
 #define OCONFIGURE_CONFIG_H
+
 #ifdef __cplusplus
-#error "Do not use C++: this is a C application."
+# error "Do not use C++: this is a C application."
 #endif
 #if !defined(__GNUC__) || (__GNUC__ < 4)
-#define __attribute__(x)
+# define __attribute__(x)
 #endif
 #if defined(__linux__) || defined(__MINT__)
-#define _GNU_SOURCE	/* See test-*.c what needs this. */
+# define _GNU_SOURCE /* memmem, memrchr, setresuid... */
+# define _DEFAULT_SOURCE /* le32toh, crypt, ... */
+#endif
+#if defined(__NetBSD__)
+# define _OPENBSD_SOURCE /* reallocarray, etc. */
+#endif
+#if defined(__sun)
+# ifndef _XOPEN_SOURCE /* SunOS already defines */
+#  define _XOPEN_SOURCE /* XPGx */
+# endif
+# define _XOPEN_SOURCE_EXTENDED 1 /* XPG4v2 */
+# ifndef __EXTENSIONS__ /* SunOS already defines */
+#  define __EXTENSIONS__ /* reallocarray, etc. */
+# endif
 #endif
 #if !defined(__BEGIN_DECLS)
 # define __BEGIN_DECLS
@@ -338,9 +384,10 @@ cat << __HEREDOC__
 #if !defined(__END_DECLS)
 # define __END_DECLS
 #endif
+
 __HEREDOC__
 
-# This is just for size_t.
+# This is just for size_t, mode_t, and dev_t.
 # Most of these functions, in the real world, pull in <string.h> or
 # someting that pulls in support for size_t.
 # Our function declarations are standalone, so specify them here.
@@ -352,22 +399,34 @@ if [ ${HAVE_REALLOCARRAY} -eq 0 -o \
   ${HAVE_STRNDUP} -eq 0 -o \
   ${HAVE_STRNLEN} -eq 0 ] \
   || [ ${HAVE_BSD_QSORT_R} -eq 0 -a ${HAVE_GNU_QSORT_R} -eq 0 ]; then
-	echo "#include <sys/types.h>"
+	echo "#include <sys/types.h> /* size_t, mode_t, dev_t */ "
 fi
 
-[ ${HAVE_ERR} -eq 0 ] \
-	&& echo "#include <stdarg.h>"
+if [ ${HAVE_ERR} -eq 0 ]
+then
+	echo "#include <stdarg.h> /* err(3) */"
+	echo
+fi
 
 # Now we handle our HAVE_xxxx values.
 # Most will just be defined as 0 or 1.
 
-[ ${HAVE_PATH_MAX} -eq 0 ] \
-	&& echo "#define PATH_MAX 4096"
+if [ ${HAVE_PATH_MAX} -eq 0 ]
+then
+	echo "#define PATH_MAX 4096"
+	echo
+fi
 
-[ ${HAVE_INFTIM} -eq 0 ] \
-	&& echo "#define INFTIM (-1)"
+if [ ${HAVE_INFTIM} -eq 0 ]
+then
+	echo "#define INFTIM (-1) /* poll.h */"
+	echo
+fi
 
 cat << __HEREDOC__
+/*
+ * Results of configuration feature-testing.
+ */
 #define HAVE_ARC4RANDOM ${HAVE_ARC4RANDOM}
 #define HAVE_CAPSICUM ${HAVE_CAPSICUM}
 #define HAVE_ERR ${HAVE_ERR}
@@ -389,6 +448,7 @@ cat << __HEREDOC__
 #define HAVE_STRLCPY ${HAVE_STRLCPY}
 #define HAVE_STRNDUP ${HAVE_STRNDUP}
 #define HAVE_STRNLEN ${HAVE_STRNLEN}
+#define HAVE_STRNSTR ${HAVE_STRNSTR}
 #define HAVE_STRTONUM ${HAVE_STRTONUM}
 #define HAVE_SYS_TREE ${HAVE_SYS_TREE}
 #define HAVE___PROGNAME ${HAVE___PROGNAME}
@@ -396,66 +456,147 @@ __HEREDOC__
 
 # Now we do our function declarations for missing functions.
 
-if [ ${HAVE_ERR} -eq 0 ]; then
-	echo "extern void err(int, const char *, ...);"
-	echo "extern void errx(int, const char *, ...);"
-	echo "extern void warn(const char *, ...);"
-	echo "extern void warnx(const char *, ...);"
-	echo "extern void vwarn(const char *, va_list);"
-	echo "extern void vwarnx(const char *, va_list);"
-fi
+[ ${HAVE_ERR} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility functions for err(3).
+ */
+extern void err(int, const char *, ...);
+extern void errc(int, int, const char *, ...);
+extern void errx(int, const char *, ...);
+extern void verr(int, const char *, va_list);
+extern void verrc(int, int, const char *, va_list);
+extern void verrx(int, const char *, va_list);
+extern void warn(const char *, ...);
+extern void warnx(const char *, ...);
+extern void warnc(int, const char *, ...);
+extern void vwarn(const char *, va_list);
+extern void vwarnc(int, const char *, va_list);
+extern void vwarnx(const char *, va_list);
+__HEREDOC__
 
-if [ ${HAVE_EXPLICIT_BZERO} -eq 0 ]; then
-	echo "extern void explicit_bzero(void *, size_t);"
-fi
+[ ${HAVE_EXPLICIT_BZERO} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for explicit_bzero(3).
+ */
+extern void explicit_bzero(void *, size_t);
 
-if [ ${HAVE_MEMMEM} -eq 0 ]; then
-	echo "void *memmem(const void *, size_t, const void *, size_t);"
-fi
+__HEREDOC__
 
-if [ ${HAVE_MEMRCHR} -eq 0 ]; then
-	echo "void *memrchr(const void *b, int, size_t);"
-fi
+[ ${HAVE_MEMMEM} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for memmem(3).
+ */
+void *memmem(const void *, size_t, const void *, size_t);
 
-if [ ${HAVE_GETPROGNAME} -eq 0 ]; then
-	echo "extern const char *getprogname(void);"
-fi
+__HEREDOC__
 
-if [ ${HAVE_BSD_QSORT_R} -eq 0 -a ${HAVE_GNU_QSORT_R} -eq 0 ]; then
-	echo "extern void qsort_r(void *, size_t, size_t, void *, int (*compar)(void *, const void *, const void *));"
-fi
+[ ${HAVE_MEMRCHR} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for memrchr(3).
+ */
+void *memrchr(const void *b, int, size_t);
 
-if [ ${HAVE_REALLOCARRAY} -eq 0 ]; then
-	echo "extern void *reallocarray(void *, size_t, size_t);"
-fi
+__HEREDOC__
 
-if [ ${HAVE_RECALLOCARRAY} -eq 0 ]; then
-	echo "extern void *recallocarray(void *, size_t, size_t, size_t);"
-fi
+[ ${HAVE_GETPROGNAME} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for getprogname(3).
+ */
+extern const char *getprogname(void);
 
-if [ ${HAVE_STRLCAT} -eq 0 ]; then
-	echo "extern size_t strlcat(char *, const char *, size_t);"
-fi
+__HEREDOC__
 
-if [ ${HAVE_STRLCPY} -eq 0 ]; then
-	echo "extern size_t strlcpy(char *, const char *, size_t);"
-fi
+[ ${HAVE_BSD_QSORT_R} -eq 0 -a ${HAVE_GNU_QSORT_R} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for qsort_r(3).
+ */
+extern void qsort_r(void *, size_t, size_t, void *, int (*compar)(void *, const void *, const void *));
 
-if [ ${HAVE_STRNDUP} -eq 0 ]; then
-	echo "extern char *strndup(const char *, size_t);"
-fi
+__HEREDOC__
 
-if [ ${HAVE_STRNLEN} -eq 0 ]; then
-	echo "extern size_t strnlen(const char *, size_t);"
-fi
+[ ${HAVE_REALLOCARRAY} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for reallocarray(3).
+ */
+extern void *reallocarray(void *, size_t, size_t);
 
-if [ ${HAVE_STRTONUM} -eq 0 ]; then
-	echo "extern long long strtonum(const char *, long long, long long, const char **);"
-fi
+__HEREDOC__
+
+[ ${HAVE_RECALLOCARRAY} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for recallocarray(3).
+ */
+extern void *recallocarray(void *, size_t, size_t, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRLCAT} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strlcat(3).
+ */
+extern size_t strlcat(char *, const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRLCPY} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strlcpy(3).
+ */
+extern size_t strlcpy(char *, const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRNDUP} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strndup(3).
+ */
+extern char *strndup(const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRNLEN} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strnlen(3).
+ */
+extern size_t strnlen(const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRNSTR} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strnstr(3).
+ */
+extern char *strnstr(const char *, const char *, size_t);
+
+__HEREDOC__
+
+[ ${HAVE_STRTONUM} -eq 0 ] && \
+	cat << __HEREDOC__
+/*
+ * Compatibility for strtonum(3).
+ */
+extern long long strtonum(const char *, long long, long long, const char **);
+
+__HEREDOC__
 
 if [ ${HAVE_SYS_TREE} -eq 0 ]; then
 	cat << __HEREDOC__
-/*	\$OpenBSD$	*/
+/*
+ * A compatible version of OpenBSD <sys/tree.h>.
+ */
 /*
  * Copyright 2002 Niels Provos <provos@citi.umich.edu>
  * All rights reserved.
@@ -469,7 +610,7 @@ if [ ${HAVE_SYS_TREE} -eq 0 ]; then
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -1200,10 +1341,11 @@ name##_RB_MINMAX(struct name *head, int val)				\\
 	for ((x) = RB_MAX(name, head);					\\
 	    ((x) != NULL) && ((y) = name##_RB_PREV(x), 1);		\\
 	     (x) = (y))
+
 __HEREDOC__
 fi
 
-cat <<__HEREDOC__
+cat << __HEREDOC__
 #if !defined(PORTFMT_SUBPACKAGES)
 # define PORTFMT_SUBPACKAGES 1
 #endif
