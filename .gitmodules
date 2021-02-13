@@ -1,0 +1,3 @@
+[submodule "libias"]
+	path = libias
+	url = file:///home/tobias/src/libias
