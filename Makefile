@@ -9,22 +9,22 @@ LDADD+=		-lm libias/libias.a
 OBJS=		conditional.o \
 		mainutils.o \
 		parser.o \
-		parser/plugin.edit.bump-revision.o \
-		parser/plugin.edit.merge.o \
-		parser/plugin.edit.set-version.o \
-		parser/plugin.kakoune.select-object-on-line.o \
-		parser/plugin.lint.clones.o \
-		parser/plugin.lint.order.o \
-		parser/plugin.output.unknown-targets.o \
-		parser/plugin.output.unknown-variables.o \
-		parser/plugin.output.variable-value.o \
-		parser/plugin.refactor.collapse-adjacent-variables.o \
-		parser/plugin.refactor.dedup-tokens.o \
-		parser/plugin.refactor.remove-consecutive-empty-lines.o \
-		parser/plugin.refactor.sanitize-append-modifier.o \
-		parser/plugin.refactor.sanitize-cmake-args.o \
-		parser/plugin.refactor.sanitize-comments.o \
-		parser/plugin.refactor.sanitize-eol-comments.o \
+		parser/edits/edit/bump_revision.o \
+		parser/edits/edit/merge.o \
+		parser/edits/edit/set_version.o \
+		parser/edits/kakoune/select_object_on_line.o \
+		parser/edits/lint/clones.o \
+		parser/edits/lint/order.o \
+		parser/edits/output/unknown_targets.o \
+		parser/edits/output/unknown_variables.o \
+		parser/edits/output/variable_value.o \
+		parser/edits/refactor/collapse_adjacent_variables.o \
+		parser/edits/refactor/dedup_tokens.o \
+		parser/edits/refactor/remove_consecutive_empty_lines.o \
+		parser/edits/refactor/sanitize_append_modifier.o \
+		parser/edits/refactor/sanitize_cmake_args.o \
+		parser/edits/refactor/sanitize_comments.o \
+		parser/edits/refactor/sanitize_eol_comments.o \
 		portscanlog.o \
 		regexp.o \
 		rules.o \
@@ -74,21 +74,21 @@ diffutil.o: config.h libias/array.h libias/diff.h libias/diffutil.h libias/util.
 mainutils.o: config.h libias/array.h mainutils.h parser.h libias/util.h
 map.o: config.h libias/array.h map.h libias/util.h
 parser.o: config.h libias/array.h conditional.h libias/diffutil.h parser.h parser/constants.c regexp.h rules.h libias/set.h target.h token.h libias/util.h variable.h
-parser/plugin.edit.bump-revision.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
-parser/plugin.edit.merge.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
-parser/plugin.edit-set-version.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
-parser/plugin.kakoune.select-object-on-line.o: config.h libias/array.h parser.h token.h libias/util.h
-parser/plugin.lint.clones.o: config.h libias/array.h conditional.h parser.h libias/set.h token.h libias/util.h variable.h
-parser/plugin.lint.order.o: config.h libias/array.h conditional.h libias/diff.h parser.h rules.h target.h token.h libias/util.h variable.h
-parser/plugin.output.unknown-targets.o: config.h libias/array.h parser.h rules.h libias/set.h target.h token.h libias/util.h
-parser/plugin.output.unknown-variables.o: config.h libias/array.h parser.h rules.h libias/set.h token.h libias/util.h variable.h
-parser/plugin.output.variable-value.o: config.h libias/array.h parser.h token.h libias/util.h variable.h
-parser/plugin.refactor.collapse-adjacent-variables.o: config.h libias/array.h parser.h libias/set.h token.h libias/util.h variable.h
-parser/plugin.refactor.dedup-tokens.o: config.h libias/array.h parser.h libias/set.h token.h libias/util.h variable.h
-parser/plugin.refactor.sanitize-append-modifier.o: config.h libias/array.h parser.h rules.h libias/set.h token.h variable.h
-parser/plugin.refactor.sanitize-cmake-args.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
-parser/plugin.refactor.sanitize-comments.o: config.h libias/array.h parser.h token.h libias/util.h
-parser/plugin.refactor.sanitize-eol-comments.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
+parser/edits/edit/bump_revision.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
+parser/edits/edit/merge.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
+parser/edits/edit/set_version.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
+parser/edits/kakoune/select_object_on_line.o: config.h libias/array.h parser.h token.h libias/util.h
+parser/edits/lint/clones.o: config.h libias/array.h conditional.h parser.h libias/set.h token.h libias/util.h variable.h
+parser/edits/lint/order.o: config.h libias/array.h conditional.h libias/diff.h parser.h rules.h target.h token.h libias/util.h variable.h
+parser/edits/output/unknown_targets.o: config.h libias/array.h parser.h rules.h libias/set.h target.h token.h libias/util.h
+parser/edits/output/unknown_variables.o: config.h libias/array.h parser.h rules.h libias/set.h token.h libias/util.h variable.h
+parser/edits/output/variable_value.o: config.h libias/array.h parser.h token.h libias/util.h variable.h
+parser/edits/refactor/collapse_adjacent_variables.o: config.h libias/array.h parser.h libias/set.h token.h libias/util.h variable.h
+parser/edits/refactor/dedup_tokens.o: config.h libias/array.h parser.h libias/set.h token.h libias/util.h variable.h
+parser/edits/refactor/sanitize_append_modifier.o: config.h libias/array.h parser.h rules.h libias/set.h token.h variable.h
+parser/edits/refactor/sanitize_cmake_args.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
+parser/edits/refactor/sanitize_comments.o: config.h libias/array.h parser.h token.h libias/util.h
+parser/edits/refactor/sanitize_eol_comments.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
 portscanlog.o: config.h libias/array.h libias/diff.h portscanlog.h libias/set.h libias/util.h
 regexp.o: config.h regexp.h libias/util.h
 rules.o: config.h libias/array.h conditional.h parser.h regexp.h rules.h libias/set.h token.h libias/util.h variable.h generated_rules.c
