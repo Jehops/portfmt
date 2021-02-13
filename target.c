@@ -33,7 +33,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util.h"
+#include <libias/util.h>
+
 #include "target.h"
 
 struct Target {
@@ -107,7 +108,7 @@ target_new(char *buf)
 
 	char *tmp = xmalloc(strlen(buf) + 1);
 	strncpy(tmp, buf, after_target - buf);
-	target->name = str_trim(tmp);
+	target->name = str_trimr(tmp);
 	free(tmp);
 
 	target->deps = xstrdup(after_target + 1);

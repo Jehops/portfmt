@@ -46,11 +46,12 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "array.h"
-#include "diff.h"
+#include <libias/array.h>
+#include <libias/diff.h>
+#include <libias/set.h>
+#include <libias/util.h>
+
 #include "portscanlog.h"
-#include "set.h"
-#include "util.h"
 
 struct PortscanLogDir {
 	int fd;

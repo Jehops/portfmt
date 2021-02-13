@@ -31,12 +31,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/set.h>
+#include <libias/util.h>
+
 #include "parser.h"
 #include "parser/plugin.h"
-#include "set.h"
 #include "token.h"
-#include "util.h"
 #include "variable.h"
 
 static int

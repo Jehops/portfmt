@@ -40,14 +40,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/set.h>
+#include <libias/util.h>
+
 #include "conditional.h"
 #include "regexp.h"
 #include "rules.h"
 #include "parser.h"
-#include "set.h"
 #include "token.h"
-#include "util.h"
 #include "variable.h"
 
 static int case_sensitive_sort(struct Parser *, struct Variable *);

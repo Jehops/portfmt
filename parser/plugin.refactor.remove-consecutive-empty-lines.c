@@ -33,18 +33,19 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/util.h>
+
 #include "parser.h"
 #include "parser/plugin.h"
 #include "rules.h"
 #include "token.h"
-#include "util.h"
 #include "variable.h"
 
 static int
 is_empty_line(const char *s)
 {
-	char *buf = str_strip_dup(s);
+	char *buf = str_trim(s);
 	int empty = strcmp(buf, "") == 0;
 	free(buf);
 	return empty;

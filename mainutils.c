@@ -42,10 +42,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/util.h>
+
 #include "mainutils.h"
 #include "parser.h"
-#include "util.h"
 
 int
 can_use_colors(FILE *fp)

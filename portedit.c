@@ -40,13 +40,14 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/set.h>
+#include <libias/util.h>
+
 #include "mainutils.h"
 #include "parser.h"
 #include "parser/plugin.h"
 #include "regexp.h"
-#include "set.h"
-#include "util.h"
 
 static int apply(struct ParserSettings *, int, char *[]);
 static int bump_epoch(struct ParserSettings *, int, char *[]);

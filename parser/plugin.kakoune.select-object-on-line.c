@@ -34,11 +34,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/util.h>
+
 #include "parser.h"
 #include "parser/plugin.h"
 #include "token.h"
-#include "util.h"
 
 static void
 kak_error(struct Parser *parser, const char *errstr)

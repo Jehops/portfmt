@@ -49,17 +49,18 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/diff.h>
+#include <libias/set.h>
+#include <libias/util.h>
+
 #include "conditional.h"
-#include "diff.h"
 #include "mainutils.h"
 #include "parser.h"
 #include "parser/plugin.h"
 #include "portscanlog.h"
 #include "regexp.h"
-#include "set.h"
 #include "token.h"
-#include "util.h"
 
 enum ScanFlags {
 	SCAN_NOTHING = 0,

@@ -46,18 +46,19 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/diff.h>
+#include <libias/diffutil.h>
+#include <libias/set.h>
+#include <libias/util.h>
+
 #include "conditional.h"
-#include "diff.h"
-#include "diffutil.h"
 #include "parser.h"
 #include "parser/plugin.h"
 #include "regexp.h"
 #include "rules.h"
-#include "set.h"
 #include "target.h"
 #include "token.h"
-#include "util.h"
 #include "variable.h"
 
 struct Parser {
@@ -582,8 +583,8 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			}
 		} else {
 			if (c == ' ' || c == '\t') {
-				char *tmp = str_substr_dup(line, start, i);
-				token = str_strip_dup(tmp);
+				char *tmp = str_substr(line, start, i);
+				token = str_trim(tmp);
 				free(tmp);
 				if (strcmp(token, "") != 0 && strcmp(token, "\\") != 0) {
 					parser_append_token(parser, type, token);
@@ -602,8 +603,8 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			} else if (c == '\\') {
 				escape = 1;
 			} else if (c == '#') {
-				char *tmp = str_substr_dup(line, i, strlen(line));
-				token = str_strip_dup(tmp);
+				char *tmp = str_substr(line, i, strlen(line));
+				token = str_trim(tmp);
 				free(tmp);
 				parser_append_token(parser, type, token);
 
@@ -617,8 +618,8 @@ parser_tokenize(struct Parser *parser, const char *line, enum TokenType type, si
 			}
 		}
 	}
-	char *tmp = str_substr_dup(line, start, i);
-	token = str_strip_dup(tmp);
+	char *tmp = str_substr(line, start, i);
+	token = str_trim(tmp);
 	free(tmp);
 	if (strcmp(token, "") != 0) {
 		parser_append_token(parser, type, token);
@@ -722,7 +723,7 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	char *start = variable_tostring(token_variable(o));
 	parser_enqueue_output(parser, start);
 	size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
-	char *sep = repeat('\t', ntabs);
+	char *sep = str_repeat("\t", ntabs);
 
 	const char *end = " \\\n";
 	for (size_t i = 0; i < array_len(arr); i++) {
@@ -742,7 +743,7 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 			if (i == 0) {
 				size_t ntabs = ceil(MAX(16, token_goalcol(o)) / 8.0);
 				free(sep);
-				sep = repeat('\t', ntabs);
+				sep = str_repeat("\t", ntabs);
 			}
 			break;
 		case CONDITIONAL_TOKEN:
@@ -1678,7 +1679,7 @@ parser_read_internal(struct Parser *parser)
 		return;
 	}
 
-	char *buf = str_trim(parser->inbuf);
+	char *buf = str_trimr(parser->inbuf);
 	size_t pos;
 
 	pos = consume_comment(buf);
@@ -1694,8 +1695,8 @@ parser_read_internal(struct Parser *parser)
 		pos = consume_conditional(buf);
 		if (pos > 0) {
 			free(parser->condname);
-			char *tmp = str_substr_dup(buf, 0, pos);
-			parser->condname = str_trim(tmp);
+			char *tmp = str_substr(buf, 0, pos);
+			parser->condname = str_trimr(tmp);
 			free(tmp);
 
 			parser_append_token(parser, CONDITIONAL_START, parser->condname);
@@ -1722,8 +1723,8 @@ parser_read_internal(struct Parser *parser)
 	if (pos > 0) {
 		free(parser->condname);
 		parser->condname = NULL;
-		char *tmp = str_substr_dup(buf, 0, pos);
-		parser->condname = str_trim(tmp);
+		char *tmp = str_substr(buf, 0, pos);
+		parser->condname = str_trimr(tmp);
 		free(tmp);
 
 		parser_append_token(parser, CONDITIONAL_START, parser->condname);
@@ -1749,8 +1750,8 @@ var:
 			parser->error = PARSER_ERROR_BUFFER_TOO_SMALL;
 			goto next;
 		}
-		char *tmp = str_substr_dup(buf, 0, pos);
-		parser->varname = str_strip_dup(tmp);
+		char *tmp = str_substr(buf, 0, pos);
+		parser->varname = str_trim(tmp);
 		free(tmp);
 		parser_append_token(parser, VARIABLE_START, NULL);
 	}

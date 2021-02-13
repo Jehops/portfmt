@@ -34,10 +34,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <libias/util.h>
+
 #include "conditional.h"
 #include "regexp.h"
 #include "rules.h"
-#include "util.h"
 
 struct Conditional {
 	enum ConditionalType type;
@@ -63,11 +64,11 @@ conditional_new(char *s)
 
 	char *type;
 	if (tmp[0] == '.') {
-		char *tmp2 = str_strip_dup(tmp + 1);
+		char *tmp2 = str_trim(tmp + 1);
 		xasprintf(&type, ".%s", tmp2);
 		free(tmp2);
 	} else {
-		type = str_strip_dup(tmp);
+		type = str_trim(tmp);
 	}
 	free(tmp);
 	tmp = NULL;

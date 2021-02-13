@@ -36,15 +36,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/diff.h>
+#include <libias/util.h>
+
 #include "conditional.h"
-#include "diff.h"
 #include "parser.h"
 #include "parser/plugin.h"
 #include "rules.h"
 #include "target.h"
 #include "token.h"
-#include "util.h"
 #include "variable.h"
 
 static int check_target_order(struct Parser *, struct Array *, int, int);

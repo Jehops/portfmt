@@ -31,11 +31,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/util.h>
+
 #include "parser.h"
 #include "parser/plugin.h"
 #include "token.h"
-#include "util.h"
 
 static struct Array *
 refactor_sanitize_comments(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
@@ -58,7 +59,7 @@ refactor_sanitize_comments(struct Parser *parser, struct Array *ptokens, enum Pa
 			break;
 		case COMMENT:
 			if (in_target) {
-				char *comment = str_strip_dup(token_data(t));
+				char *comment = str_trim(token_data(t));
 				struct Token *c = token_new_comment(token_lines(t), comment, token_conditional(t));
 				free(comment);
 				array_append(tokens, c);

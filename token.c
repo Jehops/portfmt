@@ -31,10 +31,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <libias/util.h>
+
 #include "conditional.h"
 #include "target.h"
 #include "token.h"
-#include "util.h"
 #include "variable.h"
 
 struct Token {

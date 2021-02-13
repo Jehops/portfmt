@@ -35,8 +35,9 @@
 #include <regex.h>
 #include <stdlib.h>
 
+#include <libias/util.h>
+
 #include "regexp.h"
-#include "util.h"
 
 struct Regexp {
 	int exec;
@@ -135,7 +136,7 @@ regexp_substr(struct Regexp *regexp, size_t group)
 	if (group >= regexp->nmatch) {
 		return NULL;
 	}
-	return str_substr_dup(regexp->buf, regexp_start(regexp, group), regexp_end(regexp, group));
+	return str_substr(regexp->buf, regexp_start(regexp, group), regexp_end(regexp, group));
 }
 
 int

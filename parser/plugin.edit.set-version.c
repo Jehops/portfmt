@@ -38,12 +38,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "array.h"
+#include <libias/array.h>
+#include <libias/util.h>
+
 #include "parser.h"
 #include "parser/plugin.h"
 #include "rules.h"
 #include "token.h"
-#include "util.h"
 #include "variable.h"
 
 static ssize_t

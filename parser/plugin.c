@@ -37,8 +37,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <libias/util.h>
+
 #include "parser.h"
-#include "util.h"
 #include "plugin.h"
 
 #ifdef PORTFMT_STATIC

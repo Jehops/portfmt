@@ -35,9 +35,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <libias/util.h>
+
 #include "regexp.h"
 #include "rules.h"
-#include "util.h"
 #include "variable.h"
 
 struct Variable {
@@ -77,8 +78,8 @@ variable_new(const char *buf)
 		break;
 	}
 
-	char *tmp = str_substr_dup(buf, 0, strlen(buf) - i);
-	char *name = str_trim(tmp);
+	char *tmp = str_substr(buf, 0, strlen(buf) - i);
+	char *name = str_trimr(tmp);
 	if (strcmp(name, "") == 0) {
 		free(name);
 		free(tmp);
