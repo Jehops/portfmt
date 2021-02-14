@@ -131,4 +131,4 @@ lint: all
 test: all
 	@/bin/sh tests/run.sh
 
-.PHONY: all clean debug install install-symlinks lint regen-rules test
+.PHONY: all clean debug install install-symlinks libias/libias.a lint regen-rules test
