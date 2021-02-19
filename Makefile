@@ -79,7 +79,7 @@ diff.o: config.h libias/diff.h
 diffutil.o: config.h libias/array.h libias/diff.h libias/diffutil.h libias/util.h
 mainutils.o: config.h libias/array.h mainutils.h parser.h libias/util.h
 map.o: config.h libias/array.h map.h libias/util.h
-parser.o: config.h libias/array.h conditional.h libias/diffutil.h parser.h parser/constants.c regexp.h rules.h libias/set.h target.h token.h libias/util.h variable.h
+parser.o: config.h libias/array.h conditional.h libias/diffutil.h libias/memorypool.h parser.h parser/constants.c regexp.h rules.h libias/set.h target.h token.h libias/util.h variable.h
 parser/edits/edit/bump_revision.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
 parser/edits/edit/merge.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h
 parser/edits/edit/set_version.o: config.h libias/array.h parser.h rules.h token.h libias/util.h variable.h

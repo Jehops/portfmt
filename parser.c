@@ -49,6 +49,7 @@
 #include <libias/array.h>
 #include <libias/diff.h>
 #include <libias/diffutil.h>
+#include <libias/memorypool.h>
 #include <libias/set.h>
 #include <libias/util.h>
 
@@ -75,7 +76,7 @@ struct Parser {
 	char *varname;
 
 	struct Set *edited;
-	struct Set *tokengc;
+	struct MemoryPool *tokengc;
 	struct Array *tokens;
 	struct Array *result;
 	struct Array *rawlines;
@@ -339,7 +340,7 @@ parser_new(struct ParserSettings *settings)
 	struct Parser *parser = xmalloc(sizeof(struct Parser));
 
 	parser->edited = set_new(NULL, NULL, NULL);
-	parser->tokengc = set_new(NULL, NULL, token_free);
+	parser->tokengc = memory_pool_new();
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
@@ -403,7 +404,7 @@ parser_free(struct Parser *parser)
 	}
 	array_free(parser->rawlines);
 
-	set_free(parser->tokengc);
+	memory_pool_free(parser->tokengc);
 	set_free(parser->edited);
 	array_free(parser->tokens);
 
@@ -1925,7 +1926,7 @@ parser_read_from_buffer(struct Parser *parser, const char *input, size_t len)
 void
 parser_mark_for_gc(struct Parser *parser, struct Token *t)
 {
-	set_add(parser->tokengc, t);
+	memory_pool_acquire(parser->tokengc, t, token_free);
 }
 
 void
