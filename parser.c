@@ -49,7 +49,7 @@
 #include <libias/array.h>
 #include <libias/diff.h>
 #include <libias/diffutil.h>
-#include <libias/memorypool.h>
+#include <libias/mempool.h>
 #include <libias/set.h>
 #include <libias/util.h>
 
@@ -76,7 +76,7 @@ struct Parser {
 	char *varname;
 
 	struct Set *edited;
-	struct MemoryPool *tokengc;
+	struct Mempool *tokengc;
 	struct Array *tokens;
 	struct Array *result;
 	struct Array *rawlines;
@@ -340,7 +340,7 @@ parser_new(struct ParserSettings *settings)
 	struct Parser *parser = xmalloc(sizeof(struct Parser));
 
 	parser->edited = set_new(NULL, NULL, NULL);
-	parser->tokengc = memory_pool_new();
+	parser->tokengc = mempool_new();
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
@@ -404,7 +404,7 @@ parser_free(struct Parser *parser)
 	}
 	array_free(parser->rawlines);
 
-	memory_pool_free(parser->tokengc);
+	mempool_free(parser->tokengc);
 	set_free(parser->edited);
 	array_free(parser->tokens);
 
@@ -1454,9 +1454,25 @@ parser_output_diff(struct Parser *parser)
 	array_truncate(parser->result);
 
 	if (p.editdist > 0) {
-		struct Array *new_result = diff_to_patch(&p, parser->settings.filename, parser->settings.filename, !(parser->settings.behavior & PARSER_OUTPUT_NO_COLOR));
-		array_free(parser->result);
-		parser->result = new_result;
+		const char *filename = parser->settings.filename;
+		if (filename == NULL) {
+			filename = "Makefile";
+		}
+		const char *color_add = ANSI_COLOR_GREEN;
+		const char *color_delete = ANSI_COLOR_RED;
+		const char *color_reset = ANSI_COLOR_RESET;
+		int nocolor = parser->settings.behavior & PARSER_OUTPUT_NO_COLOR;
+		if (nocolor) {
+			color_add = "";
+			color_delete = "";
+			color_reset = "";
+		}
+		char *buf;
+		xasprintf(&buf, "%s--- %s\n%s+++ %s%s\n",
+			color_delete, filename, color_add, filename, color_reset);
+		array_append(parser->result, buf);
+		buf = diff_to_patch(&p, !nocolor);
+		array_append(parser->result, buf);
 		parser->error = PARSER_ERROR_DIFFERENCES_FOUND;
 	}
 
@@ -1926,7 +1942,7 @@ parser_read_from_buffer(struct Parser *parser, const char *input, size_t len)
 void
 parser_mark_for_gc(struct Parser *parser, struct Token *t)
 {
-	memory_pool_acquire(parser->tokengc, t, token_free);
+	mempool_add(parser->tokengc, t, token_free);
 }
 
 void
