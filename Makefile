@@ -75,7 +75,6 @@ portscan.o: portscan.c config.h libias/array.h conditional.h libias/diff.h mainu
 
 #
 conditional.o: config.h conditional.h regexp.h rules.h
-expansion.o: config.h
 mainutils.o: config.h mainutils.h parser.h
 parser.o: config.h conditional.h parser.h parser/edits.h regexp.h rules.h target.h token.h variable.h parser/constants.c
 parser/edits/edit/bump_revision.o: config.h parser.h parser/edits.h rules.h token.h variable.h
@@ -106,14 +105,15 @@ token.o: config.h conditional.h target.h token.h variable.h
 variable.o: config.h regexp.h rules.h variable.h
 
 deps:
-	@find . -path ./libias -prune -false -o -type f -name '*.c' | sort | xargs -L1 awk '/^#include "/ { \
+	@for f in $$(git ls-files | grep '.*\.c$$' | sort); do \
+	awk '/^#include "/ { \
 		if (!filename) { \
-			printf("%s.o:", substr(FILENAME, 3, length(FILENAME) - 4)); \
+			printf("%s.o:", substr(FILENAME, 1, length(FILENAME) - 2)); \
 			filename = 1; \
 		} \
 		printf(" %s", substr($$2, 2, length($$2) - 2)) \
 	} \
-	END { if (filename) { print "" } }' > Makefile.deps
+	END { if (filename) { print "" } }' $$f; done > Makefile.deps
 	@mv Makefile Makefile.bak
 	@awk '/^#$$/ { print; deps = 1 } \
 	deps && /^$$/ { deps = 0; system("cat Makefile.deps") } \
