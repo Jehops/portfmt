@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 : "${BASEDIR:=/usr/src}"
-: "${PORTSDIR:=${HOME}/ports/head}"
+: "${PORTSDIR:=/usr/ports}"
 TMP="generated_rules.tmp"
 OSRELS="11 12 13 14"
 

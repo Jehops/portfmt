@@ -5,13 +5,15 @@ static struct { const char *uses; const char *flavor; } static_flavors_[] = {
 	{ "lua", "lua51" },
 	{ "lua", "lua52" },
 	{ "lua", "lua53" },
-	{ "php", "php72" },
+	{ "lua", "lua54" },
 	{ "php", "php73" },
 	{ "php", "php74" },
+	{ "php", "php80" },
 	{ "python", "py27" },
 	{ "python", "py36" },
 	{ "python", "py37" },
 	{ "python", "py38" },
+	{ "python", "py39" },
 };
 static const char *known_architectures_[] = {
 	"aarch64",
