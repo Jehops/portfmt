@@ -126,8 +126,8 @@ install: all
 	${INSTALL_MAN} man/*.1 ${DESTDIR}${MANDIR}/man1
 
 install-symlinks:
-	@${MAKE} INSTALL_MAN="install -l as" INSTALL_PROGRAM="install -l as" \
-		install
+	@${MAKE} INSTALL_MAN="/bin/sh -c 'f=\"$$\$$(echo \"$$\$$@\" | xargs realpath)\"; ln -sf $$\$$f' -- SYMLINK " \
+		INSTALL_PROGRAM="\$${INSTALL_MAN}" install
 
 regen-rules:
 	@/bin/sh generate_rules.sh
