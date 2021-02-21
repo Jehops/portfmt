@@ -3,7 +3,7 @@ set -eu
 : "${BASEDIR:=/usr/src}"
 : "${PORTSDIR:=${HOME}/ports/head}"
 TMP="generated_rules.tmp"
-OSRELS="11 12 13"
+OSRELS="11 12 13 14"
 
 export LC_ALL=C
 

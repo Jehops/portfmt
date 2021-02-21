@@ -34,12 +34,15 @@
 	VAR_FOR_EACH_ARCH(block, var "FreeBSD_12_", flags), \
 	{ block, var "FreeBSD_13", flags }, \
 	VAR_FOR_EACH_ARCH(block, var "FreeBSD_13_", flags), \
+	{ block, var "FreeBSD_14", flags }, \
+	VAR_FOR_EACH_ARCH(block, var "FreeBSD_14_", flags), \
 	VAR_FOR_EACH_ARCH(block, var "FreeBSD_", flags)
 #define VAR_FOR_EACH_FREEBSD_VERSION(block, var, flags) \
 	{ block, var "FreeBSD", flags }, \
 	{ block, var "FreeBSD_11", flags }, \
 	{ block, var "FreeBSD_12", flags }, \
-	{ block, var "FreeBSD_13", flags }
+	{ block, var "FreeBSD_13", flags }, \
+	{ block, var "FreeBSD_14", flags }
 static const char *use_gnome_rel[] = {
 	"atk",
 	"atkmm",
