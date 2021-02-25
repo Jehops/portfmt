@@ -46,7 +46,7 @@ libias/config.h: config.h
 libias/Makefile.configure: Makefile.configure
 	cp Makefile.configure libias
 
-libias/libias.a: libias/config.h libias/Makefile.configure
+libias/libias.a: libias libias/config.h libias/Makefile.configure
 	@${MAKE} -C libias libias.a
 
 portclippy: portclippy.o libias/libias.a libportfmt.a
@@ -147,4 +147,4 @@ lint: all
 test: all
 	@/bin/sh tests/run.sh
 
-.PHONY: all clean debug deps install install-symlinks libias/libias.a lint regen-rules test
+.PHONY: all clean debug deps install install-symlinks lint regen-rules test
