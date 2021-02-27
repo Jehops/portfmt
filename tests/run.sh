@@ -5,6 +5,7 @@ PORTCLIPPY="${ROOT}/portclippy"
 PORTEDIT="${ROOT}/portedit"
 PORTFMT="${ROOT}/portfmt"
 PORTSCAN="${ROOT}/portscan"
+: ${SH:=/bin/sh}
 
 export PORTCLIPPY
 export PORTEDIT
@@ -63,7 +64,7 @@ for test in bump-epoch/*.sh bump-revision/*.sh get/*.sh merge/*.sh set-version/*
 	echo "${t}"
 	tests_run=$((tests_run + 1))
 	cd "${ROOT}/tests/edit/$(dirname "${test}")" || exit 1
-	if ! /bin/sh -o pipefail -eu "$(basename "${test}")"; then
+	if ! ${SH} -o pipefail -eu "$(basename "${test}")"; then
 		tests_failed=$((tests_failed + 1))
 	fi
 	echo "${t}"
@@ -100,7 +101,7 @@ cd "${ROOT}/tests/portscan" || exit 1
 for t in *.sh; do
 	echo "portscan/${t%*.sh}"
 	tests_run=$((tests_run + 1))
-	if ! /bin/sh -o pipefail -eu "${t}" 2>&1; then
+	if ! ${SH} -o pipefail -eu "${t}" 2>&1; then
 		tests_failed=$((tests_failed + 1))
 	fi
 done

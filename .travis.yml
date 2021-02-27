@@ -2,13 +2,15 @@ language: c
 matrix:
   include:
   - os: osx
-    script: ./configure && make && mkdir -p ~/lib && cp libportfmt.dylib ~/lib/ && make test
+    script: ./configure && make && make test
   - os: linux
     dist: bionic
+    script: ./configure && make && make SH=bash test
     before_install: echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
     addons:
       apt:
         packages:
+          - bash
           - mandoc
       coverity_scan:
         project:

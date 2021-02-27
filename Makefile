@@ -2,6 +2,7 @@ include Makefile.configure
 
 MKDIR?=		mkdir -p
 LN?=		ln
+SH?=		/bin/sh
 
 CFLAGS+=	-std=gnu99 -I.
 LDADD+=		-lm
@@ -142,9 +143,9 @@ debug:
 		LDFLAGS="-g" portfmt
 
 lint: all
-	@/bin/sh tests/lint.sh
+	@${SH} tests/lint.sh
 
 test: all
-	@/bin/sh tests/run.sh
+	@${SH} tests/run.sh
 
 .PHONY: all clean debug deps install install-symlinks lint regen-rules test

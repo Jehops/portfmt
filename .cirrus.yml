@@ -1,8 +1,10 @@
 freebsd_task:
   freebsd_instance:
-    image_family: freebsd-12-1
-  latest_script:
+    image_family: freebsd-12-2
+  clone_script:
     - sed -i.bak -e 's,/quarterly,/latest,' /etc/pkg/FreeBSD.conf
+    - pkg install -y git-lite
+    - git clone --recurse-submodules --branch=$CIRRUS_BRANCH https://github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
   cppcheck_script:
     - pkg install -y cppcheck
   matrix:
@@ -18,10 +20,10 @@ freebsd_task:
 linux_task:
   container:
     image: gcc:latest
-  mandoc_script:
-    - apt-get update && apt-get -y install mandoc
-  cppcheck_script:
-    - apt-get -y install cppcheck
+  clone_script:
+    - git clone --recurse-submodules --branch=$CIRRUS_BRANCH https://github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
+  deps_script:
+    - apt-get update && apt-get -y install bash cppcheck mandoc
   matrix:
     - name: linux_clang
       env:
@@ -31,19 +33,19 @@ linux_task:
     - name: linux_gcc
   test_script:
     - ./configure
-    - make test
+# for -o pipefail
+    - make SH=bash test
 
 macos_task:
   osx_instance:
-    image: mojave-base
+    image: catalina-base
   matrix:
     - name: macos_clang
       env:
         CC: clang
     - name: macos_gcc
+  clone_script:
+    - git clone --recurse-submodules --branch=$CIRRUS_BRANCH https://github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
   test_script:
     - ./configure
-    - make
-    - mkdir -p ~/lib
-    - cp libportfmt.dylib ~/lib/
     - make test
