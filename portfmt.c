@@ -59,7 +59,7 @@ main(int argc, char *argv[])
 		PARSER_DEDUP_TOKENS | PARSER_OUTPUT_REFORMAT |
 		PARSER_ALLOW_FUZZY_MATCHING | PARSER_SANITIZE_COMMENTS;
 
-	if (!read_common_args(&argc, &argv, &settings, "DdituUw:", NULL)) {
+	if (!read_common_args(&argc, &argv, &settings, "D::dituUw:", NULL)) {
 		usage();
 	}
 

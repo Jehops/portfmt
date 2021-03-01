@@ -86,6 +86,7 @@ struct ParserSettings {
 	char *filename;
 	enum ParserBehavior behavior;
 	int target_command_format_threshold;
+	size_t diff_context;
 	size_t target_command_format_wrapcol;
 	size_t wrapcol;
 };

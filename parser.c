@@ -327,6 +327,7 @@ parser_init_settings(struct ParserSettings *settings)
 {
 	settings->filename = NULL;
 	settings->behavior = PARSER_DEFAULT;
+	settings->diff_context = 3;
 	settings->target_command_format_threshold = 8;
 	settings->target_command_format_wrapcol = 65;
 	settings->wrapcol = 80;
@@ -1471,7 +1472,7 @@ parser_output_diff(struct Parser *parser)
 		xasprintf(&buf, "%s--- %s\n%s+++ %s%s\n",
 			color_delete, filename, color_add, filename, color_reset);
 		array_append(parser->result, buf);
-		buf = diff_to_patch(&p, !nocolor);
+		buf = diff_to_patch(&p, NULL, NULL, parser->settings.diff_context, !nocolor);
 		array_append(parser->result, buf);
 		parser->error = PARSER_ERROR_DIFFERENCES_FOUND;
 	}

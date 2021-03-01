@@ -90,6 +90,13 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 		switch (ch) {
 		case 'D':
 			settings->behavior |= PARSER_OUTPUT_DIFF;
+			if (optarg) {
+				const char *errstr = NULL;
+				settings->diff_context = strtonum(optarg, 0, INT_MAX, &errstr);
+				if (errstr != NULL) {
+					errx(1, "strtonum: %s", errstr);
+				}
+			}
 			break;
 		case 'd':
 			settings->behavior |= PARSER_OUTPUT_DUMP_TOKENS;
