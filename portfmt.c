@@ -45,7 +45,7 @@ static void usage(void);
 void
 usage()
 {
-	fprintf(stderr, "usage: portfmt [-DdituU] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portfmt [-D[context]] [-dituU] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
