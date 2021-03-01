@@ -75,39 +75,39 @@ portscan.o: portscan.c config.h libias/array.h conditional.h libias/diff.h mainu
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
 
 #
-conditional.o: config.h conditional.h regexp.h rules.h
-mainutils.o: config.h mainutils.h parser.h
-parser.o: config.h conditional.h parser.h parser/edits.h regexp.h rules.h target.h token.h variable.h parser/constants.c
-parser/edits/edit/bump_revision.o: config.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/edit/merge.o: config.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/edit/set_version.o: config.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/kakoune/select_object_on_line.o: config.h parser.h parser/edits.h token.h
-parser/edits/lint/clones.o: config.h conditional.h parser.h parser/edits.h token.h variable.h
-parser/edits/lint/order.o: config.h conditional.h parser.h parser/edits.h rules.h target.h token.h variable.h
-parser/edits/output/unknown_targets.o: config.h parser.h parser/edits.h rules.h target.h token.h
-parser/edits/output/unknown_variables.o: config.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/output/variable_value.o: config.h parser.h parser/edits.h token.h variable.h
-parser/edits/refactor/collapse_adjacent_variables.o: config.h parser.h parser/edits.h token.h variable.h
-parser/edits/refactor/dedup_tokens.o: config.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/refactor/remove_consecutive_empty_lines.o: config.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/refactor/sanitize_append_modifier.o: config.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/refactor/sanitize_cmake_args.o: config.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/refactor/sanitize_comments.o: config.h parser.h parser/edits.h token.h
-parser/edits/refactor/sanitize_eol_comments.o: config.h parser.h parser/edits.h rules.h token.h variable.h
+conditional.o: config.h libias/util.h conditional.h regexp.h rules.h
+mainutils.o: config.h libias/array.h libias/util.h mainutils.h parser.h
+parser.o: config.h libias/array.h libias/diff.h libias/diffutil.h libias/mempool.h libias/set.h libias/util.h conditional.h parser.h parser/edits.h regexp.h rules.h target.h token.h variable.h parser/constants.c
+parser/edits/edit/bump_revision.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/edit/merge.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/edit/set_version.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/kakoune/select_object_on_line.o: config.h libias/array.h libias/util.h parser.h parser/edits.h token.h
+parser/edits/lint/clones.o: config.h libias/array.h libias/set.h libias/util.h conditional.h parser.h parser/edits.h token.h variable.h
+parser/edits/lint/order.o: config.h libias/array.h libias/diff.h libias/util.h conditional.h parser.h parser/edits.h rules.h target.h token.h variable.h
+parser/edits/output/unknown_targets.o: config.h libias/array.h libias/set.h libias/util.h parser.h parser/edits.h rules.h target.h token.h
+parser/edits/output/unknown_variables.o: config.h libias/array.h libias/set.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/output/variable_value.o: config.h libias/array.h libias/util.h parser.h parser/edits.h token.h variable.h
+parser/edits/refactor/collapse_adjacent_variables.o: config.h libias/array.h libias/set.h libias/util.h parser.h parser/edits.h token.h variable.h
+parser/edits/refactor/dedup_tokens.o: config.h libias/array.h libias/set.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/refactor/remove_consecutive_empty_lines.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/refactor/sanitize_append_modifier.o: config.h libias/array.h libias/set.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/refactor/sanitize_cmake_args.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/refactor/sanitize_comments.o: config.h libias/array.h libias/util.h parser.h parser/edits.h token.h
+parser/edits/refactor/sanitize_eol_comments.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
 portclippy.o: config.h mainutils.h parser.h parser/edits.h
-portedit.o: config.h mainutils.h parser.h parser/edits.h regexp.h
+portedit.o: config.h libias/array.h libias/set.h libias/util.h mainutils.h parser.h parser/edits.h regexp.h
 portfmt.o: config.h mainutils.h parser.h
-portscan.o: config.h conditional.h mainutils.h parser.h parser/edits.h portscanlog.h regexp.h token.h
-portscanlog.o: config.h portscanlog.h
-regexp.o: config.h regexp.h
-rules.o: config.h conditional.h regexp.h rules.h parser.h token.h variable.h generated_rules.c
-target.o: config.h target.h
-token.o: config.h conditional.h target.h token.h variable.h
-variable.o: config.h regexp.h rules.h variable.h
+portscan.o: config.h libias/array.h libias/diff.h libias/set.h libias/util.h conditional.h mainutils.h parser.h parser/edits.h portscanlog.h regexp.h token.h
+portscanlog.o: config.h libias/array.h libias/diff.h libias/set.h libias/util.h portscanlog.h
+regexp.o: config.h libias/util.h regexp.h
+rules.o: config.h libias/array.h libias/set.h libias/util.h conditional.h regexp.h rules.h parser.h token.h variable.h generated_rules.c
+target.o: config.h libias/util.h target.h
+token.o: config.h libias/util.h conditional.h target.h token.h variable.h
+variable.o: config.h libias/util.h regexp.h rules.h variable.h
 
 deps:
 	@for f in $$(git ls-files | grep '.*\.c$$' | sort); do \
-	awk '/^#include "/ { \
+	awk '/^#include ("|<libias\/)/ { \
 		if (!filename) { \
 			printf("%s.o:", substr(FILENAME, 1, length(FILENAME) - 2)); \
 			filename = 1; \
