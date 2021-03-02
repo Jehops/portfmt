@@ -13,3 +13,6 @@ Makefile.configure
 /portfmt
 /portscan
 TODO
+RELNOTES.md
+portfmt-*.tar.lz
+portfmt-*.tar.lz.SHA256

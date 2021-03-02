@@ -148,4 +148,38 @@ lint: all
 test: all
 	@${SH} tests/run.sh
 
-.PHONY: all clean debug deps install install-symlinks lint regen-rules test
+tag:
+	@date=$$(git log -1 --pretty=format:%cd --date=format:%Y-%m-%d $${tag}); \
+	tag=g$$(git log -1 --pretty=format:%cd --date=format:%Y%m%d); \
+	title="## [$${tag}] - $${date}"; \
+	if ! grep -Fq "$${title}" CHANGELOG.md; then \
+		echo "# portfmt $${tag}"; \
+		awk '/^## Unreleased$$/{x=1;next}x{if($$1=="##"){exit}else if($$1=="###"){$$1="##"};print}' \
+			CHANGELOG.md >RELNOTES.md; \
+		awk "/^## Unreleased$$/{print;printf\"\n$${title}\n\";next}{print}" \
+			CHANGELOG.md >CHANGELOG.md.new; \
+		mv CHANGELOG.md.new CHANGELOG.md; \
+	fi
+	git commit -m "Release $${tag}" CHANGELOG.md; \
+	git tag $${tag}
+
+release:
+	@tag=$$(git tag --points-at HEAD); \
+	if [ -z "$$tag" ]; then echo "create a tag first"; exit 1; fi; \
+	git ls-files --recurse-submodules . ':!:libias/tests' | \
+		bsdtar --files-from=- -s '/^/portfmt-$${tag}/' --options lzip:compression-level=9 \
+			-caf portfmt-$${tag}.tar.lz; \
+	sha256 portfmt-$${tag}.tar.lz >portfmt-$${tag}.tar.lz.SHA256 || \
+	sha256sum --tag portfmt-$${tag}.tar.lz >portfmt-$${tag}.tar.lz.SHA256; \
+	printf "SIZE (%s) = %s\n" portfmt-$${tag}.tar.lz $$(wc -c <portfmt-$${tag}.tar.lz) \
+		>>portfmt-$${tag}.tar.lz.SHA256
+
+publish:
+	@tag=$$(git tag --points-at HEAD); \
+	if [ -z "$$tag" ]; then echo "create a tag first"; exit 1; fi; \
+	git push --follow-tags origin; \
+	hub release create -F RELNOTES.md $${tag} \
+		-a portfmt-$${tag}.tar.lz \
+		-a portfmt-$${tag}.tar.lz.SHA256
+
+.PHONY: all clean debug deps install install-symlinks lint publish release regen-rules tag test
