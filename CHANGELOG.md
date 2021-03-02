@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - portfmt: -D produces less cluttered unified diffs with reduced context.
   3 lines of context by default but more can be asked for with an
   optional argument to -D.  Use -D0 to get the full context as before.
+- portscan: Handle .include with ${.PARSEDIR}
 
 ## [g20200924] - 2020-09-24
 

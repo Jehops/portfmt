@@ -270,6 +270,9 @@ process_include(struct Parser *parser, struct Set *errors, const char *curdir, i
 		// have been processed once, so we do not need to do
 		// it again.
 		return PARSER_ERROR_OK;
+	} else if (str_startswith(filename, "${.PARSEDIR}/")) {
+		filename += strlen("${.PARSEDIR}/");
+		xasprintf(&path, "%s/%s", curdir, filename);
 	} else if (str_startswith(filename, "${.CURDIR}/")) {
 		filename += strlen("${.CURDIR}/");
 		xasprintf(&path, "%s/%s", curdir, filename);
