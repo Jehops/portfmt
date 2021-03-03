@@ -122,7 +122,7 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "DiuUw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "D::iuUw:", NULL)) {
 		apply_usage();
 	}
 	if (argc < 1) {
@@ -193,7 +193,7 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "DiuUw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "D::iuUw:", NULL)) {
 		bump_epoch_usage();
 	}
 
@@ -236,7 +236,7 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "DiuUw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "D::iuUw:", NULL)) {
 		bump_revision_usage();
 	}
 
@@ -336,7 +336,7 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	argc--;
 
 	struct Array *expressions = array_new();
-	if (!read_common_args(&argc, &argv, settings, "De:iuUw:", expressions)) {
+	if (!read_common_args(&argc, &argv, settings, "D::e:iuUw:", expressions)) {
 		merge_usage();
 	}
 	if (argc == 0 && array_len(expressions) == 0) {
@@ -407,7 +407,7 @@ sanitize_append(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "DiuUw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "D::iuUw:", NULL)) {
 		sanitize_append_usage();
 	}
 
@@ -449,7 +449,7 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 	argv++;
 	argc--;
 
-	if (!read_common_args(&argc, &argv, settings, "DiuUw:", NULL)) {
+	if (!read_common_args(&argc, &argv, settings, "D::iuUw:", NULL)) {
 		set_version_usage();
 	}
 
@@ -569,21 +569,21 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 void
 apply_usage()
 {
-	fprintf(stderr, "usage: portedit apply [-DiuU] [-w wrapcol] <edit> [Makefile]\n");
+	fprintf(stderr, "usage: portedit apply [-D[context]] [-iuU] [-w wrapcol] <edit> [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 void
 bump_epoch_usage()
 {
-	fprintf(stderr, "usage: portedit bump-epoch [-DiuU] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit bump-epoch [-D[context]] [-iuU] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 void
 bump_revision_usage()
 {
-	fprintf(stderr, "usage: portedit bump-revision [-DiuU] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit bump-revision [-D[context]] [-iuU] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
@@ -597,21 +597,21 @@ get_variable_usage()
 void
 merge_usage()
 {
-	fprintf(stderr, "usage: portedit merge [-DiuU] [-w wrapcol] [-e expr] [Makefile]\n");
+	fprintf(stderr, "usage: portedit merge [-D[context]] [-iuU] [-w wrapcol] [-e expr] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 void
 sanitize_append_usage()
 {
-	fprintf(stderr, "usage: portedit sanitize-append [-DiuU] [-w wrapcol] [Makefile]\n");
+	fprintf(stderr, "usage: portedit sanitize-append [-D[context]] [-iuU] [-w wrapcol] [Makefile]\n");
 	exit(EX_USAGE);
 }
 
 void
 set_version_usage()
 {
-	fprintf(stderr, "usage: portedit set-version [-DiuU] [-w wrapcol] <version> [Makefile]\n");
+	fprintf(stderr, "usage: portedit set-version [-D[context]] [-iuU] [-w wrapcol] <version> [Makefile]\n");
 	exit(EX_USAGE);
 }
 

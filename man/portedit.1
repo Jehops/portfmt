@@ -25,7 +25,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd June 4, 2020
+.Dd March 3, 2021
 .Dt PORTEDIT 1
 .Os
 .Sh NAME
@@ -34,12 +34,18 @@
 .Sh SYNOPSIS
 .Nm
 .Cm bump-revision
-.Op Fl Diu
+.Sm
+.Op Fl D Op Ar context
+.Sm
+.Op Fl iu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
 .Cm bump-epoch
-.Op Fl Diu
+.Sm
+.Op Fl D Op Ar context
+.Sm
+.Op Fl iu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
@@ -48,18 +54,27 @@
 .Op Ar Makefile
 .Nm
 .Cm merge
-.Op Fl Diu
+.Sm
+.Op Fl D Op Ar context
+.Sm
+.Op Fl iu
 .Op Fl w Ar wrapcol
 .Op Fl e Ar expr
 .Op Ar Makefile
 .Nm
 .Cm sanitize-append
-.Op Fl Diu
+.Sm
+.Op Fl D Op Ar context
+.Sm
+.Op Fl iu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
 .Cm set-version
-.Op Fl Diu
+.Sm
+.Op Fl D Op Ar context
+.Sm
+.Op Fl iu
 .Op Fl w Ar wrapcol
 .Ar version
 .Op Ar Makefile
@@ -90,6 +105,9 @@ commands and
 .Bl -tag -width indent
 .It Fl D
 Output a unified diff from the original to the formatted version.
+This can optionally be followed by the number of context lines.
+It defaults to 3 lines of context.
+For full context use 0.
 .It Fl i
 Format
 .Ar Makefile
