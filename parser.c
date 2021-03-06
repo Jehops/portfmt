@@ -343,7 +343,7 @@ parser_new(struct ParserSettings *settings)
 	struct Parser *parser = xmalloc(sizeof(struct Parser));
 
 	parser->edited = set_new(NULL, NULL, NULL);
-	parser->tokengc = mempool_new();
+	parser->tokengc = mempool_new_unique();
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
