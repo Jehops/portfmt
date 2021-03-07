@@ -133,6 +133,9 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 	case PORTSCAN_LOG_ENTRY_DUPLICATE_VAR:
 		xasprintf(&buf, "%-7s %-40s %s\n", "Vc", entry->origin, entry->value);
 		break;
+	case PORTSCAN_LOG_ENTRY_OPTION_DEFAULT_DESCRIPTION:
+		xasprintf(&buf, "%-7s %-40s %s\n", "OD", entry->origin, entry->value);
+		break;
 	case PORTSCAN_LOG_ENTRY_OPTION_GROUP:
 		xasprintf(&buf, "%-7s %-40s %s\n", "OG", entry->origin, entry->value);
 		break;
@@ -197,6 +200,9 @@ log_entry_parse(const char *s)
 		s++;
 	} else if (str_startswith(s, "Vc ")) {
 		type = PORTSCAN_LOG_ENTRY_DUPLICATE_VAR;
+		s += 2;
+	} else if (str_startswith(s, "OD ")) {
+		type = PORTSCAN_LOG_ENTRY_OPTION_DEFAULT_DESCRIPTION;
 		s += 2;
 	} else if (str_startswith(s, "OG ")) {
 		type = PORTSCAN_LOG_ENTRY_OPTION_GROUP;

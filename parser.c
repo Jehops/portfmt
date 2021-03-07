@@ -49,6 +49,7 @@
 #include <libias/array.h>
 #include <libias/diff.h>
 #include <libias/diffutil.h>
+#include <libias/map.h>
 #include <libias/mempool.h>
 #include <libias/set.h>
 #include <libias/util.h>
@@ -90,6 +91,7 @@ struct Parser {
 	struct Set *shebang_langs;
 	int shebang_langs_looked_up;
 	struct Set *port_options;
+	struct Map *port_options_descriptions;
 	struct Set *port_options_groups;
 	int port_options_looked_up;
 	struct Set *uses;
@@ -116,7 +118,7 @@ static void parser_find_goalcols(struct Parser *);
 static struct Variable *parser_lookup_variable_internal(struct Parser *, const char *, struct Array **, struct Array **, int);
 static void parser_meta_values(struct Parser *, const char *, struct Set *);
 static void parser_output_dump_tokens(struct Parser *);
-static void parser_port_options(struct Parser *, struct Set **, struct Set **);
+static void parser_port_options(struct Parser *, struct Set **, struct Set **, struct Map **);
 static void parser_output_prepare(struct Parser *);
 static void parser_output_print_rawlines(struct Parser *, struct Range *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
@@ -350,6 +352,7 @@ parser_new(struct ParserSettings *settings)
 	parser->licenses = set_new(str_compare, NULL, free);
 	parser->shebang_langs = set_new(str_compare, NULL, free);
 	parser->port_options = set_new(str_compare, NULL, free);
+	parser->port_options_descriptions = map_new(str_compare, NULL, free, free);
 	parser->port_options_groups = set_new(str_compare, NULL, free);
 	parser->uses = set_new(str_compare, NULL, free);
 	parser->error = PARSER_ERROR_OK;
@@ -388,6 +391,7 @@ parser_free(struct Parser *parser)
 	set_free(parser->licenses);
 	set_free(parser->shebang_langs);
 	set_free(parser->port_options);
+	map_free(parser->port_options_descriptions);
 	set_free(parser->port_options_groups);
 	set_free(parser->uses);
 
@@ -2022,7 +2026,7 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 	}
 
 	struct Set *options;
-	parser_port_options(parser, NULL, &options);
+	parser_port_options(parser, NULL, &options, NULL);
 	SET_FOREACH (options, const char *, opt) {
 		char *buf;
 		xasprintf(&buf, "%s_VARS", opt);
@@ -2110,7 +2114,7 @@ parser_port_options_add_from_var(struct Parser *parser, const char *var)
 }
 
 void
-parser_port_options(struct Parser *parser, struct Set **groups, struct Set **options)
+parser_port_options(struct Parser *parser, struct Set **groups, struct Set **options, struct Map **optdescs)
 {
 	if (parser->port_options_looked_up) {
 		if (groups) {
@@ -2118,6 +2122,9 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 		}
 		if (options) {
 			*options = parser->port_options;
+		}
+		if (optdescs) {
+			*optdescs = parser->port_options_descriptions;
 		}
 		return;
 	}
@@ -2147,6 +2154,20 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 
 #undef FOR_EACH_ARCH
 
+	struct Set *opts[] = { parser->port_options, parser->port_options_groups };
+	for (size_t i = 0; i < nitems(opts); i++) {
+		SET_FOREACH(opts[i], const char *, opt) {
+			char *var;
+			xasprintf(&var, "%s_DESC", opt);
+			char *desc;
+			if (parser_lookup_variable_str(parser, var, &desc, NULL)) {
+				map_add(parser->port_options_descriptions, var, desc);
+			} else {
+				free(var);
+			}
+		}
+	}
+
 	parser->port_options_looked_up = 1;
 	if (groups) {
 		*groups = parser->port_options_groups;
@@ -2154,9 +2175,12 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 	if (options) {
 		*options = parser->port_options;
 	}
+	if (optdescs) {
+		*optdescs = parser->port_options_descriptions;
+	}
 }
 
-struct Set *
+void *
 parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 {
 	struct Set *tmp;
@@ -2203,11 +2227,15 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 			parser->shebang_langs_looked_up = 1;
 		}
 		return parser->shebang_langs;
-	case PARSER_METADATA_OPTION_GROUPS:
-		parser_port_options(parser, &tmp, NULL);
+	case PARSER_METADATA_OPTION_DESCRIPTIONS: {
+		struct Map *descs;
+		parser_port_options(parser, NULL, NULL, &descs);
+		return descs;
+	} case PARSER_METADATA_OPTION_GROUPS:
+		parser_port_options(parser, &tmp, NULL, NULL);
 		return tmp;
 	case PARSER_METADATA_OPTIONS:
-		parser_port_options(parser, NULL, &tmp);
+		parser_port_options(parser, NULL, &tmp, NULL);
 		return tmp;
 #if PORTFMT_SUBPACKAGES
 	case PARSER_METADATA_SUBPACKAGES:

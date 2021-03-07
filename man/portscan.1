@@ -25,7 +25,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd August 17, 2020
+.Dd March 7, 2021
 .Dt PORTSCAN 1
 .Os
 .Sh NAME
@@ -73,6 +73,7 @@ If it is not given
 will default to
 .Sy categories ,
 .Sy clones ,
+.Sy option-default-descriptions,
 .Sy unknown-targets ,
 and
 .Sy unknown-variables .
@@ -82,6 +83,10 @@ Enable all of the below scanners.
 Check categories for unhooked, wrong, or misordered entries.
 .It Fl o Sy clones
 Scan for variables that are set twice.
+.It Fl o Sy option-default-descriptions
+Report redundant option descriptions that match the default
+descriptions in
+.Pa Mk/bsd.options.desc.mk .
 .It Fl o Sy options
 Include port options and option groups in the result.
 Use
@@ -120,6 +125,8 @@ Nonexistent port referenced by category Makefile
 Unhooked port missing in category Makefile
 .It Sy E
 Parser or IO errors encountered during the scan
+.It Sy OD
+Redundant port option description that matches the default one
 .It Sy OG
 Port option group
 .It Sy O

@@ -74,6 +74,7 @@ enum ParserMetadata {
 	PARSER_METADATA_FLAVORS,
 	PARSER_METADATA_LICENSES,
 	PARSER_METADATA_SHEBANG_LANGS,
+	PARSER_METADATA_OPTION_DESCRIPTIONS,
 	PARSER_METADATA_OPTION_GROUPS,
 	PARSER_METADATA_OPTIONS,
 #if PORTFMT_SUBPACKAGES
@@ -114,6 +115,6 @@ struct Variable *parser_lookup_variable_all(struct Parser *, const char *, struc
 struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
-struct Set *parser_metadata(struct Parser *, enum ParserMetadata);
+void *parser_metadata(struct Parser *, enum ParserMetadata);
 enum ParserError parser_merge(struct Parser *, struct Parser *, enum ParserMergeBehavior);
 struct ParserSettings parser_settings(struct Parser *);

@@ -51,6 +51,7 @@
 
 #include <libias/array.h>
 #include <libias/diff.h>
+#include <libias/map.h>
 #include <libias/set.h>
 #include <libias/util.h>
 
@@ -61,15 +62,17 @@
 #include "portscanlog.h"
 #include "regexp.h"
 #include "token.h"
+#include "variable.h"
 
 enum ScanFlags {
 	SCAN_NOTHING = 0,
 	SCAN_CATEGORIES = 1 << 0,
 	SCAN_CLONES = 1 << 1,
-	SCAN_OPTIONS = 1 << 2,
-	SCAN_UNKNOWN_TARGETS = 1 << 3,
-	SCAN_UNKNOWN_VARIABLES = 1 << 4,
-	SCAN_VARIABLE_VALUES = 1 << 5,
+	SCAN_OPTION_DEFAULT_DESCRIPTIONS = 1 << 2,
+	SCAN_OPTIONS = 1 << 3,
+	SCAN_UNKNOWN_TARGETS = 1 << 4,
+	SCAN_UNKNOWN_VARIABLES = 1 << 5,
+	SCAN_VARIABLE_VALUES = 1 << 6,
 };
 
 struct ScanResult {
@@ -78,10 +81,20 @@ struct ScanResult {
 	struct Set *unknown_variables;
 	struct Set *unknown_targets;
 	struct Set *clones;
+	struct Set *option_default_descriptions;
 	struct Set *option_groups;
 	struct Set *options;
 	struct Set *variable_values;
 	enum ScanFlags flags;
+};
+
+struct ScanPortArgs {
+	int portsdir;
+	const char *path;
+	struct Regexp *keyquery;
+	struct Regexp *query;
+	struct Map *default_option_descriptions;
+	struct ScanResult *result;
 };
 
 struct CategoryReaderData {
@@ -109,10 +122,11 @@ struct PortReaderData {
 	struct Regexp *keyquery;
 	struct Regexp *query;
 	enum ScanFlags flags;
+	struct Map *default_option_descriptions;
 };
 
 static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *, struct Array *);
-static void scan_port(int, const char *, struct Regexp *, struct Regexp *, struct ScanResult *);
+static void scan_port(struct ScanPortArgs *);
 static void *lookup_origins_worker(void *);
 static enum ParserError process_include(struct Parser *, struct Set *, const char *, int, const char *);
 static struct Array *extract_includes(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
@@ -368,9 +382,11 @@ unknown_variables_filter(struct Parser *parser, const char *value, void *userdat
 }
 
 void
-scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp *query, struct ScanResult *retval)
+scan_port(struct ScanPortArgs *args)
 {
+	struct ScanResult *retval = args->result;
 	retval->errors = set_new(str_compare, NULL, free);
+	retval->option_default_descriptions = set_new(str_compare, NULL, free);
 	retval->option_groups = set_new(str_compare, NULL, free);
 	retval->options = set_new(str_compare, NULL, free);
 	retval->unknown_variables = set_new(str_compare, NULL, free);
@@ -381,7 +397,7 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 	parser_init_settings(&settings);
 	settings.behavior = PARSER_OUTPUT_RAWLINES;
 
-	FILE *in = fileopenat(portsdir, path);
+	FILE *in = fileopenat(args->portsdir, args->path);
 	if (in == NULL) {
 		char *msg;
 		xasprintf(&msg, "fileopenat: %s", strerror(errno));
@@ -403,7 +419,7 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 		goto cleanup;
 	}
 	ARRAY_FOREACH(includes, char *, include) {
-		error = process_include(parser, retval->errors, retval->origin, portsdir, include);
+		error = process_include(parser, retval->errors, retval->origin, args->portsdir, include);
 		if (error != PARSER_ERROR_OK) {
 			array_free(includes);
 			set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
@@ -419,7 +435,7 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_VARIABLES) {
-		struct ParserEditOutput param = { unknown_variables_filter, query, NULL, NULL, 0, 1, NULL, NULL };
+		struct ParserEditOutput param = { unknown_variables_filter, args->query, NULL, NULL, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_unknown_variables, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -438,7 +454,7 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_TARGETS) {
-		struct ParserEditOutput param = { unknown_targets_filter, query, NULL, NULL, 0, 1, NULL, NULL };
+		struct ParserEditOutput param = { unknown_targets_filter, args->query, NULL, NULL, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_unknown_targets, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -467,24 +483,34 @@ scan_port(int portsdir, const char *path, struct Regexp *keyquery, struct Regexp
 		}
 	}
 
+	if (retval->flags & SCAN_OPTION_DEFAULT_DESCRIPTIONS) {
+		struct Map *descs = parser_metadata(parser, PARSER_METADATA_OPTION_DESCRIPTIONS);
+		MAP_FOREACH(descs, char *, var, char *, desc) {
+			char *default_desc = map_get(args->default_option_descriptions, var);
+			if (default_desc && strcmp(default_desc, desc) == 0) {
+				set_add(retval->option_default_descriptions, xstrdup(var));
+			}
+		}
+	}
+
 	if (retval->flags & SCAN_OPTIONS) {
 		struct Set *groups = parser_metadata(parser, PARSER_METADATA_OPTION_GROUPS);
 		SET_FOREACH (groups, const char *, group) { 
-			if (query == NULL || regexp_exec(query, group) == 0) {
+			if (args->query == NULL || regexp_exec(args->query, group) == 0) {
 				set_add(retval->option_groups, xstrdup(group));
 			}
 		}
 		struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
 		retval->options = set_new(str_compare, NULL, free);
 		SET_FOREACH (options, const char *, option) {
-			if (query == NULL || regexp_exec(query, option) == 0) {
+			if (args->query == NULL || regexp_exec(args->query, option) == 0) {
 				set_add(retval->options, xstrdup(option));
 			}
 		}
 	}
 
 	if (retval->flags & SCAN_VARIABLE_VALUES) {
-		struct ParserEditOutput param = { variable_value_filter, keyquery, variable_value_filter, query, 0, 1, NULL, NULL };
+		struct ParserEditOutput param = { variable_value_filter, args->keyquery, variable_value_filter, args->query, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_variable_value, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *msg;
@@ -529,7 +555,15 @@ scan_ports_worker(void *userdata)
 		struct ScanResult *result = xmalloc(sizeof(struct ScanResult));
 		result->origin = xstrdup(origin);
 		result->flags = data->flags;
-		scan_port(data->portsdir, path, data->keyquery, data->query, result);
+		struct ScanPortArgs scan_port_args = {
+			.portsdir = data->portsdir,
+			.path = path,
+			.keyquery = data->keyquery,
+			.query = data->query,
+			.result = result,
+			.default_option_descriptions = data->default_option_descriptions,
+		};
+		scan_port(&scan_port_args);
 		free(path);
 		array_append(retval, result);
 	}
@@ -679,16 +713,81 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 	return retval;
 }
 
+static struct Array *
+get_default_option_descriptions(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+{
+	struct Array *desctokens = array_new();
+	struct Map *default_option_descriptions = map_new(str_compare, NULL, free, free);
+	ARRAY_FOREACH(tokens, struct Token *, t) {
+		switch (token_type(t)) {
+		case VARIABLE_TOKEN:
+			if (str_endswith(variable_name(token_variable(t)), "_DESC")) {
+				array_append(desctokens, token_data(t));
+			}
+			break;
+		case VARIABLE_END:
+			map_add(default_option_descriptions, xstrdup(variable_name(token_variable(t))), str_join(desctokens, " "));
+			array_truncate(desctokens);
+			break;
+		default:
+			break;
+		}
+	}
+
+	array_free(desctokens);
+
+	struct Map **retval = (struct Map **)userdata;
+	*retval = default_option_descriptions;
+
+	return NULL;
+}
+
 void
 scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Regexp *keyquery, struct Regexp *query, struct PortscanLog *retval)
 {
 	if (!(flags & (SCAN_CLONES |
+		       SCAN_OPTION_DEFAULT_DESCRIPTIONS |
 		       SCAN_OPTIONS |
 		       SCAN_UNKNOWN_TARGETS |
 		       SCAN_UNKNOWN_VARIABLES |
 		       SCAN_VARIABLE_VALUES))) {
 		return;
 	}
+
+	FILE *in = fileopenat(portsdir, "Mk/bsd.options.desc.mk");
+	if (in == NULL) {
+		char *msg;
+		xasprintf(&msg, "fileopenat: %s", strerror(errno));
+		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsd.options.desc.mk", msg);
+		return;
+	}
+
+	struct ParserSettings settings;
+	parser_init_settings(&settings);
+	struct Parser *parser = parser_new(&settings);
+	enum ParserError error = parser_read_from_file(parser, in);
+	if (error != PARSER_ERROR_OK) {
+		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsdd.options.desc.mk", parser_error_tostring(parser));
+		free(parser);
+		fclose(in);
+		return;
+	}
+	error = parser_read_finish(parser);
+	if (error != PARSER_ERROR_OK) {
+		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsdd.options.desc.mk", parser_error_tostring(parser));
+		free(parser);
+		fclose(in);
+		return;
+	}
+
+	struct Map *default_option_descriptions = NULL;
+	if (parser_edit(parser, get_default_option_descriptions, &default_option_descriptions) != PARSER_ERROR_OK) {
+		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsd.options.desc.mk", parser_error_tostring(parser));
+		free(parser);
+		fclose(in);
+		return;
+	}
+	assert(default_option_descriptions);
 
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
@@ -711,6 +810,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 		data->keyquery = keyquery;
 		data->query = query;
 		data->flags = flags;
+		data->default_option_descriptions = default_option_descriptions;
 		if (pthread_create(&tid[i], NULL, scan_ports_worker, data) != 0) {
 			err(1, "pthread_create");
 		}
@@ -729,6 +829,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_VAR, r->origin, r->unknown_variables);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_TARGET, r->origin, r->unknown_targets);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);
+			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_DEFAULT_DESCRIPTION, r->origin, r->option_default_descriptions);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION, r->origin, r->options);
 			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_VARIABLE_VALUE, r->origin, r->variable_values);
@@ -772,6 +873,8 @@ main(int argc, char *argv[])
 				flags |= SCAN_CATEGORIES;
 			} else if (strcasecmp(optarg, "clones") == 0) {
 				flags |= SCAN_CLONES;
+			} else if (strcasecmp(optarg, "option-default-descriptions") == 0) {
+				flags |= SCAN_OPTION_DEFAULT_DESCRIPTIONS;
 			} else if (strcasecmp(optarg, "options") == 0) {
 				flags |= SCAN_OPTIONS;
 			} else if (strcasecmp(optarg, "unknown-targets") == 0) {
@@ -784,6 +887,7 @@ main(int argc, char *argv[])
 			} else if (strcasecmp(optarg, "variable-values") == 0) {
 				flags |= SCAN_VARIABLE_VALUES;
 			} else {
+				warnx("unknown -o flag");
 				usage();
 			}
 			break;
@@ -799,7 +903,8 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (flags == SCAN_NOTHING) {
-		flags = SCAN_CATEGORIES | SCAN_CLONES | SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
+		flags = SCAN_CATEGORIES | SCAN_CLONES | SCAN_OPTION_DEFAULT_DESCRIPTIONS |
+			SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
 	}
 
 	int portsdir = -1;

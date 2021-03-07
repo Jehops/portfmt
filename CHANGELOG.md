@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Added
+
+- portscan: Report on option descriptions that match the default descriptions
+  in `Mk/bsd.options.desc.mk`.  Enabled by default but is also
+  selectable with `-o option-default-descriptions`.
+
 ### Changed
 
 - Format `UNIQUE_PREFIX_FILES` and `UNIQUE_SUFFIX_FILES` similar to `PLIST_FILES`
