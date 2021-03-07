@@ -93,6 +93,7 @@ struct ScanPortArgs {
 	const char *path;
 	struct Regexp *keyquery;
 	struct Regexp *query;
+	ssize_t editdist;
 	struct Map *default_option_descriptions;
 	struct ScanResult *result;
 };
@@ -121,6 +122,7 @@ struct PortReaderData {
 	size_t end;
 	struct Regexp *keyquery;
 	struct Regexp *query;
+	ssize_t editdist;
 	enum ScanFlags flags;
 	struct Map *default_option_descriptions;
 };
@@ -134,7 +136,7 @@ static DIR *diropenat(int, const char *);
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int, enum ScanFlags, struct PortscanLog *);
-static void scan_ports(int, struct Array *, enum ScanFlags, struct Regexp *, struct Regexp *, struct PortscanLog *);
+static void scan_ports(int, struct Array *, enum ScanFlags, struct Regexp *, struct Regexp *, ssize_t, struct PortscanLog *);
 static void usage(void);
 
 DIR *
@@ -381,6 +383,38 @@ unknown_variables_filter(struct Parser *parser, const char *value, void *userdat
 	return !query || regexp_exec(query, value) == 0;
 }
 
+static int
+char_cmp(const void *ap, const void *bp, void *userdata)
+{
+	char a = *(char *)ap;
+	char b = *(char *)bp;
+	if (a < b) {
+		return -1;
+	} else if (a > b) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+static ssize_t
+edit_distance(const char *a, const char *b)
+{
+	if (!a || !b) {
+		return -1;
+	}
+
+	ssize_t editdist = -1;
+	struct diff d;
+	if (diff(&d, char_cmp, NULL, sizeof(char), a, strlen(a), b, strlen(b)) > 0) {
+		editdist = d.editdist;
+		free(d.ses);
+		free(d.lcs);
+	}
+
+	return editdist;
+}
+
 void
 scan_port(struct ScanPortArgs *args)
 {
@@ -487,7 +521,11 @@ scan_port(struct ScanPortArgs *args)
 		struct Map *descs = parser_metadata(parser, PARSER_METADATA_OPTION_DESCRIPTIONS);
 		MAP_FOREACH(descs, char *, var, char *, desc) {
 			char *default_desc = map_get(args->default_option_descriptions, var);
-			if (default_desc && strcasecmp(default_desc, desc) == 0) {
+			if (!default_desc) {
+				continue;
+			}
+			ssize_t editdist = edit_distance(default_desc, desc);
+			if (strcasecmp(default_desc, desc) == 0 || (editdist > 0 && editdist <= args->editdist)) {
 				set_add(retval->option_default_descriptions, xstrdup(var));
 			}
 		}
@@ -560,6 +598,7 @@ scan_ports_worker(void *userdata)
 			.path = path,
 			.keyquery = data->keyquery,
 			.query = data->query,
+			.editdist = data->editdist,
 			.result = result,
 			.default_option_descriptions = data->default_option_descriptions,
 		};
@@ -743,7 +782,7 @@ get_default_option_descriptions(struct Parser *parser, struct Array *tokens, enu
 }
 
 void
-scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Regexp *keyquery, struct Regexp *query, struct PortscanLog *retval)
+scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Regexp *keyquery, struct Regexp *query, ssize_t editdist, struct PortscanLog *retval)
 {
 	if (!(flags & (SCAN_CLONES |
 		       SCAN_OPTION_DEFAULT_DESCRIPTIONS |
@@ -809,6 +848,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 		data->end = end;
 		data->keyquery = keyquery;
 		data->query = query;
+		data->editdist = editdist;
 		data->flags = flags;
 		data->default_option_descriptions = default_option_descriptions;
 		if (pthread_create(&tid[i], NULL, scan_ports_worker, data) != 0) {
@@ -856,6 +896,7 @@ main(int argc, char *argv[])
 	const char *logdir_path = NULL;
 	const char *keyquery = NULL;
 	const char *query = NULL;
+	const char *editdiststr = NULL;
 	int ch;
 	enum ScanFlags flags = SCAN_NOTHING;
 	while ((ch = getopt(argc, argv, "l:q:o:p:")) != -1) {
@@ -875,6 +916,9 @@ main(int argc, char *argv[])
 				flags |= SCAN_CLONES;
 			} else if (strcasecmp(optarg, "option-default-descriptions") == 0) {
 				flags |= SCAN_OPTION_DEFAULT_DESCRIPTIONS;
+			} else if (strncasecmp(optarg, "option-default-descriptions=", strlen("option-default-descriptions=")) == 0) {
+				flags |= SCAN_OPTION_DEFAULT_DESCRIPTIONS;
+				editdiststr = optarg + strlen("option-default-descriptions=");
 			} else if (strcasecmp(optarg, "options") == 0) {
 				flags |= SCAN_OPTIONS;
 			} else if (strcasecmp(optarg, "unknown-targets") == 0) {
@@ -962,6 +1006,15 @@ main(int argc, char *argv[])
 		}
 	}
 
+	ssize_t editdist = 3;
+	if (editdiststr) {
+		const char *error;
+		editdist = strtonum(editdiststr, 0, INT_MAX, &error);
+		if (error) {
+			errx(1, "strtonum: %s", error);
+		}
+	}
+
 	struct PortscanLog *result = portscan_log_new();
 	struct Array *origins = NULL;
 	if (argc == 0) {
@@ -974,7 +1027,7 @@ main(int argc, char *argv[])
 	}
 
 	int status = 0;
-	scan_ports(portsdir, origins, flags, keyquery_regexp, query_regexp, result);
+	scan_ports(portsdir, origins, flags, keyquery_regexp, query_regexp, editdist, result);
 	if (portscan_log_len(result) > 0) {
 		if (logdir != NULL) {
 			struct PortscanLog *prev_result = portscan_log_read_all(logdir, PORTSCAN_LOG_LATEST);

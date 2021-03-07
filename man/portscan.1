@@ -73,7 +73,7 @@ If it is not given
 will default to
 .Sy categories ,
 .Sy clones ,
-.Sy option-default-descriptions,
+.Sy option-default-descriptions ,
 .Sy unknown-targets ,
 and
 .Sy unknown-variables .
@@ -83,10 +83,13 @@ Enable all of the below scanners.
 Check categories for unhooked, wrong, or misordered entries.
 .It Fl o Sy clones
 Scan for variables that are set twice.
-.It Fl o Sy option-default-descriptions
+.It Fl o Sy option-default-descriptions Op Ar =editdist
 Report redundant option descriptions that match the default
 descriptions in
 .Pa Mk/bsd.options.desc.mk .
+.Sy editdist
+is the edit distance between the default and port option description.
+It defaults to 3.
 .It Fl o Sy options
 Include port options and option groups in the result.
 Use
