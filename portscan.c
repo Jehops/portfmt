@@ -487,7 +487,7 @@ scan_port(struct ScanPortArgs *args)
 		struct Map *descs = parser_metadata(parser, PARSER_METADATA_OPTION_DESCRIPTIONS);
 		MAP_FOREACH(descs, char *, var, char *, desc) {
 			char *default_desc = map_get(args->default_option_descriptions, var);
-			if (default_desc && strcmp(default_desc, desc) == 0) {
+			if (default_desc && strcasecmp(default_desc, desc) == 0) {
 				set_add(retval->option_default_descriptions, xstrdup(var));
 			}
 		}
