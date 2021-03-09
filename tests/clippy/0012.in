@@ -1,3 +1,5 @@
 USES=		shebangfix
 sh_OLD_CMD=	foo
 sh_CMD=		foo
+
+.include <bsd.port.mk>

@@ -3,3 +3,5 @@ post-install-FOO-off:
 post-install-FOO-on:
 post-install:
 do-patch:
+
+.include <bsd.port.mk>

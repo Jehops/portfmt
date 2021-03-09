@@ -16,3 +16,5 @@ GITWEB_BUILD_DEPENDS=
 GITWEB_SUBPACKAGES=
 
 SNDIO_LIB_DEPENDS.sndio=
+
+.include <bsd.port.mk>

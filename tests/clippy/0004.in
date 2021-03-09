@@ -1,3 +1,6 @@
 SUBPACKAGES=gdbm
 COMMENT.gdbm=foo
 COMMENT=fo
+
+.include <bsd.port.pre.mk>
+.include <bsd.port.post.mk>

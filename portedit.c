@@ -97,6 +97,7 @@ static struct ParserEdits parser_edits[] = {
 	{ "edit.merge", edit_merge },
 	{ "edit.set-version", edit_set_version },
 	{ "kakoune.select-object-on-line", kakoune_select_object_on_line },
+	{ "lint.bsd-port", lint_bsd_port },
 	{ "lint.clones", lint_clones },
 	{ "lint.order", lint_order },
 	{ "output.unknown-targets", output_unknown_targets },

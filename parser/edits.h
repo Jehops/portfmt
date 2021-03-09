@@ -53,6 +53,7 @@ struct Array *edit_bump_revision(struct Parser *, struct Array *, enum ParserErr
 struct Array *edit_merge(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 struct Array *edit_set_version(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 struct Array *kakoune_select_object_on_line(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
+struct Array *lint_bsd_port(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 struct Array *lint_clones(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 struct Array *lint_order(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
 struct Array *output_unknown_targets(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
