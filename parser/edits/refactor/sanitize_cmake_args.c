@@ -49,8 +49,7 @@ enum State {
 	CMAKE_D,
 };
 
-struct Array *
-refactor_sanitize_cmake_args(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(refactor_sanitize_cmake_args)
 {
 	if (userdata != NULL) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;

@@ -97,7 +97,10 @@ struct Parser;
 struct Set;
 struct Token;
 
-typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
+typedef struct Array *(*ParserEditFn)(struct Parser *, struct Array *, enum ParserError *, char **, void *);
+
+#define PARSER_EDIT(name) \
+	struct Array *name(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, void *userdata)
 
 struct Parser *parser_new(struct ParserSettings *);
 void parser_init_settings(struct ParserSettings *);
@@ -107,7 +110,7 @@ enum ParserError parser_read_finish(struct Parser *);
 char *parser_error_tostring(struct Parser *);
 void parser_free(struct Parser *);
 enum ParserError parser_output_write_to_file(struct Parser *, FILE *);
-enum ParserError parser_edit(struct Parser *, ParserEditFn, const void *);
+enum ParserError parser_edit(struct Parser *, ParserEditFn, void *);
 void parser_enqueue_output(struct Parser *, const char *);
 struct Target *parser_lookup_target(struct Parser *, const char *, struct Array **);
 struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);

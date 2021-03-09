@@ -50,8 +50,7 @@ enum DedupAction {
 	USES,
 };
 
-struct Array *
-refactor_dedup_tokens(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(refactor_dedup_tokens)
 {
 	if (userdata != NULL) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;

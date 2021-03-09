@@ -51,8 +51,7 @@ has_valid_modifier(struct Variable *var) {
 	}
 }
 
-struct Array *
-refactor_collapse_adjacent_variables(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(refactor_collapse_adjacent_variables)
 {
 	if (userdata != NULL) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;

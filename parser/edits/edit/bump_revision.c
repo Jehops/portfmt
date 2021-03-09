@@ -85,8 +85,7 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 	return revision;
 }
 
-struct Array *
-edit_bump_revision(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(edit_bump_revision)
 {
 	const struct ParserEdit *params = userdata;
 	if (params == NULL ||

@@ -1957,7 +1957,7 @@ parser_mark_edited(struct Parser *parser, struct Token *t)
 }
 
 enum ParserError
-parser_edit(struct Parser *parser, ParserEditFn f, const void *userdata)
+parser_edit(struct Parser *parser, ParserEditFn f, void *userdata)
 {
 	if (!parser->read_finished) {
 		parser_read_finish(parser);

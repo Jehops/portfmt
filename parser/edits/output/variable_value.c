@@ -41,8 +41,7 @@
 #include "token.h"
 #include "variable.h"
 
-struct Array *
-output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(output_variable_value)
 {
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		return NULL;
@@ -52,12 +51,12 @@ output_variable_value(struct Parser *parser, struct Array *tokens, enum ParserEr
 		return NULL;
 	}
 
-	struct ParserEditOutput *param = (struct ParserEditOutput *)userdata;
+	struct ParserEditOutput *param = userdata;
 	if (param->return_values) {
 		param->keys = array_new();
 		param->values= array_new();
 	}
-	ARRAY_FOREACH(tokens, struct Token *, t) {
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			if ((param->keyfilter == NULL || param->keyfilter(parser, variable_name(token_variable(t)), param->keyuserdata))) {

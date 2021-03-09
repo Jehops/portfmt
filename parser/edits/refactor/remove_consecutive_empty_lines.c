@@ -51,8 +51,7 @@ is_empty_line(const char *s)
 	return empty;
 }
 
-struct Array *
-refactor_remove_consecutive_empty_lines(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(refactor_remove_consecutive_empty_lines)
 {
 	if (userdata != NULL) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;

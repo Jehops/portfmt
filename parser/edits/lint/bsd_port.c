@@ -38,10 +38,9 @@
 #include "parser/edits.h"
 #include "rules.h"
 
-struct Array *
-lint_bsd_port(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(lint_bsd_port)
 {
-	int *status = (int *)userdata;
+	int *status = userdata;
 	if (status == NULL) {
 		return NULL;
 	}

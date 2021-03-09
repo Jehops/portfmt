@@ -43,10 +43,9 @@
 #include "target.h"
 #include "token.h"
 
-struct Array *
-output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(output_unknown_targets)
 {
-	struct ParserEditOutput *param = (struct ParserEditOutput *)userdata;
+	struct ParserEditOutput *param = userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
@@ -58,7 +57,7 @@ output_unknown_targets(struct Parser *parser, struct Array *tokens, enum ParserE
 		param->values = array_new();
 	}
 	struct Set *targets = set_new(str_compare, NULL, NULL);
-	ARRAY_FOREACH(tokens, struct Token *, t) {
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		if (token_type(t) != TARGET_START) {
 			continue;
 		}

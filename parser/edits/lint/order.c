@@ -399,10 +399,9 @@ cleanup:
 	return status;
 }
 
-struct Array *
-lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(lint_order)
 {
-	int *status = (int*)userdata;
+	int *status = userdata;
 	struct ParserSettings settings = parser_settings(parser);
 	if (!(settings.behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
@@ -412,14 +411,14 @@ lint_order(struct Parser *parser, struct Array *tokens, enum ParserError *error,
 	int no_color = settings.behavior & PARSER_OUTPUT_NO_COLOR;
 
 	int status_var;
-	if ((status_var = check_variable_order(parser, tokens, no_color)) == -1) {
+	if ((status_var = check_variable_order(parser, ptokens, no_color)) == -1) {
 		*error = PARSER_ERROR_EDIT_FAILED;
 		*error_msg = xstrdup("lint_order: cannot compute difference");
 		return NULL;
 	}
 
 	int status_target;
-	if ((status_target = check_target_order(parser, tokens, no_color, status_var)) == -1) {
+	if ((status_target = check_target_order(parser, ptokens, no_color, status_var)) == -1) {
 		*error = PARSER_ERROR_EDIT_FAILED;
 		*error_msg = xstrdup("lint_order: cannot compute difference");
 		return NULL;

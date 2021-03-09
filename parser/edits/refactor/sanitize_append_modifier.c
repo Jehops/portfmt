@@ -42,8 +42,7 @@
 #include "token.h"
 #include "variable.h"
 
-struct Array *
-refactor_sanitize_append_modifier(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(refactor_sanitize_append_modifier)
 {
 	if (userdata != NULL) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;

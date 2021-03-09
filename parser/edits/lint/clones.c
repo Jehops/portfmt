@@ -53,10 +53,9 @@ add_clones(struct Set *clones, struct Set *seen, struct Set *seen_in_cond)
 	set_truncate(seen_in_cond);
 }
 
-struct Array *
-lint_clones(struct Parser *parser, struct Array *ptokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(lint_clones)
 {
-	struct Set **clones_ret = (struct Set **)userdata;
+	struct Set **clones_ret = userdata;
 	int no_color = parser_settings(parser).behavior & PARSER_OUTPUT_NO_COLOR;
 
 	struct Set *seen = set_new(str_compare, NULL, NULL);

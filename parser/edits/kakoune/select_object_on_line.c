@@ -49,8 +49,7 @@ kak_error(struct Parser *parser, const char *errstr)
 	parser_enqueue_output(parser, buf);
 }
 
-struct Array *
-kakoune_select_object_on_line(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(kakoune_select_object_on_line)
 {
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
@@ -82,7 +81,7 @@ kakoune_select_object_on_line(struct Parser *parser, struct Array *tokens, enum 
 
 	int found = 0;
 	struct Range *target_start_range = NULL;
-	ARRAY_FOREACH(tokens, struct Token *, t) {
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		struct Range *range = NULL;
 		switch (token_type(t)) {
 		case TARGET_START:

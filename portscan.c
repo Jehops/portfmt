@@ -131,7 +131,8 @@ static void lookup_subdirs(int, const char *, const char *, enum ScanFlags, stru
 static void scan_port(struct ScanPortArgs *);
 static void *lookup_origins_worker(void *);
 static enum ParserError process_include(struct Parser *, struct Set *, const char *, int, const char *);
-static struct Array *extract_includes(struct Parser *, struct Array *, enum ParserError *, char **, const void *);
+static PARSER_EDIT(extract_includes);
+static PARSER_EDIT(get_default_option_descriptions);
 static DIR *diropenat(int, const char *);
 static FILE *fileopenat(int, const char *);
 static void *scan_ports_worker(void *);
@@ -321,15 +322,14 @@ process_include(struct Parser *parser, struct Set *errors, const char *curdir, i
 	return error;
 }
 
-struct Array *
-extract_includes(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(extract_includes)
 {
-	struct Array **retval = (struct Array **)userdata;
+	struct Array **retval = userdata;
 
 	struct Array *includes = array_new();
 	int found = 0;
 
-	ARRAY_FOREACH(tokens, struct Token *, t) {
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case CONDITIONAL_START:
 			if (conditional_type(token_conditional(t)) == COND_INCLUDE) {
@@ -752,12 +752,11 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 	return retval;
 }
 
-static struct Array *
-get_default_option_descriptions(struct Parser *parser, struct Array *tokens, enum ParserError *error, char **error_msg, const void *userdata)
+PARSER_EDIT(get_default_option_descriptions)
 {
 	struct Array *desctokens = array_new();
 	struct Map *default_option_descriptions = map_new(str_compare, NULL, free, free);
-	ARRAY_FOREACH(tokens, struct Token *, t) {
+	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_TOKEN:
 			if (str_endswith(variable_name(token_variable(t)), "_DESC")) {
