@@ -72,14 +72,14 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 			// In slave ports we do not delete the variable first since
 			// they have a non-uniform structure and edit_merge will probably
 			// insert it into a non-optimal position.
-			xasprintf(&revision, "%s%d %s\n", buf, rev, comment);
+			revision = str_printf("%s%d %s\n", buf, rev, comment);
 		} else {
-			xasprintf(&revision, "%s!=\n%s%d %s\n", variable, buf, rev, comment);
+			revision = str_printf("%s!=\n%s%d %s\n", variable, buf, rev, comment);
 		}
 		free(buf);
 		free(comment);
 	} else {
-		xasprintf(&revision, "%s=1", variable);
+		revision = str_printf("%s=1", variable);
 	}
 
 	return revision;

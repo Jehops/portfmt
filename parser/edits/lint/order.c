@@ -123,9 +123,7 @@ variable_list(struct Parser *parser, struct Array *tokens)
 			if (flag && block != last_block) {
 				array_append(output, xstrdup(""));
 			}
-			char *buf;
-			xasprintf(&buf, "# %s", blocktype_tostring(block));
-			array_append(output, buf);
+			array_append(output, str_printf("# %s", blocktype_tostring(block)));
 		}
 		flag = 1;
 		array_append(output, xstrdup(var));
@@ -195,9 +193,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 				if (flag && block != last_block) {
 					array_append(target, xstrdup(""));
 				}
-				char *buf;
-				xasprintf(&buf, "# %s", blocktype_tostring(block));
-				array_append(target, buf);
+				array_append(target, str_printf("# %s", blocktype_tostring(block)));
 			}
 			flag = 1;
 			array_append(target, xstrdup(var));
@@ -211,9 +207,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	array_sort(unknowns, str_compare, NULL);
 	if (array_len(vars) > 0 && array_len(unknowns) > 0) {
 		array_append(target, xstrdup(""));
-		char *buf;
-		xasprintf(&buf, "# %s", blocktype_tostring(BLOCK_UNKNOWN));
-		array_append(target, buf);
+		array_append(target, str_printf("# %s", blocktype_tostring(BLOCK_UNKNOWN)));
 		array_append(target, xstrdup("# WARNING:"));
 		array_append(target, xstrdup("# Portclippy did not recognize the following variables."));
 		array_append(target, xstrdup("# They could be local variables only, misspellings of"));
@@ -248,9 +242,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	array_append(origin, xstrdup("# Out of order targets"));
 	ARRAY_FOREACH(targets, char *, name) {
 		if (is_known_target(parser, name)) {
-			char *buf;
-			xasprintf(&buf, "%s:", name);
-			array_append(origin, buf);
+			array_append(origin, str_printf("%s:", name));
 		}
 	}
 
@@ -263,18 +255,14 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	array_append(target, xstrdup("# Out of order targets"));
 	ARRAY_FOREACH(targets, char *, name) {
 		if (is_known_target(parser, name)) {
-			char *buf;
-			xasprintf(&buf, "%s:", name);
-			array_append(target, buf);
+			array_append(target, str_printf("%s:", name));
 		}
 	}
 
 	struct Array *unknowns = array_new();
 	ARRAY_FOREACH(targets, char *, name) {
 		if (!is_known_target(parser, name) && name[0] != '_') {
-			char *buf;
-			xasprintf(&buf, "%s:", name);
-			array_append(unknowns, buf);
+			array_append(unknowns, str_printf("%s:", name));
 		}
 	}
 	array_free(targets);
@@ -405,7 +393,7 @@ PARSER_EDIT(lint_order)
 	struct ParserSettings settings = parser_settings(parser);
 	if (!(settings.behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
+		*error_msg = str_printf("needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 	int no_color = settings.behavior & PARSER_OUTPUT_NO_COLOR;

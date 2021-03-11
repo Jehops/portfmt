@@ -44,16 +44,16 @@
 static void
 kak_error(struct Parser *parser, const char *errstr)
 {
-	char *buf;
-	xasprintf(&buf, "echo -markup \"{Error}%s\"\n", errstr);
+	char *buf = str_printf("echo -markup \"{Error}%s\"\n", errstr);
 	parser_enqueue_output(parser, buf);
+	free(buf);
 }
 
 PARSER_EDIT(kakoune_select_object_on_line)
 {
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
+		*error_msg = str_printf("needs PARSER_OUTPUT_RAWLINES");
 		kak_error(parser, *error_msg);
 		return NULL;
 	}
@@ -61,7 +61,7 @@ PARSER_EDIT(kakoune_select_object_on_line)
 	char *kak_cursor_line_buf = getenv("kak_cursor_line");
 	if (!kak_cursor_line_buf) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		xasprintf(error_msg, "could not find kak_cursor_line");
+		*error_msg = str_printf("could not find kak_cursor_line");
 		kak_error(parser, *error_msg);
 		return NULL;
 	}
@@ -71,9 +71,9 @@ PARSER_EDIT(kakoune_select_object_on_line)
 	if (kak_cursor_line == 0) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
 		if (errstr) {
-			xasprintf(error_msg, "could not parse kak_cursor_line: %s", errstr);
+			*error_msg = str_printf("could not parse kak_cursor_line: %s", errstr);
 		} else {
-			xasprintf(error_msg, "could not parse kak_cursor_line");
+			*error_msg = str_printf("could not parse kak_cursor_line");
 		}
 		kak_error(parser, *error_msg);
 		return NULL;
@@ -97,8 +97,7 @@ PARSER_EDIT(kakoune_select_object_on_line)
 			break;
 		}
 		if (range && kak_cursor_line >= range->start && kak_cursor_line < range->end) {
-			char *buf;
-			xasprintf(&buf, "select %zu.1,%zu.10000000\n", range->start, range->end - 1);
+			char *buf = str_printf("select %zu.1,%zu.10000000\n", range->start, range->end - 1);
 			parser_enqueue_output(parser, buf);
 			free(buf);
 			found = 1;

@@ -125,37 +125,37 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 	char *buf;
 	switch (entry->type) {
 	case PORTSCAN_LOG_ENTRY_UNKNOWN_VAR:
-		xasprintf(&buf, "%-7c %-40s %s\n", 'V', entry->origin, entry->value);
+		buf = str_printf("%-7c %-40s %s\n", 'V', entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_UNKNOWN_TARGET:
-		xasprintf(&buf, "%-7c %-40s %s\n", 'T', entry->origin, entry->value);
+		buf = str_printf("%-7c %-40s %s\n", 'T', entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_DUPLICATE_VAR:
-		xasprintf(&buf, "%-7s %-40s %s\n", "Vc", entry->origin, entry->value);
+		buf = str_printf("%-7s %-40s %s\n", "Vc", entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_OPTION_DEFAULT_DESCRIPTION:
-		xasprintf(&buf, "%-7s %-40s %s\n", "OD", entry->origin, entry->value);
+		buf = str_printf("%-7s %-40s %s\n", "OD", entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_OPTION_GROUP:
-		xasprintf(&buf, "%-7s %-40s %s\n", "OG", entry->origin, entry->value);
+		buf = str_printf("%-7s %-40s %s\n", "OG", entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_OPTION:
-		xasprintf(&buf, "%-7c %-40s %s\n", 'O', entry->origin, entry->value);
+		buf = str_printf("%-7c %-40s %s\n", 'O', entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_CATEGORY_NONEXISTENT_PORT:
-		xasprintf(&buf, "%-7s %-40s %s\n", "Ce", entry->origin, entry->value);
+		buf = str_printf("%-7s %-40s %s\n", "Ce", entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_CATEGORY_UNHOOKED_PORT:
-		xasprintf(&buf, "%-7s %-40s %s\n", "Cu", entry->origin, entry->value);
+		buf = str_printf("%-7s %-40s %s\n", "Cu", entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_CATEGORY_UNSORTED:
-		xasprintf(&buf, "%-7c %-40s %s\n", 'C', entry->origin, entry->value);
+		buf = str_printf("%-7c %-40s %s\n", 'C', entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_ERROR:
-		xasprintf(&buf, "%-7c %-40s %s\n", 'E', entry->origin, entry->value);
+		buf = str_printf("%-7c %-40s %s\n", 'E', entry->origin, entry->value);
 		break;
 	case PORTSCAN_LOG_ENTRY_VARIABLE_VALUE:
-		xasprintf(&buf, "%-7s %-40s %s\n", "Vv", entry->origin, entry->value);
+		buf = str_printf("%-7s %-40s %s\n", "Vv", entry->origin, entry->value);
 		break;
 	default:
 		abort();
@@ -370,8 +370,7 @@ log_filename(const char *rev)
 		return NULL;
 	}
 
-	char *log_path;
-	xasprintf(&log_path, "%s-%s.log", buf, rev);
+	char *log_path = str_printf("%s-%s.log", buf, rev);
 
 	return log_path;
 }
@@ -420,9 +419,9 @@ log_revision(int portsdir)
 
 		if (strlen(line) == 40) {
 			// Assume git commit
-			xasprintf(&revision, "%s", line);
+			revision = str_printf("%s", line);
 		} else {
-			xasprintf(&revision, "r%s", line);
+			revision = str_printf("r%s", line);
 		}
 	}
 	free(line);

@@ -212,9 +212,9 @@ PARSER_EDIT(edit_set_version)
 
 	char *buf = NULL;
 	if (suffix) {
-		xasprintf(&buf, "DISTVERSIONSUFFIX=%s", suffix);
+		buf = str_printf("DISTVERSIONSUFFIX=%s", suffix);
 	} else if (remove_distversionsuffix) {
-		xasprintf(&buf, "DISTVERSIONSUFFIX!=");
+		buf = str_printf("DISTVERSIONSUFFIX!=");
 	}
 	if (buf) {
 		*error = parser_read_from_buffer(subparser, buf, strlen(buf));
@@ -226,9 +226,9 @@ PARSER_EDIT(edit_set_version)
 	}
 
 	if (prefix) {
-		xasprintf(&buf, "DISTVERSIONPREFIX=%s", prefix);
+		buf = str_printf("DISTVERSIONPREFIX=%s", prefix);
 	} else if (remove_distversionprefix) {
-		xasprintf(&buf, "DISTVERSIONPREFIX!=");
+		buf = str_printf("DISTVERSIONPREFIX!=");
 	}
 	if (buf) {
 		*error = parser_read_from_buffer(subparser, buf, strlen(buf));
@@ -240,7 +240,7 @@ PARSER_EDIT(edit_set_version)
 	}
 
 	if (strcmp(ver, "DISTVERSION") == 0) {
-		xasprintf(&buf, "PORTVERSION!=");
+		buf = str_printf("PORTVERSION!=");
 		*error = parser_read_from_buffer(subparser, buf, strlen(buf));
 		if (*error != PARSER_ERROR_OK) {
 			goto cleanup;
@@ -255,9 +255,9 @@ PARSER_EDIT(edit_set_version)
 
 	if (rev > 0) {
 		// Remove PORTREVISION
-		xasprintf(&buf, "%s=%s\nPORTREVISION!=", ver, newversion);
+		buf = str_printf("%s=%s\nPORTREVISION!=", ver, newversion);
 	} else {
-		xasprintf(&buf, "%s=%s", ver, newversion);
+		buf = str_printf("%s=%s", ver, newversion);
 	}
 	*error = parser_read_from_buffer(subparser, buf, strlen(buf));
 	if (*error != PARSER_ERROR_OK) {

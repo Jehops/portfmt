@@ -49,9 +49,9 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 {
 	char *var;
 	if (optuse) {
-		xasprintf(&var, "%s_USE", option);
+		var = str_printf("%s_USE", option);
 	} else {
-		xasprintf(&var, "%s_VARS", option);
+		var = str_printf("%s_VARS", option);
 	}
 	struct Array *optvars;
 	if (!parser_lookup_variable_all(parser, var, &optvars, NULL)) {
@@ -75,7 +75,7 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 		}
 		if (optuse) {
 			char *tmp = name;
-			xasprintf(&name, "USE_%s", tmp);
+			name = str_printf("USE_%s", tmp);
 			free(tmp);
 		}
 		if (variable_order_block(parser, name) == BLOCK_UNKNOWN &&
@@ -100,7 +100,7 @@ PARSER_EDIT(output_unknown_variables)
 	struct ParserEditOutput *param = userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
+		*error_msg = str_printf("needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 

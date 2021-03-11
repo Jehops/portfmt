@@ -186,10 +186,8 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 {
 	FILE *in = fileopenat(portsdir, path);
 	if (in == NULL) {
-		char *msg;
-		xasprintf(&msg, "fileopenat: %s", strerror(errno));
 		array_append(error_origins, xstrdup(path));
-		array_append(error_msgs, msg);
+		array_append(error_msgs, str_printf("fileopenat: %s", strerror(errno)));
 		return;
 	}
 
@@ -222,17 +220,14 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 		DIR *dir = diropenat(portsdir, category);
 		if (dir == NULL) {
 			array_append(error_origins, xstrdup(category));
-			char *msg;
-			xasprintf(&msg, "diropenat: %s", strerror(errno));
-			array_append(error_msgs, msg);
+			array_append(error_msgs, str_printf("diropenat: %s", strerror(errno)));
 		} else {
 			struct dirent *dp;
 			while ((dp = readdir(dir)) != NULL) {
 				if (dp->d_name[0] == '.') {
 					continue;
 				}
-				char *path;
-				xasprintf(&path, "%s/%s", category, dp->d_name);
+				char *path = str_printf("%s/%s", category, dp->d_name);
 				struct stat sb;
 				if (fstatat(portsdir, path, &sb, 0) == -1 ||
 				    !S_ISDIR(sb.st_mode)) {
@@ -252,7 +247,7 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 	ARRAY_FOREACH(tmp, char *, port) {
 		char *origin;
 		if (flags != SCAN_NOTHING) {
-			xasprintf(&origin, "%s/%s", category, port);
+			origin = str_printf("%s/%s", category, port);
 		} else {
 			origin = xstrdup(port);
 		}
@@ -289,30 +284,28 @@ process_include(struct Parser *parser, struct Set *errors, const char *curdir, i
 		return PARSER_ERROR_OK;
 	} else if (str_startswith(filename, "${.PARSEDIR}/")) {
 		filename += strlen("${.PARSEDIR}/");
-		xasprintf(&path, "%s/%s", curdir, filename);
+		path = str_printf("%s/%s", curdir, filename);
 	} else if (str_startswith(filename, "${.CURDIR}/")) {
 		filename += strlen("${.CURDIR}/");
-		xasprintf(&path, "%s/%s", curdir, filename);
+		path = str_printf("%s/%s", curdir, filename);
 	} else if (str_startswith(filename, "${.CURDIR:H}/")) {
 		filename += strlen("${.CURDIR:H}/");
-		xasprintf(&path, "%s/../%s", curdir, filename);
+		path = str_printf("%s/../%s", curdir, filename);
 	} else if (str_startswith(filename, "${.CURDIR:H:H}/")) {
 		filename += strlen("${.CURDIR:H:H}/");
-		xasprintf(&path, "%s/../../%s", curdir, filename);
+		path = str_printf("%s/../../%s", curdir, filename);
 	} else if (str_startswith(filename, "${PORTSDIR}/")) {
 		filename += strlen("${PORTSDIR}/");
 		path = xstrdup(filename);
 	} else if (str_startswith(filename, "${FILESDIR}/")) {
 		filename += strlen("${FILESDIR}/");
-		xasprintf(&path, "%s/files/%s", curdir, filename);
+		path = str_printf("%s/files/%s", curdir, filename);
 	} else {
-		xasprintf(&path, "%s/%s", curdir, filename);
+		path = str_printf("%s/%s", curdir, filename);
 	}
 	FILE *f = fileopenat(portsdir, path);
 	if (f == NULL) {
-		char *msg;
-		xasprintf(&msg, "cannot open include: %s: %s", path, strerror(errno));
-		set_add(errors, msg);
+		set_add(errors, str_printf("cannot open include: %s: %s", path, strerror(errno)));
 		free(path);
 		return PARSER_ERROR_OK;
 	}
@@ -433,9 +426,7 @@ scan_port(struct ScanPortArgs *args)
 
 	FILE *in = fileopenat(args->portsdir, args->path);
 	if (in == NULL) {
-		char *msg;
-		xasprintf(&msg, "fileopenat: %s", strerror(errno));
-		set_add(retval->errors, msg);
+		set_add(retval->errors, str_printf("fileopenat: %s", strerror(errno)));
 		return;
 	}
 
@@ -472,9 +463,7 @@ scan_port(struct ScanPortArgs *args)
 		struct ParserEditOutput param = { unknown_variables_filter, args->query, NULL, NULL, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_unknown_variables, &param);
 		if (error != PARSER_ERROR_OK) {
-			char *msg;
-			xasprintf(&msg, "output.unknown-variables: %s", parser_error_tostring(parser));
-			set_add(retval->errors, msg);
+			set_add(retval->errors, str_printf("output.unknown-variables: %s", parser_error_tostring(parser)));
 			goto cleanup;
 		}
 		for (size_t i = 0; i < array_len(param.keys); i++) {
@@ -491,9 +480,7 @@ scan_port(struct ScanPortArgs *args)
 		struct ParserEditOutput param = { unknown_targets_filter, args->query, NULL, NULL, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_unknown_targets, &param);
 		if (error != PARSER_ERROR_OK) {
-			char *msg;
-			xasprintf(&msg, "output.unknown-targets: %s", parser_error_tostring(parser));
-			set_add(retval->errors, msg);
+			set_add(retval->errors, str_printf("output.unknown-targets: %s", parser_error_tostring(parser)));
 			goto cleanup;
 		}
 		for (size_t i = 0; i < array_len(param.keys); i++) {
@@ -510,9 +497,7 @@ scan_port(struct ScanPortArgs *args)
 		// XXX: Limit by query?
 		error = parser_edit(parser, lint_clones, &retval->clones);
 		if (error != PARSER_ERROR_OK) {
-			char *msg;
-			xasprintf(&msg, "lint.clones: %s", parser_error_tostring(parser));
-			set_add(retval->errors, msg);
+			set_add(retval->errors, str_printf("lint.clones: %s", parser_error_tostring(parser)));
 			goto cleanup;
 		}
 	}
@@ -551,18 +536,14 @@ scan_port(struct ScanPortArgs *args)
 		struct ParserEditOutput param = { variable_value_filter, args->keyquery, variable_value_filter, args->query, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_variable_value, &param);
 		if (error != PARSER_ERROR_OK) {
-			char *msg;
-			xasprintf(&msg, "output.variable-value: %s", parser_error_tostring(parser));
-			set_add(retval->errors, msg);
+			set_add(retval->errors, str_printf("output.variable-value: %s", parser_error_tostring(parser)));
 			goto cleanup;
 		}
 
 		for (size_t i = 0; i < array_len(param.values); i++) {
 			char *key = array_get(param.keys, i);
 			char *value = array_get(param.values, i);
-			char *buf;
-			xasprintf(&buf, "%-30s\t%s", key, value);
-			set_add(retval->variable_values, buf);
+			set_add(retval->variable_values, str_printf("%-30s\t%s", key, value));
 			free(key);
 			free(value);
 		}
@@ -588,8 +569,7 @@ scan_ports_worker(void *userdata)
 
 	for (size_t i = data->start; i < data->end; i++) {
 		char *origin = array_get(data->origins, i);
-		char *path;
-		xasprintf(&path, "%s/Makefile", origin);
+		char *path = str_printf("%s/Makefile", origin);
 		struct ScanResult *result = xmalloc(sizeof(struct ScanResult));
 		result->origin = xstrdup(origin);
 		result->flags = data->flags;
@@ -624,8 +604,7 @@ lookup_origins_worker(void *userdata)
 
 	for (size_t i = data->start; i < data->end; i++) {
 		char *category = array_get(data->categories, i);
-		char *path;
-		xasprintf(&path, "%s/Makefile", category);
+		char *path = str_printf("%s/Makefile", category);
 		lookup_subdirs(data->portsdir, category, path, data->flags, result->origins, result->nonexistent, result->unhooked, result->unsorted, result->error_origins, result->error_msgs);
 		free(path);
 	}
@@ -794,9 +773,8 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 
 	FILE *in = fileopenat(portsdir, "Mk/bsd.options.desc.mk");
 	if (in == NULL) {
-		char *msg;
-		xasprintf(&msg, "fileopenat: %s", strerror(errno));
-		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsd.options.desc.mk", msg);
+		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsd.options.desc.mk",
+			str_printf("fileopenat: %s", strerror(errno)));
 		return;
 	}
 

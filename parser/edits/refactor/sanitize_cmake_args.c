@@ -85,8 +85,7 @@ PARSER_EDIT(refactor_sanitize_cmake_args)
 				state = CMAKE_D;
 				parser_mark_for_gc(parser, t);
 			} else if (state == CMAKE_D) {
-				char *buf;
-				xasprintf(&buf, "-D%s", token_data(t));
+				char *buf = str_printf("-D%s", token_data(t));
 				struct Token *newt = token_clone(t, buf);
 				free(buf);
 				array_append(tokens, newt);

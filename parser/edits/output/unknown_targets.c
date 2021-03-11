@@ -48,7 +48,7 @@ PARSER_EDIT(output_unknown_targets)
 	struct ParserEditOutput *param = userdata;
 	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		xasprintf(error_msg, "needs PARSER_OUTPUT_RAWLINES");
+		*error_msg = str_printf("needs PARSER_OUTPUT_RAWLINES");
 		return NULL;
 	}
 

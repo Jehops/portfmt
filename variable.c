@@ -178,7 +178,5 @@ variable_tostring(struct Variable *var)
 	if (str_endswith(var->name, "+")) {
 		sep = " ";
 	}
-	char *s;
-	xasprintf(&s, "%s%s%s", var->name, sep, mod);
-	return s;
+	return str_printf("%s%s%s", var->name, sep, mod);
 }

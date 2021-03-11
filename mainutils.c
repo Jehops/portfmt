@@ -150,8 +150,7 @@ open_file_helper(const char *path, const char *mode, char **retval)
 		return NULL;
 	}
 
-	char *filename;
-	xasprintf(&filename, "%s/Makefile", path);
+	char *filename = str_printf("%s/Makefile", path);
 	FILE *f = fopen(filename, mode);
 	if (f == NULL) {
 		free(filename);

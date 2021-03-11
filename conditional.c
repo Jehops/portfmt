@@ -65,7 +65,7 @@ conditional_new(char *s)
 	char *type;
 	if (tmp[0] == '.') {
 		char *tmp2 = str_trim(tmp + 1);
-		xasprintf(&type, ".%s", tmp2);
+		type = str_printf(".%s", tmp2);
 		free(tmp2);
 	} else {
 		type = str_trim(tmp);

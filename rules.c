@@ -1818,9 +1818,7 @@ matches_options_group(struct Parser *parser, const char *s, char **prefix)
 static int
 is_cabal_datadir_vars_helper(const char *var, const char *exe, char **prefix, char **suffix)
 {
-	char *buf;
-
-	xasprintf(&buf, "%s_DATADIR_VARS", exe);
+	char *buf = str_printf( "%s_DATADIR_VARS", exe);
 	if (strcmp(var, buf) == 0) {
 		if (prefix) {
 			*prefix = xstrdup(exe);
@@ -1868,9 +1866,7 @@ is_cabal_datadir_vars(struct Parser *parser, const char *var, char **prefix, cha
 static int
 is_shebang_lang_helper(const char *var, const char *lang, char **prefix, char **suffix)
 {
-	char *buf;
-
-	xasprintf(&buf, "%s_OLD_CMD", lang);
+	char *buf = str_printf("%s_OLD_CMD", lang);
 	if (strcmp(var, buf) == 0) {
 		if (prefix) {
 			*prefix = xstrdup(lang);
@@ -1883,7 +1879,7 @@ is_shebang_lang_helper(const char *var, const char *lang, char **prefix, char **
 	}
 	free(buf);
 
-	xasprintf(&buf, "%s_CMD", lang);
+	buf = str_printf("%s_CMD", lang);
 	if (strcmp(var, buf) == 0) {
 		if (prefix) {
 			*prefix = xstrdup(lang);
@@ -2353,8 +2349,7 @@ target_extract_opt(struct Parser *parser, const char *target, char **target_out,
 			*opt_out = xstrndup(p, strlen(p) - strlen("-off"));
 			*state = 0;
 		}
-		char *tmp;
-		xasprintf(&tmp, "%s_USES", *opt_out);
+		char *tmp = str_printf("%s_USES", *opt_out);
 		if (is_options_helper(parser, tmp, NULL, NULL, NULL)) {
 			*target_out = xstrndup(target, strlen(target) - strlen(p) - 1);
 		} else {

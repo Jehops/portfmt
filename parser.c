@@ -234,7 +234,7 @@ consume_token(struct Parser *parser, const char *line, size_t pos,
 	if (!eol_ok) {
 		parser->error = PARSER_ERROR_EXPECTED_CHAR;
 		free(parser->error_msg);
-		xasprintf(&parser->error_msg, "%c", endchar);
+		parser->error_msg = str_printf("%c", endchar);
 		return 0;
 	} else {
 		return i;
@@ -300,14 +300,11 @@ range_tostring(struct Range *range)
 	assert(range);
 	assert(range->start < range->end);
 
-	char *s;
 	if (range->start == range->end - 1) {
-		xasprintf(&s, "%zu", range->start);
+		return str_printf("%zu", range->start);
 	} else {
-		xasprintf(&s, "%zu-%zu", range->start, range->end - 1);
+		return str_printf("%zu-%zu", range->start, range->end - 1);
 	}
-
-	return s;
 }
 
 static int
@@ -426,79 +423,79 @@ parser_error_tostring(struct Parser *parser)
 	char *lines = range_tostring(&parser->lines);
 	switch (parser->error) {
 	case PARSER_ERROR_OK:
-		xasprintf(&buf, "line %s: no error", lines);
+		buf = str_printf("line %s: no error", lines);
 		break;
 	case PARSER_ERROR_BUFFER_TOO_SMALL:
 		if (parser->error_msg) {
-			xasprintf(&buf, "line %s: buffer too small: %s", lines, parser->error_msg);
+			buf = str_printf("line %s: buffer too small: %s", lines, parser->error_msg);
 		} else {
-			xasprintf(&buf, "line %s: buffer too small", lines);
+			buf = str_printf("line %s: buffer too small", lines);
 		}
 		break;
 	case PARSER_ERROR_DIFFERENCES_FOUND:
-		xasprintf(&buf, "differences found");
+		buf = str_printf("differences found");
 		break;
 	case PARSER_ERROR_EDIT_FAILED:
 		if (parser->error_msg) {
-			xasprintf(&buf, "%s", parser->error_msg);
+			buf = str_printf("%s", parser->error_msg);
 		} else {
-			xasprintf(&buf, "line %s: edit failed", lines);
+			buf = str_printf("line %s: edit failed", lines);
 		}
 		break;
 	case PARSER_ERROR_EXPECTED_CHAR:
 		if (parser->error_msg) {
-			xasprintf(&buf, "line %s: expected char: %s", lines, parser->error_msg);
+			buf = str_printf("line %s: expected char: %s", lines, parser->error_msg);
 		} else {
-			xasprintf(&buf, "line %s: expected char", lines);
+			buf = str_printf("line %s: expected char", lines);
 		}
 		break;
 	case PARSER_ERROR_EXPECTED_INT:
 		if (parser->error_msg) {
-			xasprintf(&buf, "line %s: expected integer: %s", lines, parser->error_msg);
+			buf = str_printf("line %s: expected integer: %s", lines, parser->error_msg);
 		} else {
-			xasprintf(&buf, "line %s: expected integer", lines);
+			buf = str_printf("line %s: expected integer", lines);
 		}
 		break;
 	case PARSER_ERROR_EXPECTED_TOKEN:
 		if (parser->error_msg) {
-			xasprintf(&buf, "line %s: expected %s", lines, parser->error_msg);
+			buf = str_printf("line %s: expected %s", lines, parser->error_msg);
 		} else {
-			xasprintf(&buf, "line %s: expected token", lines);
+			buf = str_printf("line %s: expected token", lines);
 		}
 		break;
 	case PARSER_ERROR_INVALID_ARGUMENT:
 		if (parser->error_msg) {
-			xasprintf(&buf, "invalid argument: %s", parser->error_msg);
+			buf = str_printf("invalid argument: %s", parser->error_msg);
 		} else {
-			xasprintf(&buf, "invalid argument");
+			buf = str_printf("invalid argument");
 		}
 		break;
 	case PARSER_ERROR_INVALID_REGEXP:
 		if (parser->error_msg) {
-			xasprintf(&buf, "invalid regexp: %s", parser->error_msg);
+			buf = str_printf("invalid regexp: %s", parser->error_msg);
 		} else {
-			xasprintf(&buf, "invalid regexp");
+			buf = str_printf("invalid regexp");
 		}
 		break;
 	case PARSER_ERROR_IO:
 		if (parser->error_msg) {
-			xasprintf(&buf, "line %s: IO error: %s", lines, parser->error_msg);
+			buf = str_printf("line %s: IO error: %s", lines, parser->error_msg);
 		} else {
-			xasprintf(&buf, "line %s: IO error", lines);
+			buf = str_printf("line %s: IO error", lines);
 		}
 		break;
 	case PARSER_ERROR_UNHANDLED_TOKEN_TYPE:
 		if (parser->error_msg) {
-			xasprintf(&buf, "line %s: unhandled token type: %s", lines, parser->error_msg);
+			buf = str_printf("line %s: unhandled token type: %s", lines, parser->error_msg);
 		} else {
-			xasprintf(&buf, "line %s: unhandled token type", lines);
+			buf = str_printf("line %s: unhandled token type", lines);
 		}
 		break;
 	case PARSER_ERROR_UNSPECIFIED:
 		if (parser->error_msg) {
-			xasprintf(&buf, "line %s: parse error: %s", lines, parser->error_msg);
+			buf = str_printf("line %s: parse error: %s", lines, parser->error_msg);
 		} else {
-			xasprintf(&buf, "line %s: parse error", lines);
+			buf = str_printf("line %s: parse error", lines);
 		}
 		break;
 	}
@@ -1106,8 +1103,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 		char *buf = xmalloc(bufsz);
 		if (opt_use) {
 			struct Array *values = array_new();
-			char *var;
-			xasprintf(&var, "USE_%s", prefix);
+			char *var = str_printf("USE_%s", prefix);
 			xstrlcpy(buf, prefix, bufsz);
 			char *tmp, *s, *token;
 			tmp = s = xstrdup(suffix);
@@ -1258,7 +1254,7 @@ parser_output_category_makefile_reformatted(struct Parser *parser)
 			if (conditional_type(token_conditional(t)) != COND_INCLUDE) {
 				parser->error = PARSER_ERROR_UNSPECIFIED;
 				char *buf = conditional_tostring(token_conditional(t));
-				xasprintf(&parser->error_msg, "unsupported conditional in category Makefile: %s", buf);
+				parser->error_msg = str_printf("unsupported conditional in category Makefile: %s", buf);
 				free(buf);
 				goto cleanup;
 			}
@@ -1296,7 +1292,7 @@ parser_output_category_makefile_reformatted(struct Parser *parser)
 				}
 			} else {
 				parser->error = PARSER_ERROR_UNSPECIFIED;
-				xasprintf(&parser->error_msg, "unsupported variable in category Makefile: %s", varname);
+				parser->error_msg = str_printf("unsupported variable in category Makefile: %s", varname);
 				goto cleanup;
 			}
 			break;
@@ -1309,7 +1305,7 @@ parser_output_category_makefile_reformatted(struct Parser *parser)
 			break;
 		default:
 			parser->error = PARSER_ERROR_UNHANDLED_TOKEN_TYPE;
-			xasprintf(&parser->error_msg, "%s", token_type_tostring(token_type(t)));
+			parser->error_msg = str_printf("%s", token_type_tostring(token_type(t)));
 			goto cleanup;
 		}
 	}
@@ -1448,7 +1444,7 @@ parser_output_diff(struct Parser *parser)
 		array_free(lines);
 		parser->error = PARSER_ERROR_UNSPECIFIED;
 		free(parser->error_msg);
-		xasprintf(&parser->error_msg, "could not create diff");
+		parser->error_msg = str_printf("could not create diff");
 		return;
 	}
 
@@ -1472,8 +1468,7 @@ parser_output_diff(struct Parser *parser)
 			color_delete = "";
 			color_reset = "";
 		}
-		char *buf;
-		xasprintf(&buf, "%s--- %s\n%s+++ %s%s\n",
+		char *buf = str_printf("%s--- %s\n%s+++ %s%s\n",
 			color_delete, filename, color_add, filename, color_reset);
 		array_append(parser->result, buf);
 		buf = diff_to_patch(&p, NULL, NULL, parser->settings.diff_context, !nocolor);
@@ -1574,8 +1569,7 @@ parser_output_dump_tokens(struct Parser *parser)
 			len = maxvarlen - 1;
 		}
 		char *range = range_tostring(token_lines(t));
-		char *buf;
-		xasprintf(&buf, "%-20s %8s ", type, range);
+		char *buf = str_printf("%-20s %8s ", type, range);
 		free(range);
 		parser_enqueue_output(parser, buf);
 		free(buf);
@@ -1875,13 +1869,13 @@ parser_output_write_to_file(struct Parser *parser, FILE *fp)
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			parser->error = PARSER_ERROR_IO;
 			free(parser->error_msg);
-			xasprintf(&parser->error_msg, "lseek: %s", strerror(errno));
+			parser->error_msg = str_printf("lseek: %s", strerror(errno));
 			return parser->error;
 		}
 		if (ftruncate(fd, 0) < 0) {
 			parser->error = PARSER_ERROR_IO;
 			free(parser->error_msg);
-			xasprintf(&parser->error_msg, "ftruncate: %s", strerror(errno));
+			parser->error_msg = str_printf("ftruncate: %s", strerror(errno));
 			return parser->error;
 		}
 	}
@@ -1908,7 +1902,7 @@ parser_output_write_to_file(struct Parser *parser, FILE *fp)
 		if (writev(fd, iov, j) < 0) {
 			parser->error = PARSER_ERROR_IO;
 			free(parser->error_msg);
-			xasprintf(&parser->error_msg, "writev: %s", strerror(errno));
+			parser->error_msg = str_printf("writev: %s", strerror(errno));
 			free(iov);
 			return parser->error;
 		}
@@ -2028,18 +2022,16 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 	struct Set *options;
 	parser_port_options(parser, NULL, &options, NULL);
 	SET_FOREACH (options, const char *, opt) {
-		char *buf;
-		xasprintf(&buf, "%s_VARS", opt);
+		char *buf = str_printf("%s_VARS", opt);
 		if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
 			for (size_t i = 0; i < array_len(tmp); i++) {
 				char *value = array_get(tmp, i);
-				char *buf;
-				xasprintf(&buf, "%s+=", var);
+				char *buf = str_printf("%s+=", var);
 				if (str_startswith(value, buf)) {
 					value += strlen(buf);
 				} else {
 					free(buf);
-					xasprintf(&buf, "%s=", var);
+					buf = str_printf("%s=", var);
 					if (str_startswith(value, buf)) {
 						value += strlen(buf);
 					} else {
@@ -2058,7 +2050,7 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 #else
 		if (strcmp(var, "USES") == 0) {
 #endif
-			xasprintf(&buf, "%s_%s", opt, var);
+			buf = str_printf("%s_%s", opt, var);
 			if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
 				for (size_t i = 0; i < array_len(tmp); i++) {
 					parser_meta_values_helper(set, var, array_get(tmp, i));
@@ -2080,8 +2072,7 @@ parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 			if (!set_contains(parser->port_options_groups, optgroupname)) {
 				set_add(parser->port_options_groups, xstrdup(optgroupname));
 			}
-			char *optgroupvar;
-			xasprintf(&optgroupvar, "%s_%s", groupname, optgroupname);
+			char *optgroupvar = str_printf("%s_%s", groupname, optgroupname);
 			struct Array *opts = NULL;
 			if (parser_lookup_variable_all(parser, optgroupvar, &opts, NULL)) {
 				for (size_t i = 0; i < array_len(opts); i++) {
@@ -2131,8 +2122,7 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 
 #define FOR_EACH_ARCH(f, var) \
 	for (size_t i = 0; i < nitems(known_architectures_); i++) { \
-		char *buf; \
-		xasprintf(&buf, "%s_%s", var, known_architectures_[i]); \
+		char *buf = str_printf("%s_%s", var, known_architectures_[i]); \
 		f(parser, buf); \
 		free(buf); \
 	}
@@ -2157,8 +2147,7 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 	struct Set *opts[] = { parser->port_options, parser->port_options_groups };
 	for (size_t i = 0; i < nitems(opts); i++) {
 		SET_FOREACH(opts[i], const char *, opt) {
-			char *var;
-			xasprintf(&var, "%s_DESC", opt);
+			char *var = str_printf("%s_DESC", opt);
 			char *desc;
 			if (parser_lookup_variable_str(parser, var, &desc, NULL)) {
 				map_add(parser->port_options_descriptions, var, desc);
