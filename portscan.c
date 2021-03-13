@@ -708,9 +708,8 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 		free(result);
 	}
 
-	for (size_t i = 0; i < array_len(error_origins); i++) {
-		char *origin = array_get(error_origins, i);
-		char *msg = array_get(error_msgs, i);
+	ARRAY_FOREACH(error_origins, char *, origin) {
+		char *msg = array_get(error_msgs, origin_index);
 		portscan_log_add_entry(log, PORTSCAN_LOG_ENTRY_ERROR, origin, msg);
 		free(origin);
 		free(msg);
