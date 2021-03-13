@@ -439,7 +439,9 @@ PARSER_EDIT(edit_merge)
 	}
 
 	struct Array *subtokens = NULL;
-	parser_edit(params->subparser, extract_tokens, &subtokens);
+	if (parser_edit(params->subparser, extract_tokens, &subtokens) != PARSER_ERROR_OK) {
+		return NULL;
+	}
 
 	struct Variable *var = NULL;
 	int merge = 0;
