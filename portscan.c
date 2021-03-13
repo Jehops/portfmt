@@ -140,6 +140,16 @@ static struct Array *lookup_origins(int, enum ScanFlags, struct PortscanLog *);
 static void scan_ports(int, struct Array *, enum ScanFlags, struct Regexp *, struct Regexp *, ssize_t, struct PortscanLog *);
 static void usage(void);
 
+static void
+add_error(struct Set *errors, char *msg)
+{
+	if (set_contains(errors, msg)) {
+		free(msg);
+	} else {
+		set_add(errors, msg);
+	}
+}
+
 DIR *
 diropenat(int root, const char *path)
 {
@@ -305,7 +315,7 @@ process_include(struct Parser *parser, struct Set *errors, const char *curdir, i
 	}
 	FILE *f = fileopenat(portsdir, path);
 	if (f == NULL) {
-		set_add(errors, str_printf("cannot open include: %s: %s", path, strerror(errno)));
+		add_error(errors, str_printf("cannot open include: %s: %s", path, strerror(errno)));
 		free(path);
 		return PARSER_ERROR_OK;
 	}
@@ -426,28 +436,28 @@ scan_port(struct ScanPortArgs *args)
 
 	FILE *in = fileopenat(args->portsdir, args->path);
 	if (in == NULL) {
-		set_add(retval->errors, str_printf("fileopenat: %s", strerror(errno)));
+		add_error(retval->errors, str_printf("fileopenat: %s", strerror(errno)));
 		return;
 	}
 
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, in);
 	if (error != PARSER_ERROR_OK) {
-		set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
+		add_error(retval->errors, parser_error_tostring(parser));
 		goto cleanup;
 	}
 
 	struct Array *includes = NULL;
 	error = parser_edit(parser, extract_includes, &includes);
 	if (error != PARSER_ERROR_OK) {
-		set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
+		add_error(retval->errors, parser_error_tostring(parser));
 		goto cleanup;
 	}
 	ARRAY_FOREACH(includes, char *, include) {
 		error = process_include(parser, retval->errors, retval->origin, args->portsdir, include);
 		if (error != PARSER_ERROR_OK) {
 			array_free(includes);
-			set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
+			add_error(retval->errors, parser_error_tostring(parser));
 			goto cleanup;
 		}
 	}
@@ -455,7 +465,7 @@ scan_port(struct ScanPortArgs *args)
 
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
-		set_add(retval->errors, xstrdup(parser_error_tostring(parser)));
+		add_error(retval->errors, parser_error_tostring(parser));
 		goto cleanup;
 	}
 
@@ -463,7 +473,9 @@ scan_port(struct ScanPortArgs *args)
 		struct ParserEditOutput param = { unknown_variables_filter, args->query, NULL, NULL, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_unknown_variables, &param);
 		if (error != PARSER_ERROR_OK) {
-			set_add(retval->errors, str_printf("output.unknown-variables: %s", parser_error_tostring(parser)));
+			char *err = parser_error_tostring(parser);
+			add_error(retval->errors, str_printf("output.unknown-variables: %s", err));
+			free(err);
 			goto cleanup;
 		}
 		for (size_t i = 0; i < array_len(param.keys); i++) {
@@ -480,7 +492,9 @@ scan_port(struct ScanPortArgs *args)
 		struct ParserEditOutput param = { unknown_targets_filter, args->query, NULL, NULL, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_unknown_targets, &param);
 		if (error != PARSER_ERROR_OK) {
-			set_add(retval->errors, str_printf("output.unknown-targets: %s", parser_error_tostring(parser)));
+			char *err = parser_error_tostring(parser);
+			add_error(retval->errors, str_printf("output.unknown-targets: %s", err));
+			free(err);
 			goto cleanup;
 		}
 		for (size_t i = 0; i < array_len(param.keys); i++) {
@@ -497,7 +511,8 @@ scan_port(struct ScanPortArgs *args)
 		// XXX: Limit by query?
 		error = parser_edit(parser, lint_clones, &retval->clones);
 		if (error != PARSER_ERROR_OK) {
-			set_add(retval->errors, str_printf("lint.clones: %s", parser_error_tostring(parser)));
+			char *err = parser_error_tostring(parser);
+			add_error(retval->errors, str_printf("lint.clones: %s", err));
 			goto cleanup;
 		}
 	}
@@ -509,24 +524,27 @@ scan_port(struct ScanPortArgs *args)
 			if (!default_desc) {
 				continue;
 			}
-			ssize_t editdist = edit_distance(default_desc, desc);
-			if (strcasecmp(default_desc, desc) == 0 || (editdist > 0 && editdist <= args->editdist)) {
-				set_add(retval->option_default_descriptions, xstrdup(var));
+			if (!set_contains(retval->option_default_descriptions, var)) {
+				ssize_t editdist = edit_distance(default_desc, desc);
+				if (strcasecmp(default_desc, desc) == 0 || (editdist > 0 && editdist <= args->editdist)) {
+					set_add(retval->option_default_descriptions, xstrdup(var));
+				}
 			}
 		}
 	}
 
 	if (retval->flags & SCAN_OPTIONS) {
 		struct Set *groups = parser_metadata(parser, PARSER_METADATA_OPTION_GROUPS);
-		SET_FOREACH (groups, const char *, group) { 
-			if (args->query == NULL || regexp_exec(args->query, group) == 0) {
+		SET_FOREACH(groups, char *, group) {
+			if (!set_contains(retval->option_groups, group) &&
+			    (args->query == NULL || regexp_exec(args->query, group) == 0)) {
 				set_add(retval->option_groups, xstrdup(group));
 			}
 		}
 		struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
-		retval->options = set_new(str_compare, NULL, free);
-		SET_FOREACH (options, const char *, option) {
-			if (args->query == NULL || regexp_exec(args->query, option) == 0) {
+		SET_FOREACH(options, char *, option) {
+			if (!set_contains(retval->options, option) &&
+			    (args->query == NULL || regexp_exec(args->query, option) == 0)) {
 				set_add(retval->options, xstrdup(option));
 			}
 		}
@@ -536,7 +554,9 @@ scan_port(struct ScanPortArgs *args)
 		struct ParserEditOutput param = { variable_value_filter, args->keyquery, variable_value_filter, args->query, 0, 1, NULL, NULL };
 		error = parser_edit(parser, output_variable_value, &param);
 		if (error != PARSER_ERROR_OK) {
-			set_add(retval->errors, str_printf("output.variable-value: %s", parser_error_tostring(parser)));
+			char *err = parser_error_tostring(parser);
+			add_error(retval->errors, str_printf("output.variable-value: %s", err));
+			free(err);
 			goto cleanup;
 		}
 
@@ -562,6 +582,7 @@ scan_ports_worker(void *userdata)
 	struct Array *retval = array_new();
 
 	if (data->start == data->end) {
+		free(data);
 		return retval;
 	}
 
@@ -587,6 +608,7 @@ scan_ports_worker(void *userdata)
 		array_append(retval, result);
 	}
 
+	free(data);
 	return retval;
 }
 
@@ -743,7 +765,9 @@ PARSER_EDIT(get_default_option_descriptions)
 			}
 			break;
 		case VARIABLE_END:
-			map_add(default_option_descriptions, xstrdup(variable_name(token_variable(t))), str_join(desctokens, " "));
+			if (!map_contains(default_option_descriptions, variable_name(token_variable(t)))) {
+				map_add(default_option_descriptions, xstrdup(variable_name(token_variable(t))), str_join(desctokens, " "));
+			}
 			array_truncate(desctokens);
 			break;
 		default:
@@ -784,14 +808,14 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 	enum ParserError error = parser_read_from_file(parser, in);
 	if (error != PARSER_ERROR_OK) {
 		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsdd.options.desc.mk", parser_error_tostring(parser));
-		free(parser);
+		parser_free(parser);
 		fclose(in);
 		return;
 	}
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
 		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsdd.options.desc.mk", parser_error_tostring(parser));
-		free(parser);
+		parser_free(parser);
 		fclose(in);
 		return;
 	}
@@ -799,11 +823,16 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 	struct Map *default_option_descriptions = NULL;
 	if (parser_edit(parser, get_default_option_descriptions, &default_option_descriptions) != PARSER_ERROR_OK) {
 		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsd.options.desc.mk", parser_error_tostring(parser));
-		free(parser);
+		parser_free(parser);
 		fclose(in);
 		return;
 	}
 	assert(default_option_descriptions);
+
+	parser_free(parser);
+	parser = NULL;
+	fclose(in);
+	in = NULL;
 
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
@@ -856,6 +885,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 		array_free(result);
 	}
 
+	map_free(default_option_descriptions);
 	free(tid);
 }
 

@@ -45,8 +45,8 @@
 static void
 add_clones(struct Set *clones, struct Set *seen, struct Set *seen_in_cond)
 {
-	SET_FOREACH (seen_in_cond, char *, name) {
-		if (set_contains(seen, name)) {
+	SET_FOREACH(seen_in_cond, char *, name) {
+		if (set_contains(seen, name) && !set_contains(clones, name)) {
 			set_add(clones, xstrdup(name));
 		}
 	}
@@ -91,7 +91,9 @@ PARSER_EDIT(lint_clones)
 				if (in_conditional > 0) {
 					set_add(seen_in_cond, name);
 				} else if (set_contains(seen, name)) {
-					set_add(clones, xstrdup(name));
+					if (!set_contains(clones, name)) {
+						set_add(clones, xstrdup(name));
+					}
 				} else {
 					set_add(seen, name);
 				}

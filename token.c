@@ -164,6 +164,7 @@ token_free(struct Token *token)
 		return;
 	}
 	free(token->data);
+	conditional_free(token->cond);
 	variable_free(token->var);
 	target_free(token->target);
 	free(token);

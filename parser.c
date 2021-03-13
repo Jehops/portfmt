@@ -384,6 +384,7 @@ parser_free(struct Parser *parser)
 		return;
 	}
 
+	set_free(parser->cabal_executables);
 	set_free(parser->flavors);
 	set_free(parser->licenses);
 	set_free(parser->shebang_langs);
@@ -410,6 +411,9 @@ parser_free(struct Parser *parser)
 	set_free(parser->edited);
 	array_free(parser->tokens);
 
+	free(parser->condname);
+	free(parser->targetname);
+	free(parser->varname);
 	free(parser->settings.filename);
 	free(parser->error_msg);
 	free(parser->inbuf);
@@ -1734,7 +1738,6 @@ parser_read_internal(struct Parser *parser)
 	pos = consume_conditional(buf);
 	if (pos > 0) {
 		free(parser->condname);
-		parser->condname = NULL;
 		char *tmp = str_substr(buf, 0, pos);
 		parser->condname = str_trimr(tmp);
 		free(tmp);
@@ -2148,9 +2151,13 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 	for (size_t i = 0; i < nitems(opts); i++) {
 		SET_FOREACH(opts[i], const char *, opt) {
 			char *var = str_printf("%s_DESC", opt);
-			char *desc;
-			if (parser_lookup_variable_str(parser, var, &desc, NULL)) {
-				map_add(parser->port_options_descriptions, var, desc);
+			if (!map_contains(parser->port_options_descriptions, var)) {
+				char *desc;
+				if (parser_lookup_variable_str(parser, var, &desc, NULL)) {
+					map_add(parser->port_options_descriptions, var, desc);
+				} else {
+					free(var);
+				}
 			} else {
 				free(var);
 			}
@@ -2183,7 +2190,11 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 				if (set_len(parser->cabal_executables) == 0) {
 					char *portname;
 					if (parser_lookup_variable_str(parser, "PORTNAME", &portname, NULL)) {
-						set_add(parser->cabal_executables, portname);
+						if (set_contains(parser->cabal_executables, portname)) {
+							free(portname);
+						} else {
+							set_add(parser->cabal_executables, portname);
+						}
 					}
 				}
 				parser->cabal_executables_looked_up = 1;
