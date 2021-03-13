@@ -1100,8 +1100,8 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 			struct Array *values = mempool_add(pool, array_new(), array_free);
 			char *var = mempool_add(pool, str_printf("USE_%s", prefix), free);
 			xstrlcpy(buf, prefix, bufsz);
-			char *tmp, *s, *token;
-			tmp = s = mempool_add(pool, xstrdup(suffix), free);
+			char *s, *token;
+			s = mempool_add(pool, xstrdup(suffix), free);
 			while ((token = strsep(&s, ",")) != NULL) {
 				struct Variable *v = variable_new(var);
 				struct Token *t2 = token_new_variable_token(token_lines(t), v, token);
