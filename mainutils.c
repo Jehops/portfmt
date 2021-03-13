@@ -102,7 +102,7 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 			settings->behavior |= PARSER_OUTPUT_DUMP_TOKENS;
 			break;
 		case 'e':
-			if (expressions) {
+			if (expressions && optarg) {
 				array_append(expressions, xstrdup(optarg));
 			} else {
 				return 0;
@@ -120,14 +120,18 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 		case 'U':
 			settings->behavior |= PARSER_ALWAYS_SORT_VARIABLES;
 			break;
-		case 'w': {
-			const char *errstr = NULL;
-			settings->wrapcol = strtonum(optarg, -1, INT_MAX, &errstr);
-			if (errstr != NULL) {
-				errx(1, "strtonum: %s", errstr);
+		case 'w':
+			if (optarg) {
+				const char *errstr = NULL;
+				settings->wrapcol = strtonum(optarg, -1, INT_MAX, &errstr);
+				if (errstr != NULL) {
+					errx(1, "strtonum: %s", errstr);
+				}
+			} else {
+				return 0;
 			}
 			break;
-		} default:
+		default:
 			return 0;
 		}
 	}
