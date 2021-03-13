@@ -158,6 +158,7 @@ static const char *target_order_[] = {
 	"pre-clean",
 	"do-clean",
 	"post-clean",
+	"makeplist",
 	"makesum",
 };
 

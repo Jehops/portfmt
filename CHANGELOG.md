@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Format `UNIQUE_PREFIX_FILES` and `UNIQUE_SUFFIX_FILES` similar to `PLIST_FILES`
 - Recognize `DO_MAKE_BUILD` and `DO_MAKE_TEST`
+- Recognize `makeplist` overrides
 - Catch up with FreeBSD Ports:
   - Add new vars like `GO_MODULE`, `KDE_INVENT`
   - Update known `USES={gnome,kde,pyqt,qt}` components
