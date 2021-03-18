@@ -77,8 +77,8 @@ portscan.o: portscan.c config.h libias/array.h conditional.h libias/diff.h mainu
 
 #
 conditional.o: config.h libias/util.h conditional.h regexp.h rules.h
-mainutils.o: config.h libias/array.h libias/util.h mainutils.h parser.h
-parser.o: config.h libias/array.h libias/diff.h libias/diffutil.h libias/map.h libias/mempool.h libias/set.h libias/util.h conditional.h parser.h parser/edits.h regexp.h rules.h target.h token.h variable.h parser/constants.c
+mainutils.o: config.h capsicum_helpers.h libias/array.h libias/util.h mainutils.h parser.h
+parser.o: config.h libias/array.h libias/diff.h libias/diffutil.h libias/map.h libias/mempool.h libias/set.h libias/util.h conditional.h parser.h parser/edits.h regexp.h rules.h target.h token.h variable.h parser/constants.h
 parser/edits/edit/bump_revision.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
 parser/edits/edit/merge.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
 parser/edits/edit/set_version.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
@@ -99,24 +99,19 @@ parser/edits/refactor/sanitize_eol_comments.o: config.h libias/array.h libias/ut
 portclippy.o: config.h mainutils.h parser.h parser/edits.h
 portedit.o: config.h libias/array.h libias/set.h libias/util.h mainutils.h parser.h parser/edits.h regexp.h
 portfmt.o: config.h mainutils.h parser.h
-portscan.o: config.h libias/array.h libias/diff.h libias/map.h libias/set.h libias/util.h conditional.h mainutils.h parser.h parser/edits.h portscanlog.h regexp.h token.h variable.h
-portscanlog.o: config.h libias/array.h libias/diff.h libias/set.h libias/util.h portscanlog.h
+portscan.o: config.h capsicum_helpers.h libias/array.h libias/diff.h libias/map.h libias/set.h libias/util.h conditional.h mainutils.h parser.h parser/edits.h portscanlog.h regexp.h token.h variable.h
+portscanlog.o: config.h capsicum_helpers.h libias/array.h libias/diff.h libias/set.h libias/util.h portscanlog.h
 regexp.o: config.h libias/util.h regexp.h
-rules.o: config.h libias/array.h libias/set.h libias/util.h conditional.h regexp.h rules.h parser.h token.h variable.h generated_rules.c
+rules.o: config.h libias/array.h libias/set.h libias/util.h conditional.h regexp.h rules.h parser.h token.h variable.h generated_rules.h
 target.o: config.h libias/util.h target.h
 token.o: config.h libias/util.h conditional.h target.h token.h variable.h
 variable.o: config.h libias/util.h regexp.h rules.h variable.h
 
 deps:
-	@for f in $$(git ls-files | grep '.*\.c$$' | sort); do \
-	awk '/^#include ("|<libias\/)/ { \
-		if (!filename) { \
-			printf("%s.o:", substr(FILENAME, 1, length(FILENAME) - 2)); \
-			filename = 1; \
-		} \
-		printf(" %s", substr($$2, 2, length($$2) - 2)) \
-	} \
-	END { if (filename) { print "" } }' $$f; done > Makefile.deps
+	@for f in $$(git ls-files | grep '.*\.c$$' | grep -v '^tests\.c$$' | LC_ALL=C sort); do \
+		${CC} ${CFLAGS} -MM -MT "$${f%.c}.o" $${f} | sed 's/[\\ ]/\n/g' | grep -vF "$${f}" | tr -s '\n' ' ' | sed 's/ $$//'; \
+		echo; \
+	done > Makefile.deps
 	@mv Makefile Makefile.bak
 	@awk '/^#$$/ { print; deps = 1 } \
 	deps && /^$$/ { deps = 0; system("cat Makefile.deps") } \

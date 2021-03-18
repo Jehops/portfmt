@@ -134,7 +134,7 @@ static void print_newline_array(struct Parser *, struct Array *);
 static void print_token_array(struct Parser *, struct Array *);
 static char *range_tostring(struct Range *);
 
-#include "parser/constants.c"
+#include "parser/constants.h"
 
 size_t
 consume_comment(const char *buf)

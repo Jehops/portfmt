@@ -83,7 +83,7 @@ static struct {
 				  REG_EXTENDED, {} },
 };
 
-#include "generated_rules.c"
+#include "generated_rules.h"
 
 static const char *license_perms_rel[] = {
 	"dist-mirror",
