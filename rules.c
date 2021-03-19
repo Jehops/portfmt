@@ -200,17 +200,17 @@ static const char *special_targets_[] = {
 
 enum VariableOrderFlag {
 	VAR_DEFAULT = 0,
-	VAR_CASE_SENSITIVE_SORT = 1,
+	VAR_CASE_SENSITIVE_SORT = 1 << 0,
 	// Lines that are best not wrapped to 80 columns
-	VAR_IGNORE_WRAPCOL = 2,
-	VAR_LEAVE_UNFORMATTED = 4,
-	VAR_NOT_COMPARABLE = 128,
-	VAR_PRINT_AS_NEWLINES = 8,
+	VAR_IGNORE_WRAPCOL = 1 << 1,
+	VAR_LEAVE_UNFORMATTED = 1 << 2,
+	VAR_NOT_COMPARABLE = 1 << 3,
+	VAR_PRINT_AS_NEWLINES = 1 << 4,
 	// Do not indent with the rest of the variables in a paragraph
-	VAR_SKIP_GOALCOL = 16,
-	VAR_SORTED = 32,
-	VAR_SUBPKG_HELPER = 64,
-	VAR_DEDUP = 128,
+	VAR_SKIP_GOALCOL = 1 << 5,
+	VAR_SORTED = 1 << 6,
+	VAR_SUBPKG_HELPER = 1 << 7,
+	VAR_DEDUP = 1 << 8,
 };
 
 struct VariableOrderEntry {
