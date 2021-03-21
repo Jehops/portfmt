@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+## [g20210321] - 2021-03-21
+
 ### Added
 
 - portscan: Report on option descriptions that fuzzy match the default descriptions
