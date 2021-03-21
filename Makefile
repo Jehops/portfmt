@@ -152,10 +152,13 @@ tag:
 	if ! grep -Fq "$${title}" CHANGELOG.md; then \
 		echo "# portfmt $${tag}"; \
 		awk '/^## Unreleased$$/{x=1;next}x{if($$1=="##"){exit}else if($$1=="###"){$$1="##"};print}' \
-			CHANGELOG.md >RELNOTES.md; \
+			CHANGELOG.md >RELNOTES.md.new; \
 		awk "/^## Unreleased$$/{print;printf\"\n$${title}\n\";next}{print}" \
 			CHANGELOG.md >CHANGELOG.md.new; \
 		mv CHANGELOG.md.new CHANGELOG.md; \
+		echo "portfmt $${tag}" >RELNOTES.md; \
+		cat RELNOTES.md.new >>RELNOTES.md; \
+		rm -f RELNOTES.md.new; \
 	fi; \
 	git commit -m "Release $${tag}" CHANGELOG.md; \
 	git tag $${tag}
