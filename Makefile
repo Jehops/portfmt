@@ -156,7 +156,7 @@ tag:
 		awk "/^## Unreleased$$/{print;printf\"\n$${title}\n\";next}{print}" \
 			CHANGELOG.md >CHANGELOG.md.new; \
 		mv CHANGELOG.md.new CHANGELOG.md; \
-	fi
+	fi; \
 	git commit -m "Release $${tag}" CHANGELOG.md; \
 	git tag $${tag}
 
@@ -164,8 +164,8 @@ release:
 	@tag=$$(git tag --points-at HEAD); \
 	if [ -z "$$tag" ]; then echo "create a tag first"; exit 1; fi; \
 	git ls-files --recurse-submodules . ':!:libias/tests' | \
-		bsdtar --files-from=- -s '/^/portfmt-$${tag}/' --options lzip:compression-level=9 \
-			-caf portfmt-$${tag}.tar.lz; \
+		bsdtar --files-from=- -s ",^,portfmt-$${tag}/," --options lzip:compression-level=9 \
+			--uid 0 --gid 0 -caf portfmt-$${tag}.tar.lz; \
 	sha256 portfmt-$${tag}.tar.lz >portfmt-$${tag}.tar.lz.SHA256 || \
 	sha256sum --tag portfmt-$${tag}.tar.lz >portfmt-$${tag}.tar.lz.SHA256; \
 	printf "SIZE (%s) = %s\n" portfmt-$${tag}.tar.lz $$(wc -c <portfmt-$${tag}.tar.lz) \
