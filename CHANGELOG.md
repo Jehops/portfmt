@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Changed
+
+- Catch up with FreeBSD Ports:
+  - Remove support for `PKGUPGRADE` and friends
+
 ### Fixed
 
 - portclippy, portscan: Do not report on targets defined in `POST_PLIST`
