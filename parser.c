@@ -81,28 +81,8 @@ struct Parser {
 	struct Array *tokens;
 	struct Array *result;
 	struct Array *rawlines;
-
-	struct Set *cabal_executables;
-	int cabal_executables_looked_up;
-	struct Set *flavors;
-	int flavors_looked_up;
-	struct Set *licenses;
-	int licenses_looked_up;
-	struct Set *shebang_langs;
-	int shebang_langs_looked_up;
-	struct Set *port_options;
-	struct Map *port_options_descriptions;
-	struct Set *port_options_groups;
-	int port_options_looked_up;
-	struct Set *post_plist_targets;
-	int post_plist_targets_looked_up;
-	struct Set *uses;
-	int uses_looked_up;
-
-#if PORTFMT_SUBPACKAGES
-	struct Set *subpackages;
-	int subpackages_looked_up;
-#endif
+	void *metadata[PARSER_METADATA_USES + 1];
+	int metadata_valid[PARSER_METADATA_USES + 1];
 
 	int read_finished;
 };
@@ -119,8 +99,10 @@ static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
 static struct Variable *parser_lookup_variable_internal(struct Parser *, const char *, struct Array **, struct Array **, int);
 static void parser_meta_values(struct Parser *, const char *, struct Set *);
+static void parser_metadata_alloc(struct Parser *);
+static void parser_metadata_free(struct Parser *);
+static void parser_metadata_port_options(struct Parser *);
 static void parser_output_dump_tokens(struct Parser *);
-static void parser_port_options(struct Parser *, struct Set **, struct Set **, struct Map **);
 static void parser_output_prepare(struct Parser *);
 static void parser_output_print_rawlines(struct Parser *, struct Range *);
 static void parser_output_print_target_command(struct Parser *, struct Array *);
@@ -346,15 +328,7 @@ parser_new(struct ParserSettings *settings)
 	parser->rawlines = array_new();
 	parser->result = array_new();
 	parser->tokens = array_new();
-	parser->cabal_executables = set_new(str_compare, NULL, free);
-	parser->flavors = set_new(str_compare, NULL, free);
-	parser->licenses = set_new(str_compare, NULL, free);
-	parser->shebang_langs = set_new(str_compare, NULL, free);
-	parser->port_options = set_new(str_compare, NULL, free);
-	parser->port_options_descriptions = map_new(str_compare, NULL, free, free);
-	parser->port_options_groups = set_new(str_compare, NULL, free);
-	parser->post_plist_targets = set_new(str_compare, NULL, free);
-	parser->uses = set_new(str_compare, NULL, free);
+	parser_metadata_alloc(parser);
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
 	parser->lines.start = 1;
@@ -366,12 +340,6 @@ parser_new(struct ParserSettings *settings)
 	} else {
 		parser->settings.filename = xstrdup("/dev/stdin");
 	}
-#if PORTFMT_SUBPACKAGES
-	parser->subpackages = set_new(str_compare, NULL, free);
-
-	// There is always a main subpackage
-	set_add(parser->subpackages, xstrdup("main"));
-#endif
 
 	if (parser->settings.behavior & PARSER_OUTPUT_EDITED) {
 		parser->settings.behavior &= ~PARSER_COLLAPSE_ADJACENT_VARIABLES;
@@ -387,20 +355,6 @@ parser_free(struct Parser *parser)
 		return;
 	}
 
-	set_free(parser->cabal_executables);
-	set_free(parser->flavors);
-	set_free(parser->licenses);
-	set_free(parser->shebang_langs);
-	set_free(parser->port_options);
-	map_free(parser->port_options_descriptions);
-	set_free(parser->port_options_groups);
-	set_free(parser->post_plist_targets);
-	set_free(parser->uses);
-
-#if PORTFMT_SUBPACKAGES
-	set_free(parser->subpackages);
-#endif
-
 	ARRAY_FOREACH(parser->result, void *, x) {
 		free(x);
 	}
@@ -413,6 +367,7 @@ parser_free(struct Parser *parser)
 
 	mempool_free(parser->tokengc);
 	set_free(parser->edited);
+	parser_metadata_free(parser);
 	array_free(parser->tokens);
 
 	free(parser->condname);
@@ -1776,12 +1731,9 @@ parser_read_finish(struct Parser *parser)
 		return parser->error;
 	}
 
-	parser->cabal_executables_looked_up = 0;
-	parser->flavors_looked_up = 0;
-	parser->licenses_looked_up = 0;
-	parser->shebang_langs_looked_up = 0;
-	parser->port_options_looked_up = 0;
-	parser->uses_looked_up = 0;
+	for (size_t i = 0; i <= PARSER_METADATA_USES; i++) {
+		parser->metadata_valid[i] = 0;
+	}
 
 	if (!parser->continued) {
 		parser->lines.end++;
@@ -2008,9 +1960,8 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 		array_free(tmp);
 	}
 
-	struct Set *options;
-	parser_port_options(parser, NULL, &options, NULL);
-	SET_FOREACH (options, const char *, opt) {
+	struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
+	SET_FOREACH(options, const char *, opt) {
 		char *buf = str_printf("%s_VARS", opt);
 		if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
 			for (size_t i = 0; i < array_len(tmp); i++) {
@@ -2058,16 +2009,16 @@ parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 	if (parser_lookup_variable_all(parser, groupname, &optmulti, NULL)) {
 		for (size_t i = 0; i < array_len(optmulti); i++) {
 			char *optgroupname = array_get(optmulti, i);
-			if (!set_contains(parser->port_options_groups, optgroupname)) {
-				set_add(parser->port_options_groups, xstrdup(optgroupname));
+			if (!set_contains(parser->metadata[PARSER_METADATA_OPTION_GROUPS], optgroupname)) {
+				set_add(parser->metadata[PARSER_METADATA_OPTION_GROUPS], xstrdup(optgroupname));
 			}
 			char *optgroupvar = str_printf("%s_%s", groupname, optgroupname);
 			struct Array *opts = NULL;
 			if (parser_lookup_variable_all(parser, optgroupvar, &opts, NULL)) {
 				for (size_t i = 0; i < array_len(opts); i++) {
 					char *opt = array_get(opts, i);
-					if (!set_contains(parser->port_options, opt)) {
-						set_add(parser->port_options, xstrdup(opt));
+					if (!set_contains(parser->metadata[PARSER_METADATA_OPTIONS], opt)) {
+						set_add(parser->metadata[PARSER_METADATA_OPTIONS], xstrdup(opt));
 					}
 				}
 				array_free(opts);
@@ -2085,8 +2036,8 @@ parser_port_options_add_from_var(struct Parser *parser, const char *var)
 	if (parser_lookup_variable_all(parser, var, &optdefine, NULL)) {
 		for (size_t i = 0; i < array_len(optdefine); i++) {
 			char *opt = array_get(optdefine, i);
-			if (!set_contains(parser->port_options, opt)) {
-				set_add(parser->port_options, xstrdup(opt));
+			if (!set_contains(parser->metadata[PARSER_METADATA_OPTIONS], opt)) {
+				set_add(parser->metadata[PARSER_METADATA_OPTIONS], xstrdup(opt));
 			}
 		}
 		array_free(optdefine);
@@ -2094,20 +2045,15 @@ parser_port_options_add_from_var(struct Parser *parser, const char *var)
 }
 
 void
-parser_port_options(struct Parser *parser, struct Set **groups, struct Set **options, struct Map **optdescs)
+parser_metadata_port_options(struct Parser *parser)
 {
-	if (parser->port_options_looked_up) {
-		if (groups) {
-			*groups = parser->port_options_groups;
-		}
-		if (options) {
-			*options = parser->port_options;
-		}
-		if (optdescs) {
-			*optdescs = parser->port_options_descriptions;
-		}
+	if (parser->metadata_valid[PARSER_METADATA_OPTIONS]) {
 		return;
 	}
+
+	parser->metadata_valid[PARSER_METADATA_OPTION_DESCRIPTIONS] = 1;
+	parser->metadata_valid[PARSER_METADATA_OPTION_GROUPS] = 1;
+	parser->metadata_valid[PARSER_METADATA_OPTIONS] = 1;
 
 #define FOR_EACH_ARCH(f, var) \
 	for (size_t i = 0; i < nitems(known_architectures_); i++) { \
@@ -2133,14 +2079,14 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 
 #undef FOR_EACH_ARCH
 
-	struct Set *opts[] = { parser->port_options, parser->port_options_groups };
+	struct Set *opts[] = { parser->metadata[PARSER_METADATA_OPTIONS], parser->metadata[PARSER_METADATA_OPTION_GROUPS] };
 	for (size_t i = 0; i < nitems(opts); i++) {
 		SET_FOREACH(opts[i], const char *, opt) {
 			char *var = str_printf("%s_DESC", opt);
-			if (!map_contains(parser->port_options_descriptions, var)) {
+			if (!map_contains(parser->metadata[PARSER_METADATA_OPTION_DESCRIPTIONS], var)) {
 				char *desc;
 				if (parser_lookup_variable_str(parser, var, &desc, NULL)) {
-					map_add(parser->port_options_descriptions, var, desc);
+					map_add(parser->metadata[PARSER_METADATA_OPTION_DESCRIPTIONS], var, desc);
 				} else {
 					free(var);
 				}
@@ -2149,103 +2095,102 @@ parser_port_options(struct Parser *parser, struct Set **groups, struct Set **opt
 			}
 		}
 	}
+}
 
-	parser->port_options_looked_up = 1;
-	if (groups) {
-		*groups = parser->port_options_groups;
+void
+parser_metadata_alloc(struct Parser *parser)
+{
+	for (enum ParserMetadata meta = 0; meta <= PARSER_METADATA_USES; meta++) {
+		switch (meta) {
+		case PARSER_METADATA_OPTION_DESCRIPTIONS:
+			parser->metadata[meta] = map_new(str_compare, NULL, free, free);
+			break;
+		default:
+			parser->metadata[meta] = set_new(str_compare, NULL, free);
+			break;
+		}
 	}
-	if (options) {
-		*options = parser->port_options;
-	}
-	if (optdescs) {
-		*optdescs = parser->port_options_descriptions;
+}
+
+void
+parser_metadata_free(struct Parser *parser)
+{
+	for (enum ParserMetadata i = 0; i <= PARSER_METADATA_USES; i++) {
+		switch (i) {
+		case PARSER_METADATA_OPTION_DESCRIPTIONS:
+			map_free(parser->metadata[i]);
+			break;
+		default:
+			set_free(parser->metadata[i]);
+			break;
+		}
+		parser->metadata[i] = NULL;
 	}
 }
 
 void *
 parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 {
-	struct Set *tmp;
-
-	switch (meta) {
-	case PARSER_METADATA_CABAL_EXECUTABLES:
-		if (!parser->cabal_executables_looked_up) {
+	if (!parser->metadata_valid[meta]) {
+		switch (meta) {
+		case PARSER_METADATA_CABAL_EXECUTABLES: {
 			struct Set *uses = parser_metadata(parser, PARSER_METADATA_USES);
 			if (set_contains(uses, (void*)"cabal")) {
-				parser_meta_values(parser, "EXECUTABLES", parser->cabal_executables);
-				if (set_len(parser->cabal_executables) == 0) {
+				parser_meta_values(parser, "EXECUTABLES", parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES]);
+				if (set_len(parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES]) == 0) {
 					char *portname;
 					if (parser_lookup_variable_str(parser, "PORTNAME", &portname, NULL)) {
-						if (set_contains(parser->cabal_executables, portname)) {
+						if (set_contains(parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES], portname)) {
 							free(portname);
 						} else {
-							set_add(parser->cabal_executables, portname);
+							set_add(parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES], portname);
 						}
 					}
 				}
-				parser->cabal_executables_looked_up = 1;
 			}
-		}
-		return parser->cabal_executables;
-	case PARSER_METADATA_FLAVORS:
-		if (!parser->flavors_looked_up) {
-			parser_meta_values(parser, "FLAVORS", parser->flavors);
+			break;
+		} case PARSER_METADATA_FLAVORS: {
+			parser_meta_values(parser, "FLAVORS", parser->metadata[PARSER_METADATA_FLAVORS]);
 			struct Set *uses = parser_metadata(parser, PARSER_METADATA_USES);
 			// XXX: Does not take into account USE_PYTHON=noflavors etc.
 			for (size_t i = 0; i < nitems(static_flavors_); i++) {
 				if (set_contains(uses, (void*)static_flavors_[i].uses) &&
-				    !set_contains(parser->flavors, (void*)static_flavors_[i].flavor)) {
-					set_add(parser->flavors, xstrdup(static_flavors_[i].flavor));
+				    !set_contains(parser->metadata[PARSER_METADATA_FLAVORS], (void*)static_flavors_[i].flavor)) {
+					set_add(parser->metadata[PARSER_METADATA_FLAVORS], xstrdup(static_flavors_[i].flavor));
 				}
 			}
-			parser->flavors_looked_up = 1;
-		}
-		return parser->flavors;
-	case PARSER_METADATA_LICENSES:
-		if (!parser->licenses_looked_up) {
-			parser_meta_values(parser, "LICENSE", parser->licenses);
-			parser->licenses_looked_up = 1;
-		}
-		return parser->licenses;
-	case PARSER_METADATA_SHEBANG_LANGS:
-		if (!parser->shebang_langs_looked_up) {
-			parser_meta_values(parser, "SHEBANG_LANG", parser->shebang_langs);
-			parser->shebang_langs_looked_up = 1;
-		}
-		return parser->shebang_langs;
-	case PARSER_METADATA_OPTION_DESCRIPTIONS: {
-		struct Map *descs;
-		parser_port_options(parser, NULL, NULL, &descs);
-		return descs;
-	} case PARSER_METADATA_OPTION_GROUPS:
-		parser_port_options(parser, &tmp, NULL, NULL);
-		return tmp;
-	case PARSER_METADATA_OPTIONS:
-		parser_port_options(parser, NULL, &tmp, NULL);
-		return tmp;
-	case PARSER_METADATA_POST_PLIST_TARGETS:
-		if (!parser->post_plist_targets_looked_up) {
-			parser_meta_values(parser, "POST_PLIST", parser->post_plist_targets);
-			parser->post_plist_targets_looked_up = 1;
-		}
-		return parser->post_plist_targets;
+			break;
+		} case PARSER_METADATA_LICENSES:
+			parser_meta_values(parser, "LICENSE", parser->metadata[PARSER_METADATA_LICENSES]);
+			break;
+		case PARSER_METADATA_SHEBANG_LANGS:
+			parser_meta_values(parser, "SHEBANG_LANG", parser->metadata[PARSER_METADATA_SHEBANG_LANGS]);
+			break;
+		case PARSER_METADATA_OPTION_DESCRIPTIONS:
+		case PARSER_METADATA_OPTION_GROUPS:
+		case PARSER_METADATA_OPTIONS:
+			parser_metadata_port_options(parser);
+			break;
+		case PARSER_METADATA_POST_PLIST_TARGETS:
+			parser_meta_values(parser, "POST_PLIST", parser->metadata[PARSER_METADATA_POST_PLIST_TARGETS]);
+			break;
 #if PORTFMT_SUBPACKAGES
-	case PARSER_METADATA_SUBPACKAGES:
-		if (!parser->subpackages_looked_up) {
-			parser_meta_values(parser, "SUBPACKAGES", parser->subpackages);
-			parser->subpackages_looked_up = 1;
-		}
-		return parser->subpackages;
+		case PARSER_METADATA_SUBPACKAGES:
+			if (!set_contains(parser->metadata[PARSER_METADATA_SUBPACKAGES], (char *)"main")) {
+				// There is always a main subpackage
+				set_add(parser->metadata[PARSER_METADATA_SUBPACKAGES], xstrdup("main"));
+			}
+			parser_meta_values(parser, "SUBPACKAGES", parser->metadata[PARSER_METADATA_SUBPACKAGES]);
+			break;
 #endif
-	case PARSER_METADATA_USES:
-		if (!parser->uses_looked_up) {
-			parser_meta_values(parser, "USES", parser->uses);
-			parser->uses_looked_up = 1;
+		case PARSER_METADATA_USES:
+			parser_meta_values(parser, "USES", parser->metadata[PARSER_METADATA_USES]);
+			break;
 		}
-		return parser->uses;
+		parser->metadata_valid[meta] = 1;
 	}
 
-	abort();
+	return parser->metadata[meta];
 }
 
 struct Target *
