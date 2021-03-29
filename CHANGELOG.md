@@ -9,12 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Recognize more framework targets
 - Catch up with FreeBSD Ports:
   - Remove support for `PKGUPGRADE` and friends
 
 ### Fixed
 
 - portclippy, portscan: Do not report on targets defined in `POST_PLIST`
+- Do not recognize false options helper targets like `makesum-OPT-on`
 
 ## [g20210321] - 2021-03-21
 

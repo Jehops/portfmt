@@ -115,51 +115,71 @@ static const char *target_command_wrap_after_each_token_[] = {
 	"${STRIP_CMD}",
 };
 
-static const char *target_order_[] = {
-	"post-chroot",
-	"pre-everything",
-	"pre-fetch",
-	"pre-fetch-script",
-	"do-fetch",
-	"post-fetch",
-	"post-fetch-script",
-	"pre-extract",
-	"pre-extract-script",
-	"do-extract",
-	"post-extract",
-	"post-extract-script",
-	"pre-patch",
-	"pre-patch-script",
-	"do-patch",
-	"post-patch",
-	"post-patch-script",
-	"pre-configure",
-	"pre-configure-script",
-	"do-configure",
-	"post-configure",
-	"post-configure-script",
-	"pre-build",
-	"pre-build-script",
-	"do-build",
-	"post-build",
-	"post-build-script",
-	"pre-install",
-	"pre-su-install",
-	"do-install",
-	"post-install",
-	"post-install-script",
-	"post-stage",
-	"pre-test",
-	"do-test",
-	"post-test",
-	"pre-package",
-	"do-package",
-	"post-package",
-	"pre-clean",
-	"do-clean",
-	"post-clean",
-	"makeplist",
-	"makesum",
+static struct {
+	const char *name;
+	int opthelper;
+} target_order_[] = {
+	{ "post-chroot", 0 },
+	{ "pre-everything", 0 },
+	{ "pre-fetch", 1 },
+	{ "pre-fetch-script", 0 },
+	{ "do-fetch", 1 },
+	{ "post-fetch", 1 },
+	{ "post-fetch-script", 0 },
+	{ "pre-extract", 1 },
+	{ "pre-extract-script", 0 },
+	{ "do-extract", 1 },
+	{ "post-extract", 1 },
+	{ "post-extract-script", 0 },
+	{ "pre-patch", 1 },
+	{ "pre-patch-script", 0 },
+	{ "do-patch", 1 },
+	{ "post-patch", 1 },
+	{ "post-patch-script", 0 },
+	{ "pre-configure", 1 },
+	{ "pre-configure-script", 0 },
+	{ "do-configure", 1 },
+	{ "post-configure", 1 },
+	{ "post-configure-script", 0 },
+	{ "pre-build", 1 },
+	{ "pre-build-script", 0 },
+	{ "do-build", 1 },
+	{ "post-build", 1 },
+	{ "post-build-script", 0 },
+	{ "pre-install", 1 },
+	{ "pre-su-install", 0 },
+	{ "do-install", 1 },
+	{ "post-install", 1 },
+	{ "post-install-script", 0 },
+	{ "post-stage", 1 },
+	{ "pre-test", 1 },
+	{ "do-test", 1 },
+	{ "post-test", 1 },
+	{ "pre-package", 1 },
+	{ "do-package", 1 },
+	{ "post-package", 1 },
+	{ "pre-clean", 0 },
+	{ "do-clean", 0 },
+	{ "post-clean", 0 },
+	{ "add-plist-data", 0 },
+	{ "add-plist-docs", 0 },
+	{ "add-plist-examples", 0 },
+	{ "add-plist-info", 0 },
+	{ "add-plist-post", 0 },
+	{ "check-man", 0 },
+	{ "check-orphans", 0 },
+	{ "check-plist", 0 },
+	{ "compress-man", 0 },
+	{ "create-binary-alias", 0 },
+	{ "create-binary-wrappers", 0 },
+	{ "fake-pkg", 0 },
+	{ "install-desktop-entries", 0 },
+	{ "install-rc-script", 0 },
+	{ "makepatch", 0 },
+	{ "makeplist", 0 },
+	{ "makesum", 0 },
+	{ "stage-dir", 0 },
+	{ "stage-qa", 0 },
 };
 
 static const char *special_targets_[] = {
@@ -2334,33 +2354,40 @@ compare_order(const void *ap, const void *bp, void *userdata)
 void
 target_extract_opt(struct Parser *parser, const char *target, char **target_out, char **opt_out, int *state)
 {
-	*opt_out = NULL;
-	*target_out = NULL;
-	*state = 0;
-
 	int on;
 	if ((on = str_endswith(target, "-on")) || str_endswith(target, "-off")) {
 		const char *p = target;
 		for (; *p == '-' || (islower(*p) && isalpha(*p)); p++);
+		size_t opt_suffix_len;
 		if (on) {
-			*opt_out = xstrndup(p, strlen(p) - strlen("-on"));
-			*state = 1;
+			opt_suffix_len = strlen("-on");
 		} else {
-			*opt_out = xstrndup(p, strlen(p) - strlen("-off"));
-			*state = 0;
+			opt_suffix_len = strlen("-off");
 		}
-		char *tmp = str_printf("%s_USES", *opt_out);
+		char *opt = xstrndup(p, strlen(p) - opt_suffix_len);
+		char *tmp = str_printf("%s_USES", opt);
 		if (is_options_helper(parser, tmp, NULL, NULL, NULL)) {
-			*target_out = xstrndup(target, strlen(target) - strlen(p) - 1);
+			free(tmp);
+			char *target_root = xstrndup(target, strlen(target) - strlen(p) - 1);
+			for (size_t i = 0; i < nitems(target_order_); i++) {
+				if (target_order_[i].opthelper &&
+				    strcmp(target_order_[i].name, target_root) == 0) {
+					*state = on;
+					*opt_out = opt;
+					*target_out = target_root;
+					return;
+				}
+			}
+			free(target_root);
 		} else {
-			*target_out = xstrdup(target);
-			free(*opt_out);
-			*opt_out = NULL;
+			free(tmp);
 		}
-		free(tmp);
-	} else {
-		*target_out = xstrdup(target);
+		free(opt);
 	}
+
+	*opt_out = NULL;
+	*state = 0;
+	*target_out = xstrdup(target);
 }
 
 int
@@ -2372,7 +2399,7 @@ is_known_target(struct Parser *parser, const char *target)
 	free(opt);
 
 	for (size_t i = 0; i < nitems(target_order_); i++) {
-		if (strcmp(target_order_[i], root) == 0) {
+		if (strcmp(target_order_[i].name, root) == 0) {
 			free(root);
 			return 1;
 		}
@@ -2414,10 +2441,10 @@ compare_target_order(const void *ap, const void *bp, void *userdata)
 	ssize_t aindex = -1;
 	ssize_t bindex = -1;
 	for (size_t i = 0; i < nitems(target_order_) && (aindex == -1 || bindex == -1); i++) {
-		if (aindex == -1 && strcmp(target_order_[i], a) == 0) {
+		if (aindex == -1 && strcmp(target_order_[i].name, a) == 0) {
 			aindex = i;
 		}
-		if (bindex == -1 && strcmp(target_order_[i], b) == 0) {
+		if (bindex == -1 && strcmp(target_order_[i].name, b) == 0) {
 			bindex = i;
 		}
 	}
