@@ -94,6 +94,8 @@ struct Parser {
 	struct Map *port_options_descriptions;
 	struct Set *port_options_groups;
 	int port_options_looked_up;
+	struct Set *post_plist_targets;
+	int post_plist_targets_looked_up;
 	struct Set *uses;
 	int uses_looked_up;
 
@@ -351,6 +353,7 @@ parser_new(struct ParserSettings *settings)
 	parser->port_options = set_new(str_compare, NULL, free);
 	parser->port_options_descriptions = map_new(str_compare, NULL, free, free);
 	parser->port_options_groups = set_new(str_compare, NULL, free);
+	parser->post_plist_targets = set_new(str_compare, NULL, free);
 	parser->uses = set_new(str_compare, NULL, free);
 	parser->error = PARSER_ERROR_OK;
 	parser->error_msg = NULL;
@@ -391,6 +394,7 @@ parser_free(struct Parser *parser)
 	set_free(parser->port_options);
 	map_free(parser->port_options_descriptions);
 	set_free(parser->port_options_groups);
+	set_free(parser->post_plist_targets);
 	set_free(parser->uses);
 
 #if PORTFMT_SUBPACKAGES
@@ -2219,6 +2223,12 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 	case PARSER_METADATA_OPTIONS:
 		parser_port_options(parser, NULL, &tmp, NULL);
 		return tmp;
+	case PARSER_METADATA_POST_PLIST_TARGETS:
+		if (!parser->post_plist_targets_looked_up) {
+			parser_meta_values(parser, "POST_PLIST", parser->post_plist_targets);
+			parser->post_plist_targets_looked_up = 1;
+		}
+		return parser->post_plist_targets;
 #if PORTFMT_SUBPACKAGES
 	case PARSER_METADATA_SUBPACKAGES:
 		if (!parser->subpackages_looked_up) {

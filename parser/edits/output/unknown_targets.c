@@ -56,6 +56,7 @@ PARSER_EDIT(output_unknown_targets)
 		param->keys = array_new();
 		param->values = array_new();
 	}
+	struct Set *post_plist_targets = parser_metadata(parser, PARSER_METADATA_POST_PLIST_TARGETS);
 	struct Set *targets = set_new(str_compare, NULL, NULL);
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		if (token_type(t) != TARGET_START) {
@@ -64,6 +65,7 @@ PARSER_EDIT(output_unknown_targets)
 		char *name = target_name(token_target(t));
 		if (!is_special_target(name) &&
 		    !is_known_target(parser, name) &&
+		    !set_contains(post_plist_targets, name) &&
 		    !set_contains(targets, name) &&
 		    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
 			parser_enqueue_output(parser, name);
