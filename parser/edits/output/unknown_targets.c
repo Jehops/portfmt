@@ -43,14 +43,16 @@
 #include "target.h"
 #include "token.h"
 
-static void
+static int
 add_target(struct Parser *parser, struct ParserEditOutput *param, struct Set *targets, struct Set *post_plist_targets, char *name, int deps)
 {
 	if (deps && is_special_source(name)) {
-		return;
+		return 0;
 	}
-	if (!is_special_target(name) &&
-	    !is_known_target(parser, name) &&
+	if (is_special_target(name)) {
+		return 1;
+	}
+	if (!is_known_target(parser, name) &&
 	    !set_contains(post_plist_targets, name) &&
 	    !set_contains(targets, name) &&
 	    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
@@ -63,6 +65,7 @@ add_target(struct Parser *parser, struct ParserEditOutput *param, struct Set *ta
 			array_append(param->values, xstrdup(name));
 		}
 	}
+	return 0;
 }
 
 PARSER_EDIT(output_unknown_targets)
@@ -84,11 +87,16 @@ PARSER_EDIT(output_unknown_targets)
 		if (token_type(t) != TARGET_START) {
 			continue;
 		}
+		int skip_deps = 0;
 		ARRAY_FOREACH(target_names(token_target(t)), char *, name) {
-			add_target(parser, param, targets, post_plist_targets, name, 0);
+			if (add_target(parser, param, targets, post_plist_targets, name, 0)) {
+				skip_deps = 1;
+			}
 		}
-		ARRAY_FOREACH(target_dependencies(token_target(t)), char *, name) {
-			add_target(parser, param, targets, post_plist_targets, name, 1);
+		if (!skip_deps) {
+			ARRAY_FOREACH(target_dependencies(token_target(t)), char *, name) {
+				add_target(parser, param, targets, post_plist_targets, name, 1);
+			}
 		}
 	}
 
