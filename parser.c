@@ -1508,7 +1508,7 @@ parser_output_dump_tokens(struct Parser *parser)
 			    token_type(t) == TARGET_COMMAND_TOKEN ||
 			    token_type(t) == TARGET_START ||
 			    token_type(t) == TARGET_END)) {
-			var = xstrdup(target_name(token_target(t)));
+			var = str_join(target_names(token_target(t)), " ");
 			len = maxvarlen - strlen(var);
 		} else {
 			len = maxvarlen - 1;
@@ -2207,14 +2207,19 @@ parser_lookup_target(struct Parser *parser, const char *name, struct Array **ret
 		case TARGET_COMMAND_START:
 		case TARGET_COMMAND_TOKEN:
 		case TARGET_COMMAND_END:
-			if (strcmp(target_name(token_target(t)), name) == 0) {
-				array_append(tokens, token_data(t));
+			ARRAY_FOREACH(target_names(token_target(t)), char *, tgt) {
+				if (strcmp(tgt, name) == 0) {
+					array_append(tokens, token_data(t));
+					break;
+				}
 			}
 			break;
 		case TARGET_END:
-			if (strcmp(target_name(token_target(t)), name) == 0) {
-				target = token_target(t);
-				goto found;
+			ARRAY_FOREACH(target_names(token_target(t)), char *, tgt) {
+				if (strcmp(tgt, name) == 0) {
+					target = token_target(t);
+					goto found;
+				}
 			}
 			break;
 		default:

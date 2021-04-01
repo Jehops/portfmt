@@ -27,9 +27,11 @@
  */
 #pragma once
 
+struct Array;
 struct Target;
 
 struct Target *target_new(char *);
 struct Target *target_clone(struct Target *);
 void target_free(struct Target *);
-char *target_name(struct Target *);
+struct Array *target_dependencies(struct Target *);
+struct Array *target_names(struct Target *);

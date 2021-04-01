@@ -146,11 +146,12 @@ target_list(struct Array *tokens)
 		    token_type(t) != TARGET_START) {
 			continue;
 		}
-		char *target = target_name(token_target(t));
-		// Ignore port local targets that start with an _
-		if (target[0] != '_' && !is_special_target(target) &&
-		    array_find(targets, target, str_compare, NULL) == -1) {
-			array_append(targets, target);
+		ARRAY_FOREACH(target_names(token_target(t)), char *, target) {
+			// Ignore port local targets that start with an _
+			if (target[0] != '_' && !is_special_target(target) &&
+			    array_find(targets, target, str_compare, NULL) == -1) {
+				array_append(targets, target);
+			}
 		}
 	}
 

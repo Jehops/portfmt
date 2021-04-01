@@ -33,13 +33,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <libias/array.h>
 #include <libias/util.h>
 
 #include "target.h"
 
 struct Target {
-	char *name;
-	char *deps;
+	struct Array *names;
+	struct Array *deps;
 };
 
 static size_t
@@ -106,12 +107,14 @@ target_new(char *buf)
 
 	struct Target *target = xmalloc(sizeof(struct Target));
 
+	target->names = array_new();
 	char *tmp = xmalloc(strlen(buf) + 1);
 	strncpy(tmp, buf, after_target - buf);
-	target->name = str_trimr(tmp);
+	array_append(target->names, str_trimr(tmp));
 	free(tmp);
 
-	target->deps = xstrdup(after_target + 1);
+	target->deps = array_new();
+	array_append(target->deps, xstrdup(after_target + 1));
 
 	return target;
 }
@@ -120,8 +123,17 @@ struct Target *
 target_clone(struct Target *target)
 {
 	struct Target *newtarget = xmalloc(sizeof(struct Target));
-	newtarget->name = xstrdup(target->name);
-	newtarget->deps = xstrdup(target->deps);
+
+	newtarget->deps = array_new();
+	ARRAY_FOREACH(target->deps, char *, dep) {
+		array_append(newtarget->deps, xstrdup(dep));
+	}
+
+	newtarget->names = array_new();
+	ARRAY_FOREACH(target->names, char *, name) {
+		array_append(newtarget->names, xstrdup(name));
+	}
+
 	return newtarget;
 }
 
@@ -131,15 +143,24 @@ target_free(struct Target *target)
 	if (target == NULL) {
 		return;
 	}
-	free(target->name);
-	free(target->deps);
+	ARRAY_FOREACH(target->names, char *, name) {
+		free(name);
+	}
+	ARRAY_FOREACH(target->deps, char *, dep) {
+		free(dep);
+	}
 	free(target);
 }
 
-char *
-target_name(struct Target *target)
+struct Array *
+target_dependencies(struct Target *target)
 {
-	assert(target != NULL);
-	return target->name;
+	return target->deps;
+}
+
+struct Array *
+target_names(struct Target *target)
+{
+	return target->names;
 }
 

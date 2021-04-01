@@ -103,7 +103,7 @@ portscan.o: config.h capsicum_helpers.h libias/array.h libias/diff.h libias/map.
 portscanlog.o: config.h capsicum_helpers.h libias/array.h libias/diff.h libias/set.h libias/util.h portscanlog.h
 regexp.o: config.h libias/util.h regexp.h
 rules.o: config.h libias/array.h libias/set.h libias/util.h conditional.h regexp.h rules.h parser.h token.h variable.h generated_rules.h
-target.o: config.h libias/util.h target.h
+target.o: config.h libias/array.h libias/util.h target.h
 token.o: config.h libias/util.h conditional.h target.h token.h variable.h
 variable.o: config.h libias/util.h regexp.h rules.h variable.h
 
