@@ -32,7 +32,6 @@
 #include <sys/stat.h>
 #if HAVE_CAPSICUM
 # include <sys/capsicum.h>
-# include "capsicum_helpers.h"
 #endif
 #include <assert.h>
 #include <dirent.h>
@@ -55,6 +54,7 @@
 #include <libias/set.h>
 #include <libias/util.h>
 
+#include "capsicum_helpers.h"
 #include "conditional.h"
 #include "mainutils.h"
 #include "parser.h"

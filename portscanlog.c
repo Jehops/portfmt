@@ -30,7 +30,6 @@
 
 #if HAVE_CAPSICUM
 # include <sys/capsicum.h>
-# include "capsicum_helpers.h"
 #endif
 #include <sys/stat.h>
 #include <ctype.h>
@@ -51,6 +50,7 @@
 #include <libias/set.h>
 #include <libias/util.h>
 
+#include "capsicum_helpers.h"
 #include "portscanlog.h"
 
 struct PortscanLogDir {

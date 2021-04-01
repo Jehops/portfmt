@@ -30,7 +30,6 @@
 
 #if HAVE_CAPSICUM
 # include <sys/capsicum.h>
-# include "capsicum_helpers.h"
 #endif
 #if HAVE_ERR
 # include <err.h>
@@ -45,6 +44,7 @@
 #include <libias/array.h>
 #include <libias/util.h>
 
+#include "capsicum_helpers.h"
 #include "mainutils.h"
 #include "parser.h"
 

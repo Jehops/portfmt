@@ -25,9 +25,9 @@
  *
  * $FreeBSD$
  */
+#pragma once
 
-#ifndef _CAPSICUM_HELPERS_H_
-#define	_CAPSICUM_HELPERS_H_
+#if HAVE_CAPSICUM
 
 #include <sys/param.h>
 #include <sys/capsicum.h>
@@ -176,4 +176,4 @@ caph_fcntls_limit(int fd, uint32_t fcntlrights)
 	return (0);
 }
 
-#endif /* _CAPSICUM_HELPERS_H_ */
+#endif
