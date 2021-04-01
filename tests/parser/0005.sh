@@ -1,5 +1,5 @@
 echo 'post-patch-CLANG$v-on:' | ${PORTFMT} -d | awk '
-$1 == "target-end" {
+$1 == "target-start" {
 	if ($3 != "post-patch-CLANG$v-on") {
 		printf "expected: post-patch-CLANG$v-on:\nactual: %s\n", $3
 		print "not ok"

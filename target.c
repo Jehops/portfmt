@@ -34,13 +34,16 @@
 #include <string.h>
 
 #include <libias/array.h>
+#include <libias/mempool.h>
 #include <libias/util.h>
 
 #include "target.h"
 
 struct Target {
+	struct Mempool *pool;
 	struct Array *names;
 	struct Array *deps;
+	char *comment;
 };
 
 static size_t
@@ -80,10 +83,11 @@ consume_token(const char *line, size_t pos, char startchar, char endchar)
 	return 0;
 }
 
-struct Target *
-target_new(char *buf)
+static const char *
+consume_names(struct Mempool *pool, const char *buf, struct Array *names, int deps)
 {
-	char *after_target = NULL;
+	const char *after_target = NULL;
+	size_t start = 0;
 	for (size_t i = 0; i < strlen(buf); i++) {
 		char c = buf[i];
 		if (c == '$') {
@@ -96,26 +100,54 @@ target_new(char *buf)
 			} else {
 				i = pos;
 			}
-		} else if (c == ':' || c == '!') {
-			after_target = buf + i;
+		} else if (!deps && (c == ':' || c == '!')) {
+			if (i > start) {
+				array_append(names, mempool_add(pool, xstrndup(buf + start, i - start), free));
+			}
+			after_target = buf + i + 1;
+			break;
+		} else if (c == ' ') {
+			if (i > start) {
+				array_append(names, mempool_add(pool, xstrndup(buf + start, i - start), free));
+			}
+			start = i + 1;
+		} else if (c == '#') {
+			after_target = buf + i + 1;
 			break;
 		}
 	}
-	if (after_target == NULL || after_target < buf) {
+
+	if (deps) {
+		if (buf[start] && buf[start] != '#') {
+			array_append(names, mempool_add(pool, xstrdup(buf + start), free));
+		}
+	} else if (after_target == NULL || after_target < buf) {
 		return NULL;
 	}
 
+	return after_target;
+}
+
+struct Target *
+target_new(char *buf)
+{
+	struct Mempool *pool = mempool_new();
+	struct Array *names = mempool_add(pool, array_new(), array_free);
+	struct Array *deps = mempool_add(pool, array_new(), array_free);
+	const char *after_target = consume_names(pool, buf, names, 0);
+	if (after_target == NULL) {
+		mempool_free(pool);
+		return NULL;
+	}
+	const char *comment = consume_names(pool, after_target, deps, 1);
+
 	struct Target *target = xmalloc(sizeof(struct Target));
-
-	target->names = array_new();
-	char *tmp = xmalloc(strlen(buf) + 1);
-	strncpy(tmp, buf, after_target - buf);
-	array_append(target->names, str_trimr(tmp));
-	free(tmp);
-
-	target->deps = array_new();
-	array_append(target->deps, xstrdup(after_target + 1));
-
+	target->pool = pool;
+	target->deps = deps;
+	target->names = names;
+	if (comment) {
+		target->comment = mempool_add(pool, xstrdup(comment), free);
+	}
 	return target;
 }
 
@@ -123,17 +155,18 @@ struct Target *
 target_clone(struct Target *target)
 {
 	struct Target *newtarget = xmalloc(sizeof(struct Target));
-
+	newtarget->pool = mempool_new();
 	newtarget->deps = array_new();
 	ARRAY_FOREACH(target->deps, char *, dep) {
-		array_append(newtarget->deps, xstrdup(dep));
+		array_append(newtarget->deps, mempool_add(newtarget->pool, xstrdup(dep), free));
 	}
-
 	newtarget->names = array_new();
 	ARRAY_FOREACH(target->names, char *, name) {
-		array_append(newtarget->names, xstrdup(name));
+		array_append(newtarget->names, mempool_add(newtarget->pool, xstrdup(name), free));
 	}
-
+	if (target->comment) {
+		newtarget->comment = mempool_add(newtarget->pool, xstrdup(target->comment), free);
+	}
 	return newtarget;
 }
 
@@ -143,13 +176,14 @@ target_free(struct Target *target)
 	if (target == NULL) {
 		return;
 	}
-	ARRAY_FOREACH(target->names, char *, name) {
-		free(name);
-	}
-	ARRAY_FOREACH(target->deps, char *, dep) {
-		free(dep);
-	}
+	mempool_free(target->pool);
 	free(target);
+}
+
+const char *
+target_comment(struct Target *target)
+{
+	return target->comment;
 }
 
 struct Array *

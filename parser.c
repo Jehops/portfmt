@@ -1444,6 +1444,7 @@ parser_output_dump_tokens(struct Parser *parser)
 		}
 	}
 
+	struct Array *vars = array_new();
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
 		const char *type;
@@ -1488,60 +1489,70 @@ parser_output_dump_tokens(struct Parser *parser)
 			parser->error = PARSER_ERROR_UNHANDLED_TOKEN_TYPE;
 			return;
 		}
-		char *var = NULL;
-		ssize_t len;
 		if (token_variable(t) &&
 		    (token_type(t) == VARIABLE_TOKEN ||
 		     token_type(t) == VARIABLE_START ||
 		     token_type(t) == VARIABLE_END)) {
-			var = variable_tostring(token_variable(t));
-			len = maxvarlen - strlen(var);
+			array_append(vars, variable_tostring(token_variable(t)));
 		} else if (token_conditional(t) &&
 			   (token_type(t) == CONDITIONAL_END ||
 			    token_type(t) == CONDITIONAL_START ||
 			    token_type(t) == CONDITIONAL_TOKEN)) {
-			var = conditional_tostring(token_conditional(t));
-			len = maxvarlen - strlen(var);
+			array_append(vars, conditional_tostring(token_conditional(t)));
+		} else if (token_target(t) && token_type(t) == TARGET_START) {
+			ARRAY_FOREACH(target_names(token_target(t)), char *, name) {
+				array_append(vars, xstrdup(name));
+			}
+			ARRAY_FOREACH(target_dependencies(token_target(t)), char *, dep) {
+				array_append(vars, str_printf("->%s", dep));
+			}
 		} else if (token_target(t) &&
 			   (token_type(t) == TARGET_COMMAND_END ||
 			    token_type(t) == TARGET_COMMAND_START ||
 			    token_type(t) == TARGET_COMMAND_TOKEN ||
 			    token_type(t) == TARGET_START ||
 			    token_type(t) == TARGET_END)) {
-			var = str_join(target_names(token_target(t)), " ");
-			len = maxvarlen - strlen(var);
+			array_append(vars, xstrdup("-"));
 		} else {
-			len = maxvarlen - 1;
-		}
-		char *range = range_tostring(token_lines(t));
-		char *buf = str_printf("%-20s %8s ", type, range);
-		free(range);
-		parser_enqueue_output(parser, buf);
-		free(buf);
-
-		if (var) {
-			parser_enqueue_output(parser, var);
-			free(var);
-		} else {
-			parser_enqueue_output(parser, "-");
+			array_append(vars, xstrdup("-"));
 		}
 
-		if (len > 0) {
-			buf = xmalloc(len + 1);
-			memset(buf, ' ', len);
+		ARRAY_FOREACH(vars, char *, var) {
+			ssize_t len = maxvarlen - strlen(var);
+			char *range = range_tostring(token_lines(t));
+			char *tokentype;
+			if (array_len(vars) > 1) {
+				tokentype = str_printf("%s#%zu", type, var_index + 1);
+			} else {
+				tokentype = xstrdup(type);
+			}
+			char *buf = str_printf("%-20s %8s ", tokentype, range);
+			free(tokentype);
+			free(range);
 			parser_enqueue_output(parser, buf);
 			free(buf);
-		}
-		parser_enqueue_output(parser, " ");
 
-		if (token_data(t) &&
-		    (token_type(t) != CONDITIONAL_START &&
-		     token_type(t) != CONDITIONAL_END)) {
-			parser_enqueue_output(parser, token_data(t));
-		} else {
-			parser_enqueue_output(parser, "-");
+			parser_enqueue_output(parser, var);
+
+			if (len > 0) {
+				buf = str_repeat(" ", len);
+				parser_enqueue_output(parser, buf);
+				free(buf);
+			}
+			parser_enqueue_output(parser, " ");
+
+			if (token_data(t) &&
+			    (token_type(t) != CONDITIONAL_START &&
+			     token_type(t) != CONDITIONAL_END)) {
+				parser_enqueue_output(parser, token_data(t));
+			} else {
+				parser_enqueue_output(parser, "-");
+			}
+			parser_enqueue_output(parser, "\n");
+
+			free(var);
 		}
-		parser_enqueue_output(parser, "\n");
+		array_truncate(vars);
 	}
 
 	parser->error = PARSER_ERROR_OK;

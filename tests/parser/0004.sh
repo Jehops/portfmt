@@ -1,5 +1,5 @@
 echo 'do-install: do-install-${D:S/./_/g}' | ${PORTFMT} -d | awk '
-$1 == "target-end" {
+$1 == "target-start#1" {
 	if ($3 != "do-install") {
 		printf "expected: do-install:\nactual: %s\n", $3
 		print "not ok"
