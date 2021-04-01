@@ -43,6 +43,28 @@
 #include "target.h"
 #include "token.h"
 
+static void
+add_target(struct Parser *parser, struct ParserEditOutput *param, struct Set *targets, struct Set *post_plist_targets, char *name, int deps)
+{
+	if (deps && is_special_source(name)) {
+		return;
+	}
+	if (!is_special_target(name) &&
+	    !is_known_target(parser, name) &&
+	    !set_contains(post_plist_targets, name) &&
+	    !set_contains(targets, name) &&
+	    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
+		parser_enqueue_output(parser, name);
+		parser_enqueue_output(parser, "\n");
+		set_add(targets, name);
+		param->found = 1;
+		if (param->return_values) {
+			array_append(param->keys, xstrdup(name));
+			array_append(param->values, xstrdup(name));
+		}
+	}
+}
+
 PARSER_EDIT(output_unknown_targets)
 {
 	struct ParserEditOutput *param = userdata;
@@ -63,20 +85,10 @@ PARSER_EDIT(output_unknown_targets)
 			continue;
 		}
 		ARRAY_FOREACH(target_names(token_target(t)), char *, name) {
-			if (!is_special_target(name) &&
-			    !is_known_target(parser, name) &&
-			    !set_contains(post_plist_targets, name) &&
-			    !set_contains(targets, name) &&
-			    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
-				parser_enqueue_output(parser, name);
-				parser_enqueue_output(parser, "\n");
-				set_add(targets, name);
-				param->found = 1;
-				if (param->return_values) {
-					array_append(param->keys, xstrdup(name));
-					array_append(param->values, xstrdup(name));
-				}
-			}
+			add_target(parser, param, targets, post_plist_targets, name, 0);
+		}
+		ARRAY_FOREACH(target_dependencies(token_target(t)), char *, name) {
+			add_target(parser, param, targets, post_plist_targets, name, 1);
 		}
 	}
 

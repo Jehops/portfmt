@@ -91,6 +91,7 @@ int indent_goalcol(struct Variable *);
 int is_comment(struct Token *);
 int is_include_bsd_port_mk(struct Token *);
 int is_known_target(struct Parser *, const char *);
+int is_special_source(const char *);
 int is_special_target(const char *);
 int is_options_helper(struct Parser *, const char *, char **, char **, char **);
 int leave_unformatted(struct Parser *, struct Variable *);

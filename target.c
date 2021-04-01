@@ -114,6 +114,10 @@ consume_names(struct Mempool *pool, const char *buf, struct Array *names, int de
 				i = pos;
 			}
 		} else if (!deps && (c == ':' || c == '!')) {
+			if (c == ':' && buf[i + 1] == ':') {
+				// consume extra : after target name (for example, pre-everthing::)
+				i++;
+			}
 			if (i > start) {
 				add_name(pool, names, buf, start, i);
 			}
@@ -139,11 +143,14 @@ consume_names(struct Mempool *pool, const char *buf, struct Array *names, int de
 				free(name);
 			}
 		}
-	} else if (after_target == NULL || after_target < buf) {
-		return NULL;
 	}
 
-	return after_target;
+	if (after_target == NULL || after_target < buf) {
+		return NULL;
+	} else {
+		for (; *after_target && isspace(*after_target); ++after_target);
+		return after_target;
+	}
 }
 
 struct Target *

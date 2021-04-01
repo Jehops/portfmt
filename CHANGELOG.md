@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Recognize more framework targets
 - Catch up with FreeBSD Ports:
   - Remove support for `PKGUPGRADE` and friends
+- portclippy, portscan: Report unknown target sources too
 
 ### Fixed
 

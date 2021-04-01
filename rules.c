@@ -166,20 +166,54 @@ static struct {
 	{ "add-plist-examples", 0 },
 	{ "add-plist-info", 0 },
 	{ "add-plist-post", 0 },
+	{ "all", 0 },
+	{ "apply-slist", 0 },
+	{ "build", 0 },
 	{ "check-man", 0 },
 	{ "check-orphans", 0 },
 	{ "check-plist", 0 },
+	{ "checksum", 0 },
+	{ "clean", 0 },
 	{ "compress-man", 0 },
+	{ "configure", 0 },
 	{ "create-binary-alias", 0 },
 	{ "create-binary-wrappers", 0 },
+	{ "distclean", 0 },
+	{ "extract", 0 },
 	{ "fake-pkg", 0 },
+	{ "fix-shebang", 0 },
 	{ "install-desktop-entries", 0 },
+	{ "install-ldconfig-file", 0 },
 	{ "install-rc-script", 0 },
+	{ "install", 0 },
 	{ "makepatch", 0 },
 	{ "makeplist", 0 },
 	{ "makesum", 0 },
+	{ "patch", 0 },
+	{ "pretty-print-config", 0 },
 	{ "stage-dir", 0 },
 	{ "stage-qa", 0 },
+	{ "stage", 0 },
+	{ "test", 0 },
+};
+
+static const char *special_sources_[] = {
+	".EXEC",
+	".IGNORE",
+	".MADE",
+	".MAKE",
+	".META",
+	".NOMETA",
+	".NOMETA_CMP",
+	".NOPATH",
+	".NOTMAIN",
+	".OPTIONAL",
+	".PHONY",
+	".PRECIOUS",
+	".SILENT",
+	".USE",
+	".USEBEFORE",
+	".WAIT",
 };
 
 static const char *special_targets_[] = {
@@ -2354,8 +2388,10 @@ compare_order(const void *ap, const void *bp, void *userdata)
 void
 target_extract_opt(struct Parser *parser, const char *target, char **target_out, char **opt_out, int *state)
 {
+	int colon = str_endswith(target, ":");
 	int on;
-	if ((on = str_endswith(target, "-on")) || str_endswith(target, "-off")) {
+	if ((colon && ((on = str_endswith(target, "-on:")) || str_endswith(target, "-off:"))) ||
+	    (!colon && ((on = str_endswith(target, "-on")) || str_endswith(target, "-off")))) {
 		const char *p = target;
 		for (; *p == '-' || (islower(*p) && isalpha(*p)); p++);
 		size_t opt_suffix_len;
@@ -2363,6 +2399,9 @@ target_extract_opt(struct Parser *parser, const char *target, char **target_out,
 			opt_suffix_len = strlen("-on");
 		} else {
 			opt_suffix_len = strlen("-off");
+		}
+		if (colon) {
+			opt_suffix_len++;
 		}
 		char *opt = xstrndup(p, strlen(p) - opt_suffix_len);
 		char *tmp = str_printf("%s_USES", opt);
@@ -2387,6 +2426,13 @@ target_extract_opt(struct Parser *parser, const char *target, char **target_out,
 
 	*opt_out = NULL;
 	*state = 0;
+	if (colon) {
+		size_t len = strlen(target);
+		if (len > 0) {
+			*target_out = xstrndup(target, len - 1);
+			return;
+		}
+	}
 	*target_out = xstrdup(target);
 }
 
@@ -2410,6 +2456,17 @@ is_known_target(struct Parser *parser, const char *target)
 }
 
 int
+is_special_source(const char *source)
+{
+	for (size_t i = 0; i < nitems(special_sources_); i++) {
+		if (strcmp(source, special_sources_[i]) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int
 is_special_target(const char *target)
 {
 	for (size_t i = 0; i < nitems(special_targets_); i++) {
@@ -2417,7 +2474,6 @@ is_special_target(const char *target)
 			return 1;
 		}
 	}
-
 	return 0;
 }
 
