@@ -83,6 +83,19 @@ consume_token(const char *line, size_t pos, char startchar, char endchar)
 	return 0;
 }
 
+static void
+add_name(struct Mempool *pool, struct Array *names, const char *buf, size_t start, size_t i)
+{
+	char *tmp = xstrndup(buf + start, i - start);
+	char *name = str_trim(tmp);
+	free(tmp);
+	if (*name) {
+		array_append(names, mempool_add(pool, name, free));
+	} else {
+		free(name);
+	}
+}
+
 static const char *
 consume_names(struct Mempool *pool, const char *buf, struct Array *names, int deps)
 {
@@ -102,13 +115,13 @@ consume_names(struct Mempool *pool, const char *buf, struct Array *names, int de
 			}
 		} else if (!deps && (c == ':' || c == '!')) {
 			if (i > start) {
-				array_append(names, mempool_add(pool, xstrndup(buf + start, i - start), free));
+				add_name(pool, names, buf, start, i);
 			}
 			after_target = buf + i + 1;
 			break;
 		} else if (c == ' ') {
 			if (i > start) {
-				array_append(names, mempool_add(pool, xstrndup(buf + start, i - start), free));
+				add_name(pool, names, buf, start, i);
 			}
 			start = i + 1;
 		} else if (c == '#') {
@@ -119,7 +132,12 @@ consume_names(struct Mempool *pool, const char *buf, struct Array *names, int de
 
 	if (deps) {
 		if (buf[start] && buf[start] != '#') {
-			array_append(names, mempool_add(pool, xstrdup(buf + start), free));
+			char *name = str_trim(buf + start);
+			if (*name) {
+				array_append(names, mempool_add(pool, str_trim(buf + start), free));
+			} else {
+				free(name);
+			}
 		}
 	} else if (after_target == NULL || after_target < buf) {
 		return NULL;
