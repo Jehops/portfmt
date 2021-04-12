@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Do not recognize false options helper targets like `makesum-OPT-on`
 - Properly split target names and dependencies.  This improves
   overall reporting on targets in portclippy and portscan
+- portfmt: Do not try to sort tokens in `*_CMD`
 
 ## [g20210321] - 2021-03-21
 
