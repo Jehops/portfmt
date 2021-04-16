@@ -94,7 +94,7 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 				const char *errstr = NULL;
 				settings->diff_context = strtonum(optarg, 0, INT_MAX, &errstr);
 				if (errstr != NULL) {
-					errx(1, "strtonum: %s", errstr);
+					errx(1, "-D%s is %s", optarg, errstr);
 				}
 			}
 			break;
@@ -125,7 +125,7 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 				const char *errstr = NULL;
 				settings->wrapcol = strtonum(optarg, -1, INT_MAX, &errstr);
 				if (errstr != NULL) {
-					errx(1, "strtonum: %s", errstr);
+					errx(1, "-w%s is %s", optarg, errstr);
 				}
 			} else {
 				return 0;

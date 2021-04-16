@@ -1026,7 +1026,7 @@ main(int argc, char *argv[])
 		const char *error;
 		progressinterval = strtonum(progressintervalstr, 1, UINT_MAX, &error);
 		if (error) {
-			errx(1, "strtonum: %s", error);
+			errx(1, "-o progress=%s is %s (must be >=1)", progressintervalstr, error);
 		}
 	}
 	portscan_status_init(progressinterval);
@@ -1051,7 +1051,7 @@ main(int argc, char *argv[])
 		const char *error;
 		editdist = strtonum(editdiststr, 0, INT_MAX, &error);
 		if (error) {
-			errx(1, "strtonum: %s", error);
+			errx(1, "-o option-default-descriptions=%s is %s (must be >=0)", editdiststr, error);
 		}
 	}
 
