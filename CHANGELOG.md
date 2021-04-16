@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Added
+
+- portscan: print progress reports on `SIGINFO` or `SIGUSR2` or in
+  regular intervals when requested with `-o progress`
+
 ### Changed
 
 - Recognize more framework targets

@@ -95,6 +95,20 @@ Include port options and option groups in the result.
 Use
 .Fl q
 to filter the options.
+.It Fl o Sy progress Op Ar =interval
+Print a progress report to
+.Va stderr
+every
+.Ar interval
+seconds.
+.Ar interval
+defaults to 5 seconds.
+Without this option
+.Nm
+will be silent and only print a progress report when it receives
+.Dv SIGINFO
+or
+.Dv SIGUSR2 .
 .It Fl o Sy unknown-targets
 Scan for unknown or unrecognized targets.
 .It Fl o Sy unknown-variables

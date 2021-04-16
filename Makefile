@@ -28,6 +28,7 @@ OBJS=		conditional.o \
 		parser/edits/refactor/sanitize_comments.o \
 		parser/edits/refactor/sanitize_eol_comments.o \
 		portscanlog.o \
+		portscanstatus.o \
 		regexp.o \
 		rules.o \
 		target.o \
@@ -99,8 +100,9 @@ parser/edits/refactor/sanitize_eol_comments.o: config.h libias/array.h libias/ut
 portclippy.o: config.h mainutils.h parser.h parser/edits.h
 portedit.o: config.h libias/array.h libias/set.h libias/util.h mainutils.h parser.h parser/edits.h regexp.h
 portfmt.o: config.h mainutils.h parser.h
-portscan.o: config.h libias/array.h libias/diff.h libias/map.h libias/set.h libias/util.h capsicum_helpers.h conditional.h mainutils.h parser.h parser/edits.h portscanlog.h regexp.h token.h variable.h
+portscan.o: config.h libias/array.h libias/diff.h libias/map.h libias/set.h libias/util.h capsicum_helpers.h conditional.h mainutils.h parser.h parser/edits.h portscanlog.h portscanstatus.h regexp.h token.h variable.h
 portscanlog.o: config.h libias/array.h libias/diff.h libias/set.h libias/util.h capsicum_helpers.h portscanlog.h
+portscanstatus.o: config.h portscanstatus.h
 regexp.o: config.h libias/util.h regexp.h
 rules.o: config.h libias/array.h libias/set.h libias/util.h conditional.h regexp.h rules.h parser.h token.h variable.h generated_rules.h
 target.o: config.h libias/array.h libias/mempool.h libias/util.h target.h

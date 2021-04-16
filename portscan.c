@@ -60,6 +60,7 @@
 #include "parser.h"
 #include "parser/edits.h"
 #include "portscanlog.h"
+#include "portscanstatus.h"
 #include "regexp.h"
 #include "token.h"
 #include "variable.h"
@@ -599,6 +600,7 @@ scan_ports_worker(void *userdata)
 	assert(data->start < data->end);
 
 	for (size_t i = data->start; i < data->end; i++) {
+		portscan_status_print();
 		char *origin = array_get(data->origins, i);
 		char *path = str_printf("%s/Makefile", origin);
 		struct ScanResult *result = xmalloc(sizeof(struct ScanResult));
@@ -615,6 +617,7 @@ scan_ports_worker(void *userdata)
 			.default_option_descriptions = data->default_option_descriptions,
 		};
 		scan_port(&scan_port_args);
+		portscan_status_inc();
 		free(path);
 		array_append(retval, result);
 	}
@@ -636,9 +639,11 @@ lookup_origins_worker(void *userdata)
 	result->origins = array_new();
 
 	for (size_t i = data->start; i < data->end; i++) {
+		portscan_status_print();
 		char *category = array_get(data->categories, i);
 		char *path = str_printf("%s/Makefile", category);
 		lookup_subdirs(data->portsdir, category, path, data->flags, result->origins, result->nonexistent, result->unhooked, result->unsorted, result->error_origins, result->error_msgs);
+		portscan_status_inc();
 		free(path);
 	}
 
@@ -656,6 +661,8 @@ lookup_origins(int portsdir, enum ScanFlags flags, struct PortscanLog *log)
 	struct Array *error_origins = array_new();
 	struct Array *error_msgs = array_new();
 	lookup_subdirs(portsdir, "", "Makefile", SCAN_NOTHING, categories, NULL, NULL, NULL, error_origins, error_msgs);
+
+	portscan_status_reset(PORTSCAN_STATUS_CATEGORIES, array_len(categories));
 	ssize_t n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	if (n_threads < 0) {
 		err(1, "sysconf");
@@ -874,6 +881,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 		end = MIN(end + step, array_len(origins));
 	}
 
+	struct Array *results = array_new();
 	for (ssize_t i = 0; i < n_threads; i++) {
 		void *data;
 		if (pthread_join(tid[i], &data) != 0) {
@@ -881,19 +889,24 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 		}
 		struct Array *result = data;
 		ARRAY_FOREACH(result, struct ScanResult *, r) {
-			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_ERROR, r->origin, r->errors);
-			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_VAR, r->origin, r->unknown_variables);
-			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_TARGET, r->origin, r->unknown_targets);
-			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);
-			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_DEFAULT_DESCRIPTION, r->origin, r->option_default_descriptions);
-			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
-			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION, r->origin, r->options);
-			portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_VARIABLE_VALUE, r->origin, r->variable_values);
-			free(r->origin);
-			free(r);
+			array_append(results, r);
 		}
 		array_free(result);
 	}
+	ARRAY_FOREACH(results, struct ScanResult *, r) {
+		portscan_status_print();
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_ERROR, r->origin, r->errors);
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_VAR, r->origin, r->unknown_variables);
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_UNKNOWN_TARGET, r->origin, r->unknown_targets);
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_DUPLICATE_VAR, r->origin, r->clones);
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_DEFAULT_DESCRIPTION, r->origin, r->option_default_descriptions);
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION, r->origin, r->options);
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_VARIABLE_VALUE, r->origin, r->variable_values);
+		free(r->origin);
+		free(r);
+	}
+	array_free(results);
 
 	map_free(default_option_descriptions);
 	free(tid);
@@ -914,6 +927,8 @@ main(int argc, char *argv[])
 	const char *keyquery = NULL;
 	const char *query = NULL;
 	const char *editdiststr = NULL;
+	const char *progressintervalstr = NULL;
+	unsigned int progressinterval = 0;
 	int ch;
 	enum ScanFlags flags = SCAN_NOTHING;
 	while ((ch = getopt(argc, argv, "l:q:o:p:")) != -1) {
@@ -938,6 +953,10 @@ main(int argc, char *argv[])
 				editdiststr = optarg + strlen("option-default-descriptions=");
 			} else if (strcasecmp(optarg, "options") == 0) {
 				flags |= SCAN_OPTIONS;
+			} else if (strcasecmp(optarg, "progress") == 0) {
+				progressinterval = 5;
+			} else if (strncasecmp(optarg, "progress=", strlen("progress=")) == 0) {
+				progressintervalstr = optarg + strlen("progress=");
 			} else if (strcasecmp(optarg, "unknown-targets") == 0) {
 				flags |= SCAN_UNKNOWN_TARGETS;
 			} else if (strcasecmp(optarg, "unknown-variables") == 0) {
@@ -1003,6 +1022,15 @@ main(int argc, char *argv[])
 	}
 #endif
 
+	if (progressintervalstr) {
+		const char *error;
+		progressinterval = strtonum(progressintervalstr, 1, UINT_MAX, &error);
+		if (error) {
+			errx(1, "strtonum: %s", error);
+		}
+	}
+	portscan_status_init(progressinterval);
+
 	struct Regexp *keyquery_regexp = NULL;
 	if (keyquery) {
 		keyquery_regexp = regexp_new_from_str(keyquery, REG_EXTENDED);
@@ -1040,6 +1068,7 @@ main(int argc, char *argv[])
 	}
 
 	int status = 0;
+	portscan_status_reset(PORTSCAN_STATUS_PORTS, array_len(origins));
 	scan_ports(portsdir, origins, flags, keyquery_regexp, query_regexp, editdist, result);
 	if (portscan_log_len(result) > 0) {
 		if (logdir != NULL) {
@@ -1057,6 +1086,11 @@ main(int argc, char *argv[])
 				err(1, "portscan_log_serialize");
 			}
 		}
+	}
+
+	if (progressinterval) {
+		portscan_status_reset(PORTSCAN_STATUS_FINISHED, 0);
+		portscan_status_print();
 	}
 
 cleanup:
