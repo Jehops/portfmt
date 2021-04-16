@@ -447,6 +447,12 @@ scan_port(struct ScanPortArgs *args)
 		goto cleanup;
 	}
 
+	error = parser_edit(parser, lint_bsd_port, NULL);
+	if (error != PARSER_ERROR_OK) {
+		add_error(retval->errors, parser_error_tostring(parser));
+		goto cleanup;
+	}
+
 	struct Array *includes = NULL;
 	error = parser_edit(parser, extract_includes, &includes);
 	if (error != PARSER_ERROR_OK) {
