@@ -73,6 +73,7 @@ enum ScanFlags {
 	SCAN_UNKNOWN_TARGETS = 1 << 4,
 	SCAN_UNKNOWN_VARIABLES = 1 << 5,
 	SCAN_VARIABLE_VALUES = 1 << 6,
+	SCAN_PARTIAL = 1 << 7,
 };
 
 struct ScanResult {
@@ -89,6 +90,7 @@ struct ScanResult {
 };
 
 struct ScanPortArgs {
+	enum ScanFlags flags;
 	int portsdir;
 	const char *path;
 	struct Regexp *keyquery;
@@ -447,10 +449,12 @@ scan_port(struct ScanPortArgs *args)
 		goto cleanup;
 	}
 
-	error = parser_edit(parser, lint_bsd_port, NULL);
-	if (error != PARSER_ERROR_OK) {
-		add_error(retval->errors, parser_error_tostring(parser));
-		goto cleanup;
+	if (args->flags & SCAN_PARTIAL) {
+		error = parser_edit(parser, lint_bsd_port, NULL);
+		if (error != PARSER_ERROR_OK) {
+			add_error(retval->errors, parser_error_tostring(parser));
+			goto cleanup;
+		}
 	}
 
 	struct Array *includes = NULL;
@@ -601,6 +605,7 @@ scan_ports_worker(void *userdata)
 		result->origin = xstrdup(origin);
 		result->flags = data->flags;
 		struct ScanPortArgs scan_port_args = {
+			.flags = data->flags,
 			.portsdir = data->portsdir,
 			.path = path,
 			.keyquery = data->keyquery,
@@ -1027,6 +1032,7 @@ main(int argc, char *argv[])
 	if (argc == 0) {
 		origins = lookup_origins(portsdir, flags, result);
 	} else {
+		flags |= SCAN_PARTIAL;
 		origins = array_new();
 		for (int i = 0; i < argc; i++) {
 			array_append(origins, xstrdup(argv[i]));
