@@ -812,14 +812,14 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 	struct Parser *parser = parser_new(&settings);
 	enum ParserError error = parser_read_from_file(parser, in);
 	if (error != PARSER_ERROR_OK) {
-		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsdd.options.desc.mk", parser_error_tostring(parser));
+		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsd.options.desc.mk", parser_error_tostring(parser));
 		parser_free(parser);
 		fclose(in);
 		return;
 	}
 	error = parser_read_finish(parser);
 	if (error != PARSER_ERROR_OK) {
-		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsdd.options.desc.mk", parser_error_tostring(parser));
+		portscan_log_add_entry(retval, PORTSCAN_LOG_ENTRY_ERROR, "Mk/bsd.options.desc.mk", parser_error_tostring(parser));
 		parser_free(parser);
 		fclose(in);
 		return;
