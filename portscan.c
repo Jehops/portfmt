@@ -891,14 +891,14 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 void
 usage()
 {
-	fprintf(stderr, "usage: portscan [-l <logdir>] [-o <flag>] [-q <regexp>] -p <portsdir> [<origin1> ...]\n");
+	fprintf(stderr, "usage: portscan [-l <logdir>] [-o <flag>] [-q <regexp>] [-p <portsdir>] [<origin1> ...]\n");
 	exit(EX_USAGE);
 }
 
 int
 main(int argc, char *argv[])
 {
-	const char *portsdir_path = NULL;
+	const char *portsdir_path = "/usr/ports";
 	const char *logdir_path = NULL;
 	const char *keyquery = NULL;
 	const char *query = NULL;
@@ -957,11 +957,6 @@ main(int argc, char *argv[])
 			SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
 	}
 
-	int portsdir = -1;
-	if (portsdir_path == NULL) {
-		usage();
-	}
-
 #if HAVE_CAPSICUM
 	if (caph_limit_stdio() < 0) {
 		err(1, "caph_limit_stdio");
@@ -971,7 +966,7 @@ main(int argc, char *argv[])
 	close(STDIN_FILENO);
 #endif
 
-	portsdir = open(portsdir_path, O_DIRECTORY);
+	int portsdir = open(portsdir_path, O_DIRECTORY);
 	if (portsdir == -1) {
 		err(1, "open: %s", portsdir_path);
 	}

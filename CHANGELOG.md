@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Catch up with FreeBSD Ports:
   - Remove support for `PKGUPGRADE` and friends
 - portclippy, portscan: Report unknown target sources too
+- portscan: default `-p` to `/usr/ports`
 
 ### Fixed
 
