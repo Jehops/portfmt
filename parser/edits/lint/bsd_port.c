@@ -33,6 +33,7 @@
 #include <stdio.h>
 
 #include <libias/array.h>
+#include <libias/util.h>
 
 #include "parser.h"
 #include "parser/edits.h"
@@ -40,18 +41,16 @@
 
 PARSER_EDIT(lint_bsd_port)
 {
-	int *status = userdata;
-	if (status == NULL) {
-		return NULL;
-	}
-
-	*status = 1;
+	int invalid = 1;
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		if (is_include_bsd_port_mk(t)) {
-			*status = 0;
+			invalid = 0;
 			break;
 		}
 	}
-
+	if (invalid) {
+		*error = PARSER_ERROR_EDIT_FAILED;
+		*error_msg = xstrdup("not a FreeBSD Ports Makefile");
+	}
 	return NULL;
 }

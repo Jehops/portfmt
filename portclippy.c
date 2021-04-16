@@ -89,16 +89,12 @@ main(int argc, char *argv[])
 		errx(1, "%s", parser_error_tostring(parser));
 	}
 
-	int status = 1;
-	error = parser_edit(parser, lint_bsd_port, &status);
+	error = parser_edit(parser, lint_bsd_port, NULL);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}
-	if (status == 1) {
-		errx(1, "input is not a FreeBSD Ports Makefile. Cowardly refusing to check it.");
-	}
 
-	status = 0;
+	int status = 0;
 	error = parser_edit(parser, lint_order, &status);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
