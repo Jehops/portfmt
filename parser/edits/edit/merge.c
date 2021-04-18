@@ -66,7 +66,8 @@ static PARSER_EDIT(extract_tokens);
 static PARSER_EDIT(insert_variable);
 static PARSER_EDIT(merge_existent_var);
 static void append_tokens(struct Parser *, struct Array *, struct Array *);
-static void append_values(struct Parser *, struct Array *, enum VariableModifier, const struct VariableMergeParameter *);
+static void append_values(struct Parser *, struct Array *, enum VariableModifier, struct VariableMergeParameter *);
+static void append_values_last(struct Parser *, struct Array *, enum VariableModifier, struct VariableMergeParameter *);
 static void assign_values(struct Parser *, struct Array *, enum VariableModifier, const struct VariableMergeParameter *);
 
 PARSER_EDIT(extract_tokens)
@@ -77,7 +78,7 @@ PARSER_EDIT(extract_tokens)
 }
 
 void
-append_values(struct Parser *parser, struct Array *tokens, enum VariableModifier mod, const struct VariableMergeParameter *params)
+append_values(struct Parser *parser, struct Array *tokens, enum VariableModifier mod, struct VariableMergeParameter *params)
 {
 	ARRAY_FOREACH(params->values, struct Token *, v) {
 		switch (token_type(v)) {
@@ -92,6 +93,46 @@ append_values(struct Parser *parser, struct Array *tokens, enum VariableModifier
 		default:
 			break;
 		}
+	}
+}
+
+void
+append_values_last(struct Parser *parser, struct Array *tokens, enum VariableModifier mod, struct VariableMergeParameter *params)
+{
+	struct Token *last_token = array_get(tokens, array_len(tokens) - 1);
+	if (last_token) {
+		struct Range *lines = token_lines(last_token);
+		struct Token *t;
+		if (token_type(last_token) == VARIABLE_END) {
+			params->var = variable_clone(params->var);
+			variable_set_modifier(params->var, MODIFIER_APPEND);
+
+			t = token_new_variable_start(lines, params->var);
+			array_append(tokens, t);
+			parser_mark_edited(parser, t);
+
+			append_values(parser, tokens, MODIFIER_APPEND, params);
+
+			t = token_new_variable_end(lines, params->var);
+			array_append(tokens, t);
+			parser_mark_edited(parser, t);
+		} else if (is_comment(last_token)) {
+			t = token_new_variable_end(lines, params->var);
+			array_append(tokens, t);
+			parser_mark_edited(parser, t);
+
+			params->var = variable_clone(params->var);
+			variable_set_modifier(params->var, MODIFIER_APPEND);
+			t = token_new_variable_start(lines, params->var);
+			array_append(tokens, t);
+			parser_mark_edited(parser, t);
+
+			append_values(parser, tokens, MODIFIER_APPEND, params);
+		} else {
+			append_values(parser, tokens, mod, params);
+		}
+	} else {
+		append_values(parser, tokens, mod, params);
 	}
 }
 
@@ -362,17 +403,40 @@ PARSER_EDIT(insert_variable)
 	return tokens;
 }
 
+static size_t
+find_last_occurrence_of_var(struct Parser *parser, struct Array *tokens, struct Variable *var, size_t i)
+{
+	size_t index = array_len(tokens) + 1;
+	for (; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		switch (token_type(t)) {
+		case VARIABLE_END:
+			if (variable_cmp(var, token_variable(t)) == 0) {
+				index = i;
+			} else {
+				return index;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	return index;
+}
+
 PARSER_EDIT(merge_existent_var)
 {
-	const struct VariableMergeParameter *params = userdata;
+	struct VariableMergeParameter *params = userdata;
 	struct Array *tokens = array_new();
 
 	int found = 0;
 	enum VariableModifier mod = variable_modifier(params->var);
+	size_t last_occ = array_len(ptokens) + 1;
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			if (variable_cmp(params->var, token_variable(t)) == 0) {
+				last_occ = find_last_occurrence_of_var(parser, ptokens, params->var, t_index);
 				found = 1;
 				if (mod == MODIFIER_ASSIGN ||
 				    (mod == MODIFIER_OPTIONAL && (params->behavior & PARSER_MERGE_OPTIONAL_LIKE_ASSIGN))) {
@@ -407,9 +471,19 @@ PARSER_EDIT(merge_existent_var)
 			if (found) {
 				found = 0;
 				if (mod == MODIFIER_APPEND) {
-					append_values(parser, tokens, variable_modifier(token_variable(t)), params);
-					array_append(tokens, t);
-					parser_mark_edited(parser, t);
+					if (params->behavior & PARSER_MERGE_AFTER_LAST_IN_GROUP) {
+						if (t_index == last_occ) {
+							append_values_last(parser, tokens, variable_modifier(token_variable(t)), params);
+							array_append(tokens, t);
+							parser_mark_edited(parser, t);
+							t_index = array_len(ptokens) + 1;
+						} else {
+							array_append(tokens, t);
+						}
+					} else {
+						append_values(parser, tokens, variable_modifier(token_variable(t)), params);
+						array_append(tokens, t);
+					}
 				} else if (mod == MODIFIER_SHELL) {
 					parser_mark_for_gc(parser, t);
 				}

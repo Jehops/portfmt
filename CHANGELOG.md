@@ -19,6 +19,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Remove support for `PKGUPGRADE` and friends
 - portclippy, portscan: Report unknown target sources too
 - portscan: default `-p` to `/usr/ports`
+- portedit, portfmt: Stop messing with inline comments.  This should let it
+  deal better with the commonly used `PATCHFILES+=<commit>.patch # <pr>`
+  pattern.
+- portedit: `merge` now tries to only append to the last variable in
+  "`+=` groups".  Something like
+  `portedit merge -e 'PATCHFILES+=deadbeef.patch:-p1 # https://github.com/t6/portfmt/pulls/1'`
+  should work now as one would expect.
 
 ### Fixed
 
@@ -27,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Properly split target names and dependencies.  This improves
   overall reporting on targets in portclippy and portscan
 - portfmt: Do not try to sort tokens in `*_CMD`
+- portedit: print right usage for `apply`
 
 ## [g20210321] - 2021-03-21
 

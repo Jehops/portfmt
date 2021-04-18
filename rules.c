@@ -1388,30 +1388,6 @@ should_sort(struct Parser *parser, struct Variable *var)
 }
 
 int
-preserve_eol_comment(struct Token *t)
-{
-	if (t == NULL || token_type(t) != VARIABLE_TOKEN) {
-		return 0;
-	}
-
-	if (!is_comment(t)) {
-		return 1;
-	}
-
-	/* Remove all whitespace from the comment first to cover more cases */
-	char *token = xmalloc(strlen(token_data(t)) + 1);
-	for (char *tokenp = token, *datap = token_data(t); *datap != 0; datap++) {
-		if (!isspace(*datap)) {
-			*tokenp++ = *datap;
-		}
-	}
-	int retval = strcmp(token, "#") == 0 || strcmp(token, "#empty") == 0 ||
-		strcmp(token, "#none") == 0;
-	free(token);
-	return retval;
-}
-
-int
 print_as_newlines(struct Parser *parser, struct Variable *var)
 {
 	return variable_has_flag(parser, variable_name(var), VAR_PRINT_AS_NEWLINES);

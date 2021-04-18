@@ -28,6 +28,7 @@
 
 #include "config.h"
 
+#include <regex.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -37,6 +38,7 @@
 
 #include "parser.h"
 #include "parser/edits.h"
+#include "rules.h"
 #include "token.h"
 #include "variable.h"
 
@@ -49,6 +51,38 @@ has_valid_modifier(struct Variable *var) {
 	default:
 		return 0;
 	}
+}
+
+static int
+next_variable_has_eol_comment(struct Array *tokens, size_t i) {
+	// Skip until next variable
+	int found = 0;
+	for (i++; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		if (token_type(t) == VARIABLE_START) {
+			i++;
+			found = 1;
+			break;
+		}
+	}
+	if (!found) {
+		return 0;
+	}
+	for (; i < array_len(tokens); i++) {
+		struct Token *t = array_get(tokens, i);
+		switch (token_type(t)) {
+		case VARIABLE_TOKEN:
+			if (is_comment(t)) {
+				return 1;
+			}
+			break;
+		case VARIABLE_END:
+			return 0;
+		default:
+			abort();
+		}
+	}
+	return 0;
 }
 
 PARSER_EDIT(refactor_collapse_adjacent_variables)
@@ -69,19 +103,21 @@ PARSER_EDIT(refactor_collapse_adjacent_variables)
 			if (last_var != NULL &&
 			    variable_cmp(token_variable(t), last_var) == 0 &&
 			    has_valid_modifier(last_var) &&
-			    has_valid_modifier(token_variable(t))) {
-				if (last_end) {
+			    has_valid_modifier(token_variable(t)) &&
+			    last_end) {
+				if (!next_variable_has_eol_comment(ptokens, t_index)) {
 					set_add(ignored_tokens, t);
 					set_add(ignored_tokens, last_end);
-					last_end = NULL;
 				}
+				last_end = NULL;
 			}
 			break;
 		case VARIABLE_TOKEN:
 			last_token = t;
 			break;
 		case VARIABLE_END:
-			if (!last_token || !str_startswith(token_data(last_token), "#")) {
+			if ((!last_token || !is_comment(last_token)) &&
+			    !next_variable_has_eol_comment(ptokens, t_index)) {
 				last_end = t;
 			}
 			last_token = NULL;

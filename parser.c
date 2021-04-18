@@ -689,10 +689,10 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 	parser_enqueue_output(parser, start);
 	size_t ntabs = ceil((MAX(16, token_goalcol(o)) - strlen(start)) / 8.0);
 	char *sep = str_repeat("\t", ntabs);
-
 	const char *end = " \\\n";
 	for (size_t i = 0; i < array_len(arr); i++) {
 		struct Token *o = array_get(arr, i);
+		struct Token *next = array_get(arr, i + 1);
 		char *line = token_data(o);
 		if (!line || strlen(line) == 0) {
 			continue;
@@ -702,6 +702,12 @@ print_newline_array(struct Parser *parser, struct Array *arr)
 		}
 		parser_enqueue_output(parser, sep);
 		parser_enqueue_output(parser, line);
+		// Do not wrap end of line comments
+		if (next && is_comment(next)) {
+			free(sep);
+			sep = xstrdup(" ");
+			continue;
+		}
 		parser_enqueue_output(parser, end);
 		switch (token_type(o)) {
 		case VARIABLE_TOKEN:
@@ -1769,11 +1775,6 @@ parser_read_finish(struct Parser *parser)
 		return parser->error;
 	}
 
-	if (!(parser->settings.behavior & PARSER_KEEP_EOL_COMMENTS) &&
-	    PARSER_ERROR_OK != parser_edit(parser, refactor_sanitize_eol_comments, NULL)) {
-		return parser->error;
-	}
-
 	if (PARSER_ERROR_OK != parser_edit(parser, refactor_sanitize_cmake_args, NULL)) {
 		return parser->error;
 	}
@@ -2362,6 +2363,9 @@ parser_lookup_variable_str(struct Parser *parser, const char *name, char **retva
 enum ParserError
 parser_merge(struct Parser *parser, struct Parser *subparser, enum ParserMergeBehavior settings)
 {
+	if (parser_is_category_makefile(parser)) {
+		settings &= ~PARSER_MERGE_AFTER_LAST_IN_GROUP;
+	}
 	struct ParserEdit params = { subparser, NULL, settings };
 	enum ParserError error = parser_edit(parser, edit_merge, &params);
 

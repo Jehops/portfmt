@@ -25,7 +25,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd March 3, 2021
+.Dd April 18, 2021
 .Dt PORTEDIT 1
 .Os
 .Sh NAME
@@ -35,13 +35,13 @@
 .Nm
 .Cm bump-revision
 .Op Fl D Ns Op Ar context
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
 .Cm bump-epoch
 .Op Fl D Ns Op Ar context
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
@@ -51,20 +51,20 @@
 .Nm
 .Cm merge
 .Op Fl D Ns Op Ar context
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Op Fl e Ar expr
 .Op Ar Makefile
 .Nm
 .Cm sanitize-append
 .Op Fl D Ns Op Ar context
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
 .Cm set-version
 .Op Fl D Ns Op Ar context
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Ar version
 .Op Ar Makefile
@@ -98,6 +98,9 @@ Output a unified diff from the original to the formatted version.
 This can optionally be followed by the number of context lines.
 It defaults to 3 lines of context.
 For full context use 0.
+.It Fl d
+Dump the list of recognized tokens to stdout.
+This is only useful for debugging purposes.
 .It Fl i
 Format
 .Ar Makefile
@@ -123,7 +126,7 @@ onto a single line.
 .It Xo
 .Nm
 .Cm bump-epoch
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Xc
@@ -134,7 +137,7 @@ but for PORTEPOCH.
 .It Xo
 .Nm
 .Cm bump-revision
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Xc
@@ -158,7 +161,7 @@ expression
 .It Xo
 .Nm
 .Cm merge
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Op Fl e Ar expr
 .Op Ar Makefile
@@ -193,7 +196,7 @@ for best results when inserting new variables.
 .It Xo
 .Nm
 .Cm sanitize-append
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Xc
@@ -211,7 +214,7 @@ in their environment.
 .It Xo
 .Nm
 .Cm set-version
-.Op Fl iu
+.Op Fl diu
 .Op Fl w Ar wrapcol
 .Ar version
 .Op Ar Makefile

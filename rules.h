@@ -97,7 +97,6 @@ int is_options_helper(struct Parser *, const char *, char **, char **, char **);
 int leave_unformatted(struct Parser *, struct Variable *);
 regex_t *regex(enum RegularExpression);
 int matches(enum RegularExpression, const char *);
-int preserve_eol_comment(struct Token *);
 int print_as_newlines(struct Parser *, struct Variable *);
 void rules_init(void);
 int should_sort(struct Parser *, struct Variable *);

@@ -65,4 +65,3 @@ PARSER_EDIT(refactor_remove_consecutive_empty_lines);
 PARSER_EDIT(refactor_sanitize_append_modifier);
 PARSER_EDIT(refactor_sanitize_cmake_args);
 PARSER_EDIT(refactor_sanitize_comments);
-PARSER_EDIT(refactor_sanitize_eol_comments);

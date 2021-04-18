@@ -1,0 +1,4 @@
+PATCHFILES+=	91076a814ff2.patch:-p1 # https://github.com/yuzu-emu/yuzu/pull/4836
+PATCHFILES+=	ec7337d1da05.patch:-p1 # https://github.com/yuzu-emu/yuzu/pull/5896
+
+COMMENT=	blabla # asdfasd
