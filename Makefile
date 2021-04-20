@@ -7,6 +7,9 @@ SH?=		/bin/sh
 CFLAGS+=	-std=gnu99 -I.
 LDADD+=		-lm
 
+SUBPACKAGES?=	1
+CPPFLAGS+=	-DPORTFMT_SUBPACKAGES=${SUBPACKAGES}
+
 OBJS=		conditional.o \
 		mainutils.o \
 		parser.o \
