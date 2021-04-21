@@ -1024,7 +1024,7 @@ main(int argc, char *argv[])
 
 	if (progressintervalstr) {
 		const char *error;
-		progressinterval = strtonum(progressintervalstr, 1, UINT_MAX, &error);
+		progressinterval = strtonum(progressintervalstr, 1, 100000000, &error);
 		if (error) {
 			errx(1, "-o progress=%s is %s (must be >=1)", progressintervalstr, error);
 		}
