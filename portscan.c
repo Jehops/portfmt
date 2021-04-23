@@ -947,7 +947,7 @@ usage()
 int
 main(int argc, char *argv[])
 {
-	const char *portsdir_path = "/usr/ports";
+	const char *portsdir_path = getenv("PORTSDIR");
 	const char *logdir_path = NULL;
 	const char *keyquery = NULL;
 	const char *query = NULL;
@@ -1013,6 +1013,10 @@ main(int argc, char *argv[])
 		flags = SCAN_CATEGORIES | SCAN_CLONES | SCAN_COMMENTS |
 			SCAN_OPTION_DEFAULT_DESCRIPTIONS | SCAN_UNKNOWN_TARGETS |
 			SCAN_UNKNOWN_VARIABLES;
+	}
+
+	if (portsdir_path == NULL) {
+		portsdir_path = "/usr/ports";
 	}
 
 #if HAVE_CAPSICUM

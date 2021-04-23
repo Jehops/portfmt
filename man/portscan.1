@@ -128,7 +128,10 @@ to select only a subset of all variables.
 .It Fl p Ar portsdir
 The port directory to scan.
 If not specified defaults to
-.Pa /usr/ports .
+.Pa /usr/ports
+or the value of
+.Ev PORTSDIR
+in the environment.
 .El
 .Sh OUTPUT
 The output is composed of whitespace delimited fields
@@ -176,6 +179,14 @@ never starts with whitespace.
 Any tools that consumes
 .Nm
 output should keep this in mind.
+.Sh ENVIRONMENT
+The following environment variables affect the execution of
+.Nm :
+.Bl -tag -width ".Ev PORTSDIR"
+.It Ev PORTSDIR
+The ports directory to operate on if
+.Fl p
+is not specified.
 .Sh EXIT STATUS
 .Nm
 will exit with one of the following values:
@@ -202,13 +213,13 @@ daily in an iterative manner and compare the results with
 .Xr diff 1
 to flag new problems:
 .Bd -literal -offset indent
-portscan -l . -p /usr/ports
+portscan -l .
 diff -u portscan-previous.log portscan-latest.log
 .Ed
 .Pp
 Scan category Makefiles for mistakes:
 .Bd -literal -offset indent
-portscan -o categories -p /usr/ports
+portscan -o categories
 .Ed
 .Sh SEE ALSO
 .Xr portclippy 1 ,
