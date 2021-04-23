@@ -161,7 +161,7 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 
 	ParserEditFn editfn = NULL;
 	for (size_t i = 0; i < nitems(parser_edits); i++) {
-		if (strcmp(parser_edits[i].name, apply_edit) == 0) {
+		if (strcasecmp(parser_edits[i].name, apply_edit) == 0) {
 			editfn = parser_edits[i].fn;
 			break;
 		}
