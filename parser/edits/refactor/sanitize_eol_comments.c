@@ -82,6 +82,7 @@ PARSER_EDIT(refactor_sanitize_eol_comments)
 	 */
 
 	struct Array *tokens = array_new();
+	struct Array *var_tokens = array_new();
 	struct Token *last_token = NULL;
 	ssize_t last_token_index = -1;
 	ssize_t placeholder_index = -1;
@@ -93,11 +94,13 @@ PARSER_EDIT(refactor_sanitize_eol_comments)
 			placeholder_index = array_len(tokens);
 			array_append(tokens, NULL);
 			array_append(tokens, t);
+			array_append(var_tokens, t);
 			break;
 		case VARIABLE_TOKEN:
 			last_token = t;
 			last_token_index = array_len(tokens);
 			array_append(tokens, t);
+			array_append(var_tokens, t);
 			break;
 		case VARIABLE_END:
 			if (placeholder_index > -1 && last_token_index > -1 &&
@@ -107,8 +110,13 @@ PARSER_EDIT(refactor_sanitize_eol_comments)
 				parser_mark_edited(parser, comment);
 				array_set(tokens, placeholder_index, comment);
 				array_set(tokens, last_token_index, NULL);
+				array_append(var_tokens, t);
+				ARRAY_FOREACH(var_tokens, struct Token *, vt) {
+					parser_mark_edited(parser, vt);
+				}
 			}
 			array_append(tokens, t);
+			array_truncate(var_tokens);
 			break;
 		default:
 			array_append(tokens, t);
@@ -123,6 +131,7 @@ PARSER_EDIT(refactor_sanitize_eol_comments)
 		}
 	}
 	array_free(tokens);
+	array_free(var_tokens);
 
 	return ptokens;
 }
