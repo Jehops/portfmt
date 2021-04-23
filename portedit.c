@@ -99,6 +99,7 @@ static struct ParserEdits parser_edits[] = {
 	{ "kakoune.select-object-on-line", kakoune_select_object_on_line },
 	{ "lint.bsd-port", lint_bsd_port },
 	{ "lint.clones", lint_clones },
+	{ "lint.commented-portrevision", lint_commented_portrevision },
 	{ "lint.order", lint_order },
 	{ "output.unknown-targets", output_unknown_targets },
 	{ "output.unknown-variables", output_unknown_variables },

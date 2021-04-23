@@ -19,6 +19,7 @@ OBJS=		conditional.o \
 		parser/edits/kakoune/select_object_on_line.o \
 		parser/edits/lint/bsd_port.o \
 		parser/edits/lint/clones.o \
+		parser/edits/lint/commented_portrevision.o \
 		parser/edits/lint/order.o \
 		parser/edits/output/unknown_targets.o \
 		parser/edits/output/unknown_variables.o \
@@ -88,6 +89,7 @@ parser/edits/edit/set_version.o: config.h libias/array.h libias/util.h parser.h 
 parser/edits/kakoune/select_object_on_line.o: config.h libias/array.h libias/util.h parser.h parser/edits.h token.h
 parser/edits/lint/bsd_port.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h
 parser/edits/lint/clones.o: config.h libias/array.h libias/set.h libias/util.h conditional.h parser.h parser/edits.h token.h variable.h
+parser/edits/lint/commented_portrevision.o: config.h libias/array.h libias/set.h libias/util.h parser.h parser/edits.h token.h
 parser/edits/lint/order.o: config.h libias/array.h libias/diff.h libias/util.h conditional.h parser.h parser/edits.h rules.h target.h token.h variable.h
 parser/edits/output/unknown_targets.o: config.h libias/array.h libias/set.h libias/util.h parser.h parser/edits.h rules.h target.h token.h
 parser/edits/output/unknown_variables.o: config.h libias/array.h libias/set.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h

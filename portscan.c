@@ -75,10 +75,12 @@ enum ScanFlags {
 	SCAN_UNKNOWN_VARIABLES = 1 << 5,
 	SCAN_VARIABLE_VALUES = 1 << 6,
 	SCAN_PARTIAL = 1 << 7,
+	SCAN_COMMENTS = 1 << 8,
 };
 
 struct ScanResult {
 	char *origin;
+	struct Set *comments;
 	struct Set *errors;
 	struct Set *unknown_variables;
 	struct Set *unknown_targets;
@@ -425,6 +427,7 @@ void
 scan_port(struct ScanPortArgs *args)
 {
 	struct ScanResult *retval = args->result;
+	retval->comments = set_new(str_compare, NULL, free);
 	retval->errors = set_new(str_compare, NULL, free);
 	retval->option_default_descriptions = set_new(str_compare, NULL, free);
 	retval->option_groups = set_new(str_compare, NULL, free);
@@ -579,6 +582,26 @@ scan_port(struct ScanPortArgs *args)
 			free(value);
 		}
 		array_free(param.values);
+	}
+
+	if (retval->flags & SCAN_COMMENTS) {
+		struct Set *commented_portrevision = NULL;
+		error = parser_edit(parser, lint_commented_portrevision, &commented_portrevision);
+		if (error != PARSER_ERROR_OK) {
+			char *err = parser_error_tostring(parser);
+			add_error(retval->errors, str_printf("lint.commented-portrevision: %s", err));
+			free(err);
+			goto cleanup;
+		}
+		SET_FOREACH(commented_portrevision, char *, comment) {
+			char *msg = str_printf("commented revision or epoch: %s", comment);
+			if (set_contains(retval->comments, msg)) {
+				free(msg);
+			} else {
+				set_add(retval->comments, msg);
+			}
+		}
+		set_free(commented_portrevision);
 	}
 
 cleanup:
@@ -804,6 +827,7 @@ void
 scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Regexp *keyquery, struct Regexp *query, ssize_t editdist, struct PortscanLog *retval)
 {
 	if (!(flags & (SCAN_CLONES |
+		       SCAN_COMMENTS |
 		       SCAN_OPTION_DEFAULT_DESCRIPTIONS |
 		       SCAN_OPTIONS |
 		       SCAN_UNKNOWN_TARGETS |
@@ -903,6 +927,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION_GROUP, r->origin, r->option_groups);
 		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_OPTION, r->origin, r->options);
 		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_VARIABLE_VALUE, r->origin, r->variable_values);
+		portscan_log_add_entries(retval, PORTSCAN_LOG_ENTRY_COMMENT, r->origin, r->comments);
 		free(r->origin);
 		free(r);
 	}
@@ -946,6 +971,8 @@ main(int argc, char *argv[])
 				flags |= SCAN_CATEGORIES;
 			} else if (strcasecmp(optarg, "clones") == 0) {
 				flags |= SCAN_CLONES;
+			} else if (strcasecmp(optarg, "comments") == 0) {
+				flags |= SCAN_COMMENTS;
 			} else if (strcasecmp(optarg, "option-default-descriptions") == 0) {
 				flags |= SCAN_OPTION_DEFAULT_DESCRIPTIONS;
 			} else if (strncasecmp(optarg, "option-default-descriptions=", strlen("option-default-descriptions=")) == 0) {
@@ -983,8 +1010,9 @@ main(int argc, char *argv[])
 	argv += optind;
 
 	if (flags == SCAN_NOTHING) {
-		flags = SCAN_CATEGORIES | SCAN_CLONES | SCAN_OPTION_DEFAULT_DESCRIPTIONS |
-			SCAN_UNKNOWN_TARGETS | SCAN_UNKNOWN_VARIABLES;
+		flags = SCAN_CATEGORIES | SCAN_CLONES | SCAN_COMMENTS |
+			SCAN_OPTION_DEFAULT_DESCRIPTIONS | SCAN_UNKNOWN_TARGETS |
+			SCAN_UNKNOWN_VARIABLES;
 	}
 
 #if HAVE_CAPSICUM

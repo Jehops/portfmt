@@ -55,6 +55,7 @@ PARSER_EDIT(edit_set_version);
 PARSER_EDIT(kakoune_select_object_on_line);
 PARSER_EDIT(lint_bsd_port);
 PARSER_EDIT(lint_clones);
+PARSER_EDIT(lint_commented_portrevision);
 PARSER_EDIT(lint_order);
 PARSER_EDIT(output_unknown_targets);
 PARSER_EDIT(output_unknown_variables);

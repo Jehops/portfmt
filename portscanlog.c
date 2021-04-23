@@ -157,6 +157,9 @@ log_entry_tostring(const struct PortscanLogEntry *entry)
 	case PORTSCAN_LOG_ENTRY_VARIABLE_VALUE:
 		buf = str_printf("%-7s %-40s %s\n", "Vv", entry->origin, entry->value);
 		break;
+	case PORTSCAN_LOG_ENTRY_COMMENT:
+		buf = str_printf("%-7c %-40s %s\n", '#', entry->origin, entry->value);
+		break;
 	default:
 		abort();
 	}
@@ -225,6 +228,9 @@ log_entry_parse(const char *s)
 	} else if (str_startswith(s, "Vv ")) {
 		type = PORTSCAN_LOG_ENTRY_VARIABLE_VALUE;
 		s += 2;
+	} else if (str_startswith(s, "# ")) {
+		type = PORTSCAN_LOG_ENTRY_COMMENT;
+		s++;
 	} else {
 		fprintf(stderr, "unable to parse log entry: %s\n", s);
 		return NULL;
