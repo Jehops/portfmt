@@ -110,6 +110,7 @@ static struct ParserEdits parser_edits[] = {
 	{ "refactor.sanitize-append-modifier", refactor_sanitize_append_modifier },
 	{ "refactor.sanitize-cmake-args", refactor_sanitize_cmake_args },
 	{ "refactor.sanitize-comments", refactor_sanitize_comments },
+	{ "refactor.sanitize-eol-comments", refactor_sanitize_eol_comments },
 };
 
 int

@@ -25,7 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - portscan: default `-p` to `/usr/ports` or the value of `PORTSDIR` in the environment
 - portedit, portfmt: Stop messing with inline comments.  This should let it
   deal better with the commonly used `PATCHFILES+=<commit>.patch # <pr>`
-  pattern.
+  pattern. This disables `refactor.sanitize-eol-comments` by default but it is
+  still accessible with `portedit apply refactor.sanitize-eol-comments`.
 - portedit: `merge` now tries to only append to the last variable in
   "`+=` groups".  Something like
   `portedit merge -e 'PATCHFILES+=deadbeef.patch:-p1 # https://github.com/t6/portfmt/pulls/1'`

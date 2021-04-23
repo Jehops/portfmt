@@ -30,6 +30,7 @@ OBJS=		conditional.o \
 		parser/edits/refactor/sanitize_append_modifier.o \
 		parser/edits/refactor/sanitize_cmake_args.o \
 		parser/edits/refactor/sanitize_comments.o \
+		parser/edits/refactor/sanitize_eol_comments.o \
 		portscanlog.o \
 		portscanstatus.o \
 		regexp.o \
@@ -100,6 +101,7 @@ parser/edits/refactor/remove_consecutive_empty_lines.o: config.h libias/array.h 
 parser/edits/refactor/sanitize_append_modifier.o: config.h libias/array.h libias/set.h parser.h parser/edits.h rules.h token.h variable.h
 parser/edits/refactor/sanitize_cmake_args.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
 parser/edits/refactor/sanitize_comments.o: config.h libias/array.h libias/util.h parser.h parser/edits.h token.h
+parser/edits/refactor/sanitize_eol_comments.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
 portclippy.o: config.h mainutils.h parser.h parser/edits.h
 portedit.o: config.h libias/array.h libias/set.h libias/util.h mainutils.h parser.h parser/edits.h regexp.h
 portfmt.o: config.h mainutils.h parser.h
