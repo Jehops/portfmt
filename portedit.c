@@ -106,9 +106,9 @@ static struct ParserEdits parser_edits[] = {
 	{ "output.variable-value", output_variable_value },
 	{ "refactor.collapse-adjacent-variables", refactor_collapse_adjacent_variables },
 	{ "refactor.dedup-tokens", refactor_dedup_tokens },
-	{ "refactor.remove-consecutive-empty_-ines", refactor_remove_consecutive_empty_lines },
-	{ "refactor.sanitize-append_modifier", refactor_sanitize_append_modifier },
-	{ "refactor.sanitize-cmake_args", refactor_sanitize_cmake_args },
+	{ "refactor.remove-consecutive-empty-lines", refactor_remove_consecutive_empty_lines },
+	{ "refactor.sanitize-append-modifier", refactor_sanitize_append_modifier },
+	{ "refactor.sanitize-cmake-args", refactor_sanitize_cmake_args },
 	{ "refactor.sanitize-comments", refactor_sanitize_comments },
 };
 
@@ -122,6 +122,13 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 	}
 	argv++;
 	argc--;
+
+	if (argc == 2 && strcasecmp(argv[1], "list") == 0) {
+		for (size_t i = 0; i < nitems(parser_edits); i++) {
+			printf("%s\n", parser_edits[i].name);
+		}
+		return 0;
+	}
 
 	if (!read_common_args(&argc, &argv, settings, "D::diuUw:", NULL)) {
 		apply_usage();
@@ -573,6 +580,7 @@ void
 apply_usage()
 {
 	fprintf(stderr, "usage: portedit apply [-D[context]] [-diuU] [-w wrapcol] <edit> [Makefile]\n");
+	fprintf(stderr, "       portedit apply list\n");
 	exit(EX_USAGE);
 }
 

@@ -25,13 +25,20 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd April 18, 2021
+.Dd April 23, 2021
 .Dt PORTEDIT 1
 .Os
 .Sh NAME
 .Nm portedit
 .Nd "edit and refactor FreeBSD Ports Collection Makefiles"
 .Sh SYNOPSIS
+.Nm
+.Cm apply
+.Sy list
+.Nm
+.Cm apply
+.Ar edit
+.Op Ar Makefile
 .Nm
 .Cm bump-revision
 .Op Fl D Ns Op Ar context
@@ -123,6 +130,21 @@ onto a single line.
 .El
 .Sh COMMANDS
 .Bl -tag -width 2n
+.It Xo
+.Nm
+.Cm apply
+.Sy list
+.Xc
+.Pp
+List all available edits.
+.It Xo
+.Nm
+.Cm apply
+.Ar edit
+.Op Ar Makefile
+.Xc
+.Pp
+Run the selected edit.
 .It Xo
 .Nm
 .Cm bump-epoch
