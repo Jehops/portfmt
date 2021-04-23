@@ -56,7 +56,7 @@
 struct PortscanLogDir {
 	int fd;
 	char *path;
-	char *rev;
+	char *commit;
 };
 
 struct PortscanLog {
@@ -81,7 +81,7 @@ static struct PortscanLogEntry *log_entry_parse(const char *);
 static FILE *log_open(struct PortscanLogDir *, const char *);
 static int log_update_latest(struct PortscanLogDir *, const char *);
 static char *log_filename(const char *);
-static char *log_revision(int);
+static char *log_commit(int);
 
 struct PortscanLog *
 portscan_log_new()
@@ -363,7 +363,7 @@ log_update_latest(struct PortscanLogDir *logdir, const char *log_path)
 }
 
 char *
-log_filename(const char *rev)
+log_filename(const char *commit)
 {
 	time_t date = time(NULL);
 	if (date == -1) {
@@ -376,7 +376,7 @@ log_filename(const char *rev)
 		return NULL;
 	}
 
-	char *log_path = str_printf("%s-%s.log", buf, rev);
+	char *log_path = str_printf("%s-%s.log", buf, commit);
 
 	return log_path;
 }
@@ -384,7 +384,7 @@ log_filename(const char *rev)
 int
 portscan_log_serialize_to_dir(struct PortscanLog *log, struct PortscanLogDir *logdir)
 {
-	char *log_path = log_filename(logdir->rev);
+	char *log_path = log_filename(logdir->commit);
 	FILE *out = log_open(logdir, log_path);
 	if (out == NULL) {
 		free(log_path);
@@ -403,13 +403,13 @@ portscan_log_serialize_to_dir(struct PortscanLog *log, struct PortscanLogDir *lo
 }
 
 char *
-log_revision(int portsdir)
+log_commit(int portsdir)
 {
 	if (fchdir(portsdir) == -1) {
 		err(1, "fchdir");
 	}
 
-	FILE *fp = popen("if [ -d .svn ]; then svn info --show-item revision --no-newline 2>/dev/null; exit; fi; if [ -d .git ]; then git rev-parse HEAD 2>/dev/null; fi", "r");
+	FILE *fp = popen("git rev-parse HEAD 2>/dev/null", "r");
 	if (fp == NULL) {
 		err(1, "popen");
 	}
@@ -422,13 +422,7 @@ log_revision(int portsdir)
 		if (linelen > 0 && line[linelen - 1] == '\n') {
 			line[linelen - 1] = 0;
 		}
-
-		if (strlen(line) == 40) {
-			// Assume git commit
-			revision = str_printf("%s", line);
-		} else {
-			revision = str_printf("r%s", line);
-		}
+		revision = str_printf("%s", line);
 	}
 	free(line);
 	pclose(fp);
@@ -485,7 +479,7 @@ portscan_log_dir_open(const char *logdir_path, int portsdir)
 	struct PortscanLogDir *dir = xmalloc(sizeof(struct PortscanLogDir));
 	dir->fd = logdir;
 	dir->path = xstrdup(logdir_path);
-	dir->rev = log_revision(portsdir);
+	dir->commit = log_commit(portsdir);
 
 	return dir;
 }
@@ -498,7 +492,7 @@ portscan_log_dir_close(struct PortscanLogDir *dir)
 	}
 	close(dir->fd);
 	free(dir->path);
-	free(dir->rev);
+	free(dir->commit);
 	free(dir);
 }
 
