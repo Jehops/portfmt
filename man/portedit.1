@@ -37,18 +37,21 @@
 .Sy list
 .Nm
 .Cm apply
+.Op Fl D Ns Op Ar context
+.Op Fl diuU
+.Op Fl w Ar wrapcol
 .Ar edit
 .Op Ar Makefile
 .Nm
 .Cm bump-revision
 .Op Fl D Ns Op Ar context
-.Op Fl diu
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
 .Cm bump-epoch
 .Op Fl D Ns Op Ar context
-.Op Fl diu
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
@@ -58,20 +61,20 @@
 .Nm
 .Cm merge
 .Op Fl D Ns Op Ar context
-.Op Fl diu
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Op Fl e Ar expr
 .Op Ar Makefile
 .Nm
 .Cm sanitize-append
 .Op Fl D Ns Op Ar context
-.Op Fl diu
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Nm
 .Cm set-version
 .Op Fl D Ns Op Ar context
-.Op Fl diu
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Ar version
 .Op Ar Makefile
@@ -100,7 +103,7 @@ The following options are shared between the
 commands and
 .Xr portfmt 1 .
 .Bl -tag -width indent
-.It Fl D
+.It Fl D Ns Op Ar context
 Output a unified diff from the original to the formatted version.
 This can optionally be followed by the number of context lines.
 It defaults to 3 lines of context.
@@ -140,6 +143,9 @@ List all available edits.
 .It Xo
 .Nm
 .Cm apply
+.Op Fl D Ns Op Ar context
+.Op Fl diuU
+.Op Fl w Ar wrapcol
 .Ar edit
 .Op Ar Makefile
 .Xc
@@ -148,7 +154,8 @@ Run the selected edit.
 .It Xo
 .Nm
 .Cm bump-epoch
-.Op Fl diu
+.Op Fl D Ns Op Ar context
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Xc
@@ -159,7 +166,8 @@ but for PORTEPOCH.
 .It Xo
 .Nm
 .Cm bump-revision
-.Op Fl diu
+.Op Fl D Ns Op Ar context
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Xc
@@ -183,7 +191,8 @@ expression
 .It Xo
 .Nm
 .Cm merge
-.Op Fl diu
+.Op Fl D Ns Op Ar context
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Op Fl e Ar expr
 .Op Ar Makefile
@@ -218,7 +227,8 @@ for best results when inserting new variables.
 .It Xo
 .Nm
 .Cm sanitize-append
-.Op Fl diu
+.Op Fl D Ns Op Ar context
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Op Ar Makefile
 .Xc
@@ -236,7 +246,8 @@ in their environment.
 .It Xo
 .Nm
 .Cm set-version
-.Op Fl diu
+.Op Fl D Ns Op Ar context
+.Op Fl diuU
 .Op Fl w Ar wrapcol
 .Ar version
 .Op Ar Makefile
