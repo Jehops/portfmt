@@ -118,29 +118,44 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 {
 	settings->behavior |= PARSER_ALLOW_FUZZY_MATCHING;
 
-	if (argc < 3) {
+	if (argc < 2) {
 		apply_usage();
 	}
 	argv++;
 	argc--;
 
-	if (argc == 2 && strcasecmp(argv[1], "list") == 0) {
-		for (size_t i = 0; i < nitems(parser_edits); i++) {
-			printf("%s\n", parser_edits[i].name);
+	if (argc >= 2) {
+		if (strcasecmp(argv[1], "list") == 0) {
+			if (argc != 2) {
+				apply_usage();
+			}
+			for (size_t i = 0; i < nitems(parser_edits); i++) {
+				printf("%s\n", parser_edits[i].name);
+			}
+			return 0;
 		}
-		return 0;
+	} else {
+		apply_usage();
+	}
+
+	const char *apply_edit = argv[1];
+	argv++;
+	argc--;
+
+	ParserEditFn editfn = NULL;
+	for (size_t i = 0; i < nitems(parser_edits); i++) {
+		if (strcasecmp(parser_edits[i].name, apply_edit) == 0) {
+			editfn = parser_edits[i].fn;
+			break;
+		}
+	}
+	if (editfn == NULL) {
+		errx(1, "%s not found. Use 'portedit apply list' to list all available edits.", apply_edit);
 	}
 
 	if (!read_common_args(&argc, &argv, settings, "D::diuUw:", NULL)) {
 		apply_usage();
 	}
-	if (argc < 1) {
-		apply_usage();
-	}
-
-	const char *apply_edit = argv[0];
-	argv++;
-	argc--;
 
 	if (str_startswith(apply_edit, "kakoune.") ||
 	    str_startswith(apply_edit, "lint.") ||
@@ -160,16 +175,6 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 		userdata = xmalloc(sizeof(struct ParserEditOutput));
 	}
 
-	ParserEditFn editfn = NULL;
-	for (size_t i = 0; i < nitems(parser_edits); i++) {
-		if (strcasecmp(parser_edits[i].name, apply_edit) == 0) {
-			editfn = parser_edits[i].fn;
-			break;
-		}
-	}
-	if (editfn == NULL) {
-		errx(1, "%s not found", apply_edit);
-	}
 	int error = parser_edit(parser, editfn, userdata);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s: %s", apply_edit, parser_error_tostring(parser));
@@ -580,7 +585,7 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 void
 apply_usage()
 {
-	fprintf(stderr, "usage: portedit apply [-D[context]] [-diuU] [-w wrapcol] <edit> [Makefile]\n");
+	fprintf(stderr, "usage: portedit apply <edit> [-D[context]] [-diuU] [-w wrapcol] [Makefile]\n");
 	fprintf(stderr, "       portedit apply list\n");
 	exit(EX_USAGE);
 }
