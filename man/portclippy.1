@@ -63,12 +63,13 @@ The following environment variables affect the execution of
 .Nm :
 .Bl -tag -width ".Ev CLICOLOR_FORCE"
 .It Ev CLICOLOR_FORCE
-If defined will force enable colored output even when stdout is not
-a tty or
+If defined
+.Nm
+will output text with ANSI colors even when stdout is not a tty or
 .Ev NO_COLOR
 is set.
 .It Ev NO_COLOR
-If defined will force disable colored output.
+If defined colors will be disabled.
 .El
 .Sh EXIT STATUS
 .Nm
