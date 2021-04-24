@@ -51,12 +51,11 @@
 int
 can_use_colors(FILE *fp)
 {
-	if (getenv("CLICOLOR_FORCE") == NULL && isatty(fileno(fp)) == 0) {
-		return 0;
+	if (getenv("CLICOLOR_FORCE") != NULL) {
+		return 1;
 	}
 
-	// NO_COLOR takes precedence even when CLICOLOR_FORCE is set
-	if (getenv("NO_COLOR") != NULL) {
+	if (getenv("NO_COLOR") != NULL || isatty(fileno(fp)) == 0) {
 		return 0;
 	}
 

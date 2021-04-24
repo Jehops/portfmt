@@ -40,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   overall reporting on targets in portclippy and portscan
 - portfmt: Do not try to sort tokens in `*_CMD`
 - portedit: print right usage for `apply`
+- Ignore `NO_COLOR` when `CLICOLOR_FORCE` is set and force colors
+  on per the FAQ on https://no-color.org/
 
 ## [g20210321] - 2021-03-21
 
