@@ -72,13 +72,19 @@ PARSER_EDIT(lint_commented_portrevision)
 			continue;
 		}
 
-		if (parser_lookup_variable(subparser, "PORTEPOCH", NULL, NULL) ||
-		    parser_lookup_variable(subparser, "PORTREVISION", NULL, NULL)) {
-			if (set_contains(comments, comment)) {
-				free(comment);
+		struct Array *revtokens = NULL;
+		if (parser_lookup_variable(subparser, "PORTEPOCH", &revtokens, NULL) ||
+		    parser_lookup_variable(subparser, "PORTREVISION", &revtokens, NULL)) {
+			if (array_len(revtokens) <= 1) {
+				if (set_contains(comments, comment)) {
+					free(comment);
+				} else {
+					set_add(comments, comment);
+				}
 			} else {
-				set_add(comments, comment);
+				free(comment);
 			}
+			array_free(revtokens);
 		} else {
 			free(comment);
 		}
