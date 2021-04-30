@@ -41,6 +41,10 @@
 
 PARSER_EDIT(lint_bsd_port)
 {
+	if (parser_metadata(parser, PARSER_METADATA_MASTERDIR)) {
+		return NULL;
+	}
+
 	int invalid = 1;
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		if (is_include_bsd_port_mk(t)) {

@@ -42,6 +42,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - portedit: print right usage for `apply`
 - Ignore `NO_COLOR` when `CLICOLOR_FORCE` is set and force colors
   on per the FAQ on https://no-color.org/
+- portclippy: check slave ports again.  The check if a Makefile
+  is a FreeBSD Ports Makefile is flawed and is now also positive
+  if `MASTERDIR` is set in it.
 
 ## [g20210321] - 2021-03-21
 

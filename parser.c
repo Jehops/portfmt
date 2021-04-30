@@ -2117,6 +2117,9 @@ parser_metadata_alloc(struct Parser *parser)
 		case PARSER_METADATA_OPTION_DESCRIPTIONS:
 			parser->metadata[meta] = map_new(str_compare, NULL, free, free);
 			break;
+		case PARSER_METADATA_MASTERDIR:
+			parser->metadata[meta] = NULL;
+			break;
 		default:
 			parser->metadata[meta] = set_new(str_compare, NULL, free);
 			break;
@@ -2129,6 +2132,9 @@ parser_metadata_free(struct Parser *parser)
 {
 	for (enum ParserMetadata i = 0; i <= PARSER_METADATA_USES; i++) {
 		switch (i) {
+		case PARSER_METADATA_MASTERDIR:
+			free(parser->metadata[i]);
+			break;
 		case PARSER_METADATA_OPTION_DESCRIPTIONS:
 			map_free(parser->metadata[i]);
 			break;
@@ -2175,7 +2181,14 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 		} case PARSER_METADATA_LICENSES:
 			parser_meta_values(parser, "LICENSE", parser->metadata[PARSER_METADATA_LICENSES]);
 			break;
-		case PARSER_METADATA_SHEBANG_LANGS:
+		case PARSER_METADATA_MASTERDIR: {
+			struct Array *tokens = NULL;
+			if (parser_lookup_variable(parser, "MASTERDIR", &tokens, NULL)) {
+				free(parser->metadata[meta]);
+				parser->metadata[meta] = str_join(tokens, " ");
+			}
+			break;
+		} case PARSER_METADATA_SHEBANG_LANGS:
 			parser_meta_values(parser, "SHEBANG_LANG", parser->metadata[PARSER_METADATA_SHEBANG_LANGS]);
 			break;
 		case PARSER_METADATA_OPTION_DESCRIPTIONS:
