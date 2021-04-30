@@ -38,6 +38,7 @@
 
 #include <libias/array.h>
 #include <libias/diff.h>
+#include <libias/mempool.h>
 #include <libias/set.h>
 #include <libias/util.h>
 
@@ -59,6 +60,31 @@ enum SkipDeveloperState {
 	SKIP_DEVELOPER_SKIP,
 	SKIP_DEVELOPER_END,
 };
+
+struct Row {
+	char *name;
+	char *hint;
+};
+
+static void
+row(struct Mempool *pool, struct Array *output, char *name, char *hint)
+{
+	struct Row *row = xmalloc(sizeof(struct Row));
+	row->name = name;
+	row->hint = hint;
+	mempool_add(pool, row, free);
+	mempool_add(pool, name, free);
+	mempool_add(pool, hint, free);
+	array_append(output, row);
+}
+
+static int
+row_compare(const void *ap, const void *bp, void *userdata)
+{
+	struct Row *a = *(struct Row **)ap;
+	struct Row *b = *(struct Row **)bp;
+	return strcmp(a->name, b->name);
+}
 
 static enum SkipDeveloperState
 skip_developer_only(enum SkipDeveloperState state, struct Token *t)
@@ -94,9 +120,9 @@ skip_developer_only(enum SkipDeveloperState state, struct Token *t)
 }
 
 static struct Array *
-variable_list(struct Parser *parser, struct Array *tokens)
+variable_list(struct Mempool *pool, struct Parser *parser, struct Array *tokens)
 {
-	struct Array *output = array_new();
+	struct Array *output = mempool_add(pool, array_new(), array_free);
 	struct Array *vars = array_new();
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	ARRAY_FOREACH(tokens, struct Token *, t) {
@@ -119,15 +145,29 @@ variable_list(struct Parser *parser, struct Array *tokens)
 	enum BlockType last_block = BLOCK_UNKNOWN;
 	int flag = 0;
 	ARRAY_FOREACH(vars, char *, var) {
-		block = variable_order_block(parser, var, NULL);
+		struct Set *uses_candidates = NULL;
+		block = variable_order_block(parser, var, &uses_candidates);
 		if (block != last_block) {
 			if (flag && block != last_block) {
-				array_append(output, xstrdup(""));
+				row(pool, output, xstrdup(""), NULL);
 			}
-			array_append(output, str_printf("# %s", blocktype_tostring(block)));
+			row(pool, output, str_printf("# %s", blocktype_tostring(block)), NULL);
 		}
 		flag = 1;
-		array_append(output, xstrdup(var));
+		char *hint = NULL;
+		if (uses_candidates) {
+			struct Array *uses = set_values(uses_candidates);
+			char *buf = str_join(uses, " ");
+			array_free(uses);
+			if (set_len(uses_candidates) > 1) {
+				hint = str_printf("missing one of USES=%s ?", buf);
+			} else {
+				hint = str_printf("missing USES=%s ?", buf);
+			}
+			free(buf);
+			set_free(uses_candidates);
+		}
+		row(pool, output, xstrdup(var), hint);
 		last_block = block;
 	}
 
@@ -137,9 +177,9 @@ variable_list(struct Parser *parser, struct Array *tokens)
 }
 
 static struct Array *
-target_list(struct Array *tokens)
+target_list(struct Mempool *pool, struct Array *tokens)
 {
-	struct Array *targets = array_new();
+	struct Array *targets = mempool_add(pool, array_new(), array_free);
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	ARRAY_FOREACH(tokens, struct Token *, t) {
 		developer_only = skip_developer_only(developer_only, t);
@@ -162,9 +202,10 @@ target_list(struct Array *tokens)
 int
 check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 {
-	struct Array *origin = variable_list(parser, tokens);
+	SCOPE_MEMPOOL(pool);
+	struct Array *origin = variable_list(pool, parser, tokens);
 
-	struct Array *vars = array_new();
+	struct Array *vars = mempool_add(pool, array_new(), array_free);
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	ARRAY_FOREACH(tokens, struct Token *, t) {
 		if (is_include_bsd_port_mk(t)) {
@@ -185,8 +226,8 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	array_sort(vars, compare_order, parser);
 
 	struct Set *uses_candidates = NULL;
-	struct Array *target = array_new();
-	struct Array *unknowns = array_new();
+	struct Array *target = mempool_add(pool, array_new(), array_free);
+	struct Array *unknowns = mempool_add(pool, array_new(), array_free);
 	enum BlockType block = BLOCK_UNKNOWN;
 	enum BlockType last_block = BLOCK_UNKNOWN;
 	int flag = 0;
@@ -194,12 +235,12 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 		if ((block = variable_order_block(parser, var, &uses_candidates)) != BLOCK_UNKNOWN) {
 			if (block != last_block) {
 				if (flag && block != last_block) {
-					array_append(target, xstrdup(""));
+					row(pool, target, xstrdup(""), NULL);
 				}
-				array_append(target, str_printf("# %s", blocktype_tostring(block)));
+				row(pool, target, str_printf("# %s", blocktype_tostring(block)), NULL);
 			}
 			flag = 1;
-			array_append(target, xstrdup(var));
+			row(pool, target, xstrdup(var), NULL);
 			last_block = block;
 		} else {
 			array_append(unknowns, var);
@@ -209,43 +250,38 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 
 	array_sort(unknowns, str_compare, NULL);
 	if (array_len(vars) > 0 && array_len(unknowns) > 0) {
-		array_append(target, xstrdup(""));
-		array_append(target, str_printf("# %s", blocktype_tostring(BLOCK_UNKNOWN)));
-		array_append(target, xstrdup("# WARNING:"));
-		array_append(target, xstrdup("# Portclippy did not recognize the following variables."));
-		array_append(target, xstrdup("# They could be local variables only, misspellings of"));
-		array_append(target, xstrdup("# framework variables, or Portclippy needs to be made aware"));
-		array_append(target, xstrdup("# of them.  Please double check them."));
-		array_append(target, xstrdup("#"));
-		array_append(target, xstrdup("# Prefix them with an _ to tell Portclippy to ignore them."));
-		array_append(target, xstrdup("# This is also an important signal for other contributors"));
-		array_append(target, xstrdup("# who are working on your port.  It removes any doubt of"));
-		array_append(target, xstrdup("# whether they are framework variables or not and whether"));
-		array_append(target, xstrdup("# they are safe to remove/rename or not."));
+		row(pool, target, xstrdup(""), NULL);
+		row(pool, target, str_printf("# %s", blocktype_tostring(BLOCK_UNKNOWN)), NULL);
+		row(pool, target, xstrdup("# WARNING:"), NULL);
+		row(pool, target, xstrdup("# Portclippy did not recognize the following variables."), NULL);
+		row(pool, target, xstrdup("# They could be local variables only, misspellings of"), NULL);
+		row(pool, target, xstrdup("# framework variables, or Portclippy needs to be made aware"), NULL);
+		row(pool, target, xstrdup("# of them.  Please double check them."), NULL);
+		row(pool, target, xstrdup("#"), NULL);
+		row(pool, target, xstrdup("# Prefix them with an _ to tell Portclippy to ignore them."), NULL);
+		row(pool, target, xstrdup("# This is also an important signal for other contributors"), NULL);
+		row(pool, target, xstrdup("# who are working on your port.  It removes any doubt of"), NULL);
+		row(pool, target, xstrdup("# whether they are framework variables or not and whether"), NULL);
+		row(pool, target, xstrdup("# they are safe to remove/rename or not."), NULL);
 	}
 	ARRAY_FOREACH(unknowns, char *, var) {
 		struct Set *uses_candidates = NULL;
 		variable_order_block(parser, var, &uses_candidates);
+		char *hint = NULL;
 		if (uses_candidates) {
 			struct Array *uses = set_values(uses_candidates);
 			char *buf = str_join(uses, " ");
 			array_free(uses);
-			char *tip;
 			if (set_len(uses_candidates) > 1) {
-				tip = str_printf("%s\t\tmissing one of USES=%s ?", var, buf);
+				hint = str_printf("missing one of USES=%s ?", buf);
 			} else {
-				tip = str_printf("%s\t\tmissing USES=%s ?", var, buf);
+				hint = str_printf("missing USES=%s ?", buf);
 			}
-			array_append(target, tip);
 			free(buf);
 			set_free(uses_candidates);
-		} else {
-			array_append(target, xstrdup(var));
 		}
+		row(pool, target, xstrdup(var), hint);
 	}
-
-	array_free(unknowns);
-	array_free(vars);
 
 	return output_diff(parser, origin, target, no_color);
 }
@@ -253,43 +289,44 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 int
 check_target_order(struct Parser *parser, struct Array *tokens, int no_color, int status_var)
 {
-	struct Array *targets = target_list(tokens);
-	struct Array *origin = array_new();
+	SCOPE_MEMPOOL(pool);
 
+	struct Array *targets = target_list(pool, tokens);
+
+	struct Array *origin = mempool_add(pool, array_new(), array_free);
 	if (status_var) {
-		array_append(origin, xstrdup(""));
+		row(pool, origin, xstrdup(""), NULL);
 	}
-	array_append(origin, xstrdup("# Out of order targets"));
+	row(pool, origin, xstrdup("# Out of order targets"), NULL);
 	ARRAY_FOREACH(targets, char *, name) {
 		if (is_known_target(parser, name)) {
-			array_append(origin, str_printf("%s:", name));
+			row(pool, origin, str_printf("%s:", name), NULL);
 		}
 	}
 
 	array_sort(targets, compare_target_order, parser);
 
-	struct Array *target = array_new();
+	struct Array *target = mempool_add(pool, array_new(), array_free);
 	if (status_var) {
-		array_append(target, xstrdup(""));
+		row(pool, target, xstrdup(""), NULL);
 	}
-	array_append(target, xstrdup("# Out of order targets"));
+	row(pool, target, xstrdup("# Out of order targets"), NULL);
 	ARRAY_FOREACH(targets, char *, name) {
 		if (is_known_target(parser, name)) {
-			array_append(target, str_printf("%s:", name));
+			row(pool, target, str_printf("%s:", name), NULL);
 		}
 	}
 
-	struct Array *unknowns = array_new();
+	struct Array *unknowns = mempool_add(pool, array_new(), array_free);
 	ARRAY_FOREACH(targets, char *, name) {
 		if (!is_known_target(parser, name) && name[0] != '_') {
-			array_append(unknowns, str_printf("%s:", name));
+			array_append(unknowns, mempool_add(pool, str_printf("%s:", name), free));
 		}
 	}
-	array_free(targets);
 
 	int status_target = 0;
 	if ((status_target = output_diff(parser, origin, target, no_color)) == -1) {
-		goto cleanup;
+		return status_target;
 	}
 
 	if (array_len(unknowns) > 0) {
@@ -311,25 +348,20 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 		}
 	}
 
-cleanup:
-	ARRAY_FOREACH(unknowns, char *, name) {
-		free(name);
-	}
-	array_free(unknowns);
-
 	return status_target;
 }
 
 static int
 output_diff(struct Parser *parser, struct Array *origin, struct Array *target, int no_color)
 {
-	int status = 0;
 	struct diff p;
-	int rc = array_diff(origin, target, &p, str_compare, NULL);
+	int rc = array_diff(origin, target, &p, row_compare, NULL);
 	if (rc <= 0) {
-		status = -1;
-		goto cleanup;
+		return -1;
 	}
+	SCOPE_MEMPOOL(pool);
+	mempool_add(pool, p.ses, free);
+	mempool_add(pool, p.lcs, free);
 
 	size_t edits = 0;
 	for (size_t i = 0; i < p.sessz; i++) {
@@ -343,22 +375,24 @@ output_diff(struct Parser *parser, struct Array *origin, struct Array *target, i
 		}
 	}
 	if (edits == 0) {
-		status = 0;
-		goto done;
+		return 0;
 	}
 
-	status = 1;
 	for (size_t i = 0; i < p.sessz; i++) {
-		const char *s = *(const char **)p.ses[i].e;
-		if (strlen(s) == 0) {
+		struct Row *row = *(struct Row **)p.ses[i].e;
+		if (strlen(row->name) == 0) {
 			parser_enqueue_output(parser, "\n");
 			continue;
-		} else if (*s == '#') {
+		} else if (row->name[0] == '#') {
 			if (p.ses[i].type != DIFF_DELETE) {
 				if (!no_color) {
 					parser_enqueue_output(parser, ANSI_COLOR_CYAN);
 				}
-				parser_enqueue_output(parser, s);
+				parser_enqueue_output(parser, row->name);
+				if (row->hint) {
+					parser_enqueue_output(parser, "\t\t\t");
+					parser_enqueue_output(parser, row->hint);
+				}
 				parser_enqueue_output(parser, "\n");
 				if (!no_color) {
 					parser_enqueue_output(parser, ANSI_COLOR_RESET);
@@ -382,29 +416,18 @@ output_diff(struct Parser *parser, struct Array *origin, struct Array *target, i
 		default:
 			break;
 		}
-		parser_enqueue_output(parser, s);
+		parser_enqueue_output(parser, row->name);
+		if (row->hint) {
+			parser_enqueue_output(parser, "\t\t\t");
+			parser_enqueue_output(parser, row->hint);
+		}
 		parser_enqueue_output(parser, "\n");
 		if (!no_color) {
 			parser_enqueue_output(parser, ANSI_COLOR_RESET);
 		}
 	}
 
-done:
-	free(p.ses);
-	free(p.lcs);
-
-cleanup:
-	ARRAY_FOREACH(origin, char *, o) {
-		free(o);
-	}
-	array_free(origin);
-
-	ARRAY_FOREACH(target, char *, t) {
-		free(t);
-	}
-	array_free(target);
-
-	return status;
+	return 1;
 }
 
 PARSER_EDIT(lint_order)
