@@ -1997,12 +1997,46 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 			array_free(tmp);
 		}
 		free(buf);
+
+		buf = str_printf("%s_VARS_OFF", opt);
+		if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
+			for (size_t i = 0; i < array_len(tmp); i++) {
+				char *value = array_get(tmp, i);
+				char *buf = str_printf("%s+=", var);
+				if (str_startswith(value, buf)) {
+					value += strlen(buf);
+				} else {
+					free(buf);
+					buf = str_printf("%s=", var);
+					if (str_startswith(value, buf)) {
+						value += strlen(buf);
+					} else {
+						free(buf);
+						continue;
+					}
+				}
+				free(buf);
+				parser_meta_values_helper(set, var, value);
+			}
+			array_free(tmp);
+		}
+		free(buf);
+
 #if PORTFMT_SUBPACKAGES
 		if (strcmp(var, "USES") == 0 || strcmp(var, "SUBPACKAGES") == 0) {
 #else
 		if (strcmp(var, "USES") == 0) {
 #endif
 			buf = str_printf("%s_%s", opt, var);
+			if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
+				for (size_t i = 0; i < array_len(tmp); i++) {
+					parser_meta_values_helper(set, var, array_get(tmp, i));
+				}
+				array_free(tmp);
+			}
+			free(buf);
+
+			buf = str_printf("%s_%s_OFF", opt, var);
 			if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
 				for (size_t i = 0; i < array_len(tmp); i++) {
 					parser_meta_values_helper(set, var, array_get(tmp, i));
