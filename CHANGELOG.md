@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   via new `lint.commented-portrevision` lint, selectable with
   `-o comments`, enabled by default
 - portedit: `apply list` will now print a list of available edits
+- portclippy, portscan: Make sure ports have the required `USES`
+  before accepting variables as "known".
 
 ### Changed
 

@@ -2106,8 +2106,32 @@ variable_order_block(struct Parser *parser, const char *var)
 			break;
 		}
 		if (strcmp(tmp, variable_order_[i].var) == 0) {
-			free(var_without_subpkg);
-			return variable_order_[i].block;
+			int satisfies_uses = 1;
+			// We skip the USES check if the port is a
+			// slave port since often USES only appears
+			// in the master.  Since we do not recurse
+			// down in the master Makefile we would
+			// get many false positives otherwise.
+			if (!(parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) &&
+			    !parser_metadata(parser, PARSER_METADATA_MASTERDIR)) {
+				struct Set *uses = parser_metadata(parser, PARSER_METADATA_USES);
+				size_t count = 0;
+				for (; variable_order_[i].uses[count] && count < nitems(variable_order_[i].uses); count++);
+				if (count > 0) {
+					satisfies_uses = 0;
+					for (size_t j = 0; j < count; j++) {
+						const char *requses = variable_order_[i].uses[j];
+						if (set_contains(uses, (char *)requses)) {
+							satisfies_uses = 1;
+							break;
+						}
+					}
+				}
+			}
+			if (satisfies_uses) {
+				free(var_without_subpkg);
+				return variable_order_[i].block;
+			}
 		}
 	}
 	free(var_without_subpkg);
