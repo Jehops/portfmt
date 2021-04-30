@@ -28,6 +28,7 @@
 
 #include "config.h"
 
+#include <sys/param.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -351,6 +352,20 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	return status_target;
 }
 
+static void
+output_row(struct Parser *parser, struct Row *row, size_t maxlen)
+{
+	parser_enqueue_output(parser, row->name);
+	if (row->hint && maxlen > 0) {
+		size_t len = maxlen - strlen(row->name);
+		char *spaces = str_repeat(" ", len + 4);
+		parser_enqueue_output(parser, spaces);
+		free(spaces);
+		parser_enqueue_output(parser, row->hint);
+	}
+	parser_enqueue_output(parser, "\n");
+}
+
 static int
 output_diff(struct Parser *parser, struct Array *origin, struct Array *target, int no_color)
 {
@@ -378,6 +393,13 @@ output_diff(struct Parser *parser, struct Array *origin, struct Array *target, i
 		return 0;
 	}
 
+	size_t maxlen = 0;
+	ARRAY_FOREACH(origin, struct Row *, row) {
+		if (row->name[0] != '#') {
+			maxlen = MAX(maxlen, strlen(row->name));
+		}
+	}
+
 	for (size_t i = 0; i < p.sessz; i++) {
 		struct Row *row = *(struct Row **)p.ses[i].e;
 		if (strlen(row->name) == 0) {
@@ -388,12 +410,7 @@ output_diff(struct Parser *parser, struct Array *origin, struct Array *target, i
 				if (!no_color) {
 					parser_enqueue_output(parser, ANSI_COLOR_CYAN);
 				}
-				parser_enqueue_output(parser, row->name);
-				if (row->hint) {
-					parser_enqueue_output(parser, "\t\t\t");
-					parser_enqueue_output(parser, row->hint);
-				}
-				parser_enqueue_output(parser, "\n");
+				output_row(parser, row, 0);
 				if (!no_color) {
 					parser_enqueue_output(parser, ANSI_COLOR_RESET);
 				}
@@ -406,22 +423,19 @@ output_diff(struct Parser *parser, struct Array *origin, struct Array *target, i
 				parser_enqueue_output(parser, ANSI_COLOR_GREEN);
 			}
 			parser_enqueue_output(parser, "+");
+			output_row(parser, row, maxlen);
 			break;
 		case DIFF_DELETE:
 			if (!no_color) {
 				parser_enqueue_output(parser, ANSI_COLOR_RED);
 			}
 			parser_enqueue_output(parser, "-");
+			output_row(parser, row, 0);
 			break;
 		default:
+			output_row(parser, row, maxlen + 1);
 			break;
 		}
-		parser_enqueue_output(parser, row->name);
-		if (row->hint) {
-			parser_enqueue_output(parser, "\t\t\t");
-			parser_enqueue_output(parser, row->hint);
-		}
-		parser_enqueue_output(parser, "\n");
 		if (!no_color) {
 			parser_enqueue_output(parser, ANSI_COLOR_RESET);
 		}
