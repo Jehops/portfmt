@@ -38,6 +38,7 @@
 
 #include <libias/array.h>
 #include <libias/diff.h>
+#include <libias/set.h>
 #include <libias/util.h>
 
 #include "conditional.h"
@@ -118,7 +119,7 @@ variable_list(struct Parser *parser, struct Array *tokens)
 	enum BlockType last_block = BLOCK_UNKNOWN;
 	int flag = 0;
 	ARRAY_FOREACH(vars, char *, var) {
-		block = variable_order_block(parser, var);
+		block = variable_order_block(parser, var, NULL);
 		if (block != last_block) {
 			if (flag && block != last_block) {
 				array_append(output, xstrdup(""));
@@ -183,13 +184,14 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 
 	array_sort(vars, compare_order, parser);
 
+	struct Set *uses_candidates = NULL;
 	struct Array *target = array_new();
 	struct Array *unknowns = array_new();
 	enum BlockType block = BLOCK_UNKNOWN;
 	enum BlockType last_block = BLOCK_UNKNOWN;
 	int flag = 0;
 	ARRAY_FOREACH(vars, char *, var) {
-		if ((block = variable_order_block(parser, var)) != BLOCK_UNKNOWN) {
+		if ((block = variable_order_block(parser, var, &uses_candidates)) != BLOCK_UNKNOWN) {
 			if (block != last_block) {
 				if (flag && block != last_block) {
 					array_append(target, xstrdup(""));
@@ -222,7 +224,24 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 		array_append(target, xstrdup("# they are safe to remove/rename or not."));
 	}
 	ARRAY_FOREACH(unknowns, char *, var) {
-		array_append(target, xstrdup(var));
+		struct Set *uses_candidates = NULL;
+		variable_order_block(parser, var, &uses_candidates);
+		if (uses_candidates) {
+			struct Array *uses = set_values(uses_candidates);
+			char *buf = str_join(uses, " ");
+			array_free(uses);
+			char *tip;
+			if (set_len(uses_candidates) > 1) {
+				tip = str_printf("%s\t\tmissing one of USES=%s ?", var, buf);
+			} else {
+				tip = str_printf("%s\t\tmissing USES=%s ?", var, buf);
+			}
+			array_append(target, tip);
+			free(buf);
+			set_free(uses_candidates);
+		} else {
+			array_append(target, xstrdup(var));
+		}
 	}
 
 	array_free(unknowns);

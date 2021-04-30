@@ -78,7 +78,7 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 			name = str_printf("USE_%s", tmp);
 			free(tmp);
 		}
-		if (variable_order_block(parser, name) == BLOCK_UNKNOWN &&
+		if (variable_order_block(parser, name, NULL) == BLOCK_UNKNOWN &&
 		    !set_contains(vars, name)) {
 			parser_enqueue_output(parser, name);
 			parser_enqueue_output(parser, "\n");
@@ -114,7 +114,7 @@ PARSER_EDIT(output_unknown_variables)
 			continue;
 		}
 		char *name = variable_name(token_variable(t));
-		if (variable_order_block(parser, name) == BLOCK_UNKNOWN &&
+		if (variable_order_block(parser, name, NULL) == BLOCK_UNKNOWN &&
 		    !set_contains(vars, name) &&
 		    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
 			parser_enqueue_output(parser, name);

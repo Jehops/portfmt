@@ -2042,8 +2042,12 @@ is_shebang_lang(struct Parser *parser, const char *var, char **prefix, char **su
 }
 
 enum BlockType
-variable_order_block(struct Parser *parser, const char *var)
+variable_order_block(struct Parser *parser, const char *var, struct Set **uses_candidates)
 {
+	if (uses_candidates) {
+		*uses_candidates = NULL;
+	}
+
 	if (strcmp(var, "LICENSE") == 0) {
 		return BLOCK_LICENSE;
 	}
@@ -2106,6 +2110,7 @@ variable_order_block(struct Parser *parser, const char *var)
 			break;
 		}
 		if (strcmp(tmp, variable_order_[i].var) == 0) {
+			size_t count = 0;
 			int satisfies_uses = 1;
 			// We skip the USES check if the port is a
 			// slave port since often USES only appears
@@ -2115,7 +2120,6 @@ variable_order_block(struct Parser *parser, const char *var)
 			if (!(parser_settings(parser).behavior & PARSER_ALLOW_FUZZY_MATCHING) &&
 			    !parser_metadata(parser, PARSER_METADATA_MASTERDIR)) {
 				struct Set *uses = parser_metadata(parser, PARSER_METADATA_USES);
-				size_t count = 0;
 				for (; variable_order_[i].uses[count] && count < nitems(variable_order_[i].uses); count++);
 				if (count > 0) {
 					satisfies_uses = 0;
@@ -2131,6 +2135,13 @@ variable_order_block(struct Parser *parser, const char *var)
 			if (satisfies_uses) {
 				free(var_without_subpkg);
 				return variable_order_[i].block;
+			} else if (count > 0 && uses_candidates) {
+				if (*uses_candidates == NULL) {
+					*uses_candidates = set_new(str_compare, NULL, NULL);
+				}
+				for (size_t j = 0; j < count; j++) {
+					set_add(*uses_candidates, (char *)variable_order_[i].uses[j]);
+				}
 			}
 		}
 	}
@@ -2149,8 +2160,8 @@ compare_order(const void *ap, const void *bp, void *userdata)
 	if (strcmp(a, b) == 0) {
 		return 0;
 	}
-	enum BlockType ablock = variable_order_block(parser, a);
-	enum BlockType bblock = variable_order_block(parser, b);
+	enum BlockType ablock = variable_order_block(parser, a, NULL);
+	enum BlockType bblock = variable_order_block(parser, b, NULL);
 	if (ablock < bblock) {
 		return -1;
 	} else if (ablock > bblock) {
