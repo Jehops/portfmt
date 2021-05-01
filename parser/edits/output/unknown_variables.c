@@ -86,12 +86,9 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 		}
 		if (variable_order_block(parser, name, NULL) == BLOCK_UNKNOWN &&
 		    !set_contains(vars, name)) {
-			parser_enqueue_output(parser, name);
-			parser_enqueue_output(parser, "\n");
 			set_add(vars, name);
-			if (param->return_values) {
-				array_append(param->keys, xstrdup(name));
-				array_append(param->values, xstrdup(name));
+			if (param->callback) {
+				param->callback(name, name, var, param->callbackuserdata);
 			}
 		} else {
 			free(name);
@@ -104,16 +101,14 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 PARSER_EDIT(output_unknown_variables)
 {
 	struct ParserEditOutput *param = userdata;
-	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
+	if (param == NULL) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		*error_msg = str_printf("needs PARSER_OUTPUT_RAWLINES");
+		*error_msg = str_printf("missing parameter");
 		return NULL;
 	}
 
-	if (param->return_values) {
-		param->keys = array_new();
-		param->values = array_new();
-	}
+	param->found = 0;
+
 	struct Set *vars = set_new(str_compare, NULL, free);
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		if (token_type(t) != VARIABLE_START) {
@@ -123,13 +118,10 @@ PARSER_EDIT(output_unknown_variables)
 		if (variable_order_block(parser, name, NULL) == BLOCK_UNKNOWN &&
 		    !set_contains(vars, name) &&
 		    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
-			parser_enqueue_output(parser, name);
-			parser_enqueue_output(parser, "\n");
 			set_add(vars, xstrdup(name));
 			param->found = 1;
-			if (param->return_values) {
-				array_append(param->keys, xstrdup(name));
-				array_append(param->values, xstrdup(name));
+			if (param->callback) {
+				param->callback(name, name, NULL, param->callbackuserdata);
 			}
 		}
 	}

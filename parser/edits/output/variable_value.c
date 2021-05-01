@@ -43,19 +43,15 @@
 
 PARSER_EDIT(output_variable_value)
 {
-	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
-		return NULL;
-	}
-	if (userdata == NULL) {
+	struct ParserEditOutput *param = userdata;
+	if (param == NULL) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
+		*error_msg = str_printf("missing parameter");
 		return NULL;
 	}
 
-	struct ParserEditOutput *param = userdata;
-	if (param->return_values) {
-		param->keys = array_new();
-		param->values= array_new();
-	}
+	param->found = 0;
+
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		switch (token_type(t)) {
 		case VARIABLE_START:
@@ -66,14 +62,11 @@ PARSER_EDIT(output_variable_value)
 		case VARIABLE_TOKEN:
 			if (param->found && token_data(t) &&
 			    (param->keyfilter == NULL || param->keyfilter(parser, variable_name(token_variable(t)), param->keyuserdata)) &&
-			    (param->filter == NULL || param->filter(parser, token_data(t), param->userdata))) {
+			    (param->filter == NULL || param->filter(parser, token_data(t), param->filteruserdata))) {
 				param->found = 1;
-				if (param->return_values) {
-					array_append(param->keys, xstrdup(variable_name(token_variable(t))));
-					array_append(param->values, xstrdup(token_data(t)));
+				if (param->callback) {
+					param->callback(variable_name(token_variable(t)), token_data(t), NULL, param->callbackuserdata);
 				}
-				parser_enqueue_output(parser, token_data(t));
-				parser_enqueue_output(parser, "\n");
 			}
 			break;
 		default:

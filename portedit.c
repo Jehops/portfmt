@@ -113,6 +113,14 @@ static struct ParserEdits parser_edits[] = {
 	{ "refactor.sanitize-eol-comments", refactor_sanitize_eol_comments },
 };
 
+static void
+enqueue_output(const char *key, const char *value, const char *hint, void *userdata)
+{
+	struct Parser *parser = userdata;
+	parser_enqueue_output(parser, value);
+	parser_enqueue_output(parser, "\n");
+}
+
 int
 apply(struct ParserSettings *settings, int argc, char *argv[])
 {
@@ -314,7 +322,7 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 	if (regexp == NULL) {
 		errx(1, "invalid regexp");
 	}
-	struct ParserEditOutput param = { get_variable_filter, regexp, NULL, NULL, 0, 0, NULL, NULL };
+	struct ParserEditOutput param = { get_variable_filter, regexp, NULL, NULL, enqueue_output, parser, 0 };
 	int error = parser_edit(parser, output_variable_value, &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
@@ -521,7 +529,7 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_targets_usage();
 	}
 
-	struct ParserEditOutput param = { NULL, NULL, NULL, NULL, 0, 0, NULL, NULL };
+	struct ParserEditOutput param = { NULL, NULL, NULL, NULL, enqueue_output, parser, 0 };
 	enum ParserError error = parser_edit(parser, output_unknown_targets, &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
@@ -559,7 +567,7 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 		unknown_vars_usage();
 	}
 
-	struct ParserEditOutput param = { NULL, NULL, NULL, NULL, 0, 0, NULL, NULL };
+	struct ParserEditOutput param = { NULL, NULL, NULL, NULL, enqueue_output, parser, 0 };
 	enum ParserError error = parser_edit(parser, output_unknown_variables, &param);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));

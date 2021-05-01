@@ -423,6 +423,25 @@ edit_distance(const char *a, const char *b)
 	return editdist;
 }
 
+static void
+collect_output_unknowns(const char *key, const char *value, const char *hint, void *userdata)
+{
+	if (!set_contains(userdata, (char *)key)) {
+		set_add(userdata, xstrdup(key));
+	}
+}
+
+static void
+collect_output_variable_values(const char *key, const char *value, const char *hint, void *userdata)
+{
+	char *buf = str_printf("%-30s\t%s", key, value);
+	if (set_contains(userdata, buf)) {
+		free(buf);
+	} else {
+		set_add(userdata, buf);
+	}
+}
+
 void
 scan_port(struct ScanPortArgs *args)
 {
@@ -484,7 +503,7 @@ scan_port(struct ScanPortArgs *args)
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_VARIABLES) {
-		struct ParserEditOutput param = { unknown_variables_filter, args->query, NULL, NULL, 0, 1, NULL, NULL };
+		struct ParserEditOutput param = { unknown_variables_filter, args->query, NULL, NULL, collect_output_unknowns, retval->unknown_variables, 0 };
 		error = parser_edit(parser, output_unknown_variables, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *err = parser_error_tostring(parser);
@@ -492,18 +511,10 @@ scan_port(struct ScanPortArgs *args)
 			free(err);
 			goto cleanup;
 		}
-		for (size_t i = 0; i < array_len(param.keys); i++) {
-			char *key = array_get(param.keys, i);
-			char *value = array_get(param.values, i);
-			set_add(retval->unknown_variables, key);
-			free(value);
-		}
-		array_free(param.keys);
-		array_free(param.values);
 	}
 
 	if (retval->flags & SCAN_UNKNOWN_TARGETS) {
-		struct ParserEditOutput param = { unknown_targets_filter, args->query, NULL, NULL, 0, 1, NULL, NULL };
+		struct ParserEditOutput param = { unknown_targets_filter, args->query, NULL, NULL, collect_output_unknowns, retval->unknown_targets, 0 };
 		error = parser_edit(parser, output_unknown_targets, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *err = parser_error_tostring(parser);
@@ -511,14 +522,6 @@ scan_port(struct ScanPortArgs *args)
 			free(err);
 			goto cleanup;
 		}
-		for (size_t i = 0; i < array_len(param.keys); i++) {
-			char *key = array_get(param.keys, i);
-			char *value = array_get(param.values, i);
-			set_add(retval->unknown_targets, key);
-			free(value);
-		}
-		array_free(param.keys);
-		array_free(param.values);
 	}
 
 	if (retval->flags & SCAN_CLONES) {
@@ -565,7 +568,7 @@ scan_port(struct ScanPortArgs *args)
 	}
 
 	if (retval->flags & SCAN_VARIABLE_VALUES) {
-		struct ParserEditOutput param = { variable_value_filter, args->keyquery, variable_value_filter, args->query, 0, 1, NULL, NULL };
+		struct ParserEditOutput param = { variable_value_filter, args->keyquery, variable_value_filter, args->query, collect_output_variable_values, retval->variable_values, 0 };
 		error = parser_edit(parser, output_variable_value, &param);
 		if (error != PARSER_ERROR_OK) {
 			char *err = parser_error_tostring(parser);
@@ -573,15 +576,6 @@ scan_port(struct ScanPortArgs *args)
 			free(err);
 			goto cleanup;
 		}
-
-		for (size_t i = 0; i < array_len(param.values); i++) {
-			char *key = array_get(param.keys, i);
-			char *value = array_get(param.values, i);
-			set_add(retval->variable_values, str_printf("%-30s\t%s", key, value));
-			free(key);
-			free(value);
-		}
-		array_free(param.values);
 	}
 
 	if (retval->flags & SCAN_COMMENTS) {

@@ -42,11 +42,10 @@ struct ParserEditOutput {
 	int (*keyfilter)(struct Parser *, const char *, void *);
 	void *keyuserdata;
 	int (*filter)(struct Parser *, const char *, void *);
-	void *userdata;
+	void *filteruserdata;
+	void (*callback)(const char *, const char *, const char *, void *);
+	void *callbackuserdata;
 	int found;
-	int return_values;
-	struct Array *keys;
-	struct Array *values;
 };
 
 PARSER_EDIT(edit_bump_revision);

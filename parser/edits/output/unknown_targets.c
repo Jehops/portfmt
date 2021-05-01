@@ -56,13 +56,11 @@ add_target(struct Parser *parser, struct ParserEditOutput *param, struct Set *ta
 	    !set_contains(post_plist_targets, name) &&
 	    !set_contains(targets, name) &&
 	    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
-		parser_enqueue_output(parser, name);
-		parser_enqueue_output(parser, "\n");
 		set_add(targets, name);
 		param->found = 1;
-		if (param->return_values) {
-			array_append(param->keys, xstrdup(name));
-			array_append(param->values, xstrdup(name));
+		if (param->callback) {
+			// XXX: provide option as hint for opthelper targets?
+			param->callback(name, name, NULL, param->callbackuserdata);
 		}
 	}
 	return 0;
@@ -71,16 +69,13 @@ add_target(struct Parser *parser, struct ParserEditOutput *param, struct Set *ta
 PARSER_EDIT(output_unknown_targets)
 {
 	struct ParserEditOutput *param = userdata;
-	if (!(parser_settings(parser).behavior & PARSER_OUTPUT_RAWLINES)) {
+	if (param == NULL) {
 		*error = PARSER_ERROR_INVALID_ARGUMENT;
-		*error_msg = str_printf("needs PARSER_OUTPUT_RAWLINES");
+		*error_msg = str_printf("missing parameter");
 		return NULL;
 	}
 
-	if (param->return_values) {
-		param->keys = array_new();
-		param->values = array_new();
-	}
+	param->found = 0;
 	struct Set *post_plist_targets = parser_metadata(parser, PARSER_METADATA_POST_PLIST_TARGETS);
 	struct Set *targets = set_new(str_compare, NULL, NULL);
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
