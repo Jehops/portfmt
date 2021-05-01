@@ -85,7 +85,8 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 			free(tmp);
 		}
 		if (variable_order_block(parser, name, NULL) == BLOCK_UNKNOWN &&
-		    !set_contains(vars, name)) {
+		    !set_contains(vars, name) &&
+		    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
 			set_add(vars, name);
 			if (param->callback) {
 				param->callback(name, name, var, param->callbackuserdata);
