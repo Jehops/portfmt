@@ -121,10 +121,9 @@ skip_developer_only(enum SkipDeveloperState state, struct Token *t)
 }
 
 static struct Array *
-variable_list(struct Mempool *pool, struct Parser *parser, struct Array *tokens)
+get_variables(struct Mempool *pool, struct Array *tokens)
 {
-	struct Array *output = mempool_add(pool, array_new(), array_free);
-	struct Array *vars = array_new();
+	struct Array *vars = mempool_add(pool, array_new(), array_free);
 	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
 	ARRAY_FOREACH(tokens, struct Token *, t) {
 		if (is_include_bsd_port_mk(t)) {
@@ -141,6 +140,14 @@ variable_list(struct Mempool *pool, struct Parser *parser, struct Array *tokens)
 			array_append(vars, var);
 		}
 	}
+	return vars;
+}
+
+static struct Array *
+variable_list(struct Mempool *pool, struct Parser *parser, struct Array *tokens)
+{
+	struct Array *output = mempool_add(pool, array_new(), array_free);
+	struct Array *vars = get_variables(pool, tokens);
 
 	enum BlockType block = BLOCK_UNKNOWN;
 	enum BlockType last_block = BLOCK_UNKNOWN;
@@ -171,8 +178,6 @@ variable_list(struct Mempool *pool, struct Parser *parser, struct Array *tokens)
 		row(pool, output, xstrdup(var), hint);
 		last_block = block;
 	}
-
-	array_free(vars);
 
 	return output;
 }
@@ -206,24 +211,7 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	SCOPE_MEMPOOL(pool);
 	struct Array *origin = variable_list(pool, parser, tokens);
 
-	struct Array *vars = mempool_add(pool, array_new(), array_free);
-	enum SkipDeveloperState developer_only = SKIP_DEVELOPER_INIT;
-	ARRAY_FOREACH(tokens, struct Token *, t) {
-		if (is_include_bsd_port_mk(t)) {
-			break;
-		}
-		developer_only = skip_developer_only(developer_only, t);
-		if (developer_only == SKIP_DEVELOPER_END ||
-		    token_type(t) != VARIABLE_START) {
-			continue;
-		}
-		char *var = variable_name(token_variable(t));
-		// Ignore port local variables that start with an _
-		if (var[0] != '_' && array_find(vars, var, str_compare, NULL) == -1) {
-			array_append(vars, var);
-		}
-	}
-
+	struct Array *vars = get_variables(pool, tokens);
 	array_sort(vars, compare_order, parser);
 
 	struct Set *uses_candidates = NULL;
