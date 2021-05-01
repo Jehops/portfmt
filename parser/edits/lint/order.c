@@ -52,10 +52,6 @@
 #include "token.h"
 #include "variable.h"
 
-static int check_target_order(struct Parser *, struct Array *, int, int);
-static int check_variable_order(struct Parser *, struct Array *, int);
-static int output_diff(struct Parser *, struct Array *, struct Array *, int);
-
 enum SkipDeveloperState {
 	SKIP_DEVELOPER_INIT,
 	SKIP_DEVELOPER_IF,
@@ -67,6 +63,11 @@ struct Row {
 	char *name;
 	char *hint;
 };
+
+static int check_target_order(struct Parser *, struct Array *, int, int);
+static int check_variable_order(struct Parser *, struct Array *, int);
+static int output_diff(struct Parser *, struct Array *, struct Array *, int, size_t *maxlen);
+static void output_row(struct Parser *, struct Row *, size_t);
 
 static void
 row(struct Mempool *pool, struct Array *output, char *name, char *hint)
@@ -338,6 +339,9 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 		row(pool, target, xstrdup(var), hint);
 	}
 
+	size_t maxlen = 0;
+	int retval = output_diff(parser, origin, target, no_color, &maxlen);
+
 	if (array_len(vars) > 0 && set_len(all_unknown_variables) > 0) {
 		struct Map *group = map_new(str_compare, NULL, NULL, NULL);
 		SET_FOREACH(all_unknown_variables, struct Row *, var) {
@@ -350,8 +354,14 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 				array_append(hints, mempool_add(pool, str_printf("in %s", var->hint), free));
 			}
 		}
-		row(pool, target, xstrdup(""), NULL);
-		row(pool, target, xstrdup("# ... in options helpers"), NULL);
+		parser_enqueue_output(parser, "\n");
+		if (!no_color) {
+			parser_enqueue_output(parser, ANSI_COLOR_CYAN);
+		}
+		parser_enqueue_output(parser, "# Unknown variables in options helpers\n");
+		if (!no_color) {
+			parser_enqueue_output(parser, ANSI_COLOR_RESET);
+		}
 		MAP_FOREACH(group, char *, name, struct Array *, hints) {
 			struct Set *uses_candidates = NULL;
 			variable_order_block(parser, name, &uses_candidates);
@@ -370,19 +380,22 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 				array_append(hints, hint);
 			}
 			if (array_len(hints) > 0) {
-				row(pool, target, xstrdup(name), xstrdup(array_get(hints, 0)));
+				struct Row row = { .name = name, .hint = array_get(hints, 0) };
+				output_row(parser, &row, maxlen + 1);
 				ARRAY_FOREACH(hints, char *, hint) {
 					if (hint_index > 0) {
-						row(pool, target, xstrdup(" "), xstrdup(hint));
+						struct Row row = { .name = (char *)"", .hint = hint };
+						output_row(parser, &row, maxlen + 1);
 					}
 				}
 			} else {
-				row(pool, target, xstrdup(name), NULL);
+				parser_enqueue_output(parser, name);
+				parser_enqueue_output(parser, "\n");
 			}
 		}
 	}
 
-	return output_diff(parser, origin, target, no_color);
+	return retval;
 }
 
 int
@@ -424,7 +437,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	}
 
 	int status_target = 0;
-	if ((status_target = output_diff(parser, origin, target, no_color)) == -1) {
+	if ((status_target = output_diff(parser, origin, target, no_color, NULL)) == -1) {
 		return status_target;
 	}
 
@@ -465,7 +478,7 @@ output_row(struct Parser *parser, struct Row *row, size_t maxlen)
 }
 
 static int
-output_diff(struct Parser *parser, struct Array *origin, struct Array *target, int no_color)
+output_diff(struct Parser *parser, struct Array *origin, struct Array *target, int no_color, size_t *maxlen_out)
 {
 	struct diff p;
 	int rc = array_diff(origin, target, &p, row_compare, NULL);
@@ -496,6 +509,9 @@ output_diff(struct Parser *parser, struct Array *origin, struct Array *target, i
 		if (row->name[0] != '#') {
 			maxlen = MAX(maxlen, strlen(row->name));
 		}
+	}
+	if (maxlen_out) {
+		*maxlen_out = maxlen;
 	}
 
 	for (size_t i = 0; i < p.sessz; i++) {

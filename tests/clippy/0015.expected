@@ -19,10 +19,10 @@ PGSQL_SERVER_VARS
 # whether they are framework variables or not and whether
 # they are safe to remove/rename or not.
 
-# ... in options helpers
-+USE_GNOME            in PGSQL_SERVER_USE
-+                     missing USES=gnome ?
-+WANT_PGSQL           in A_VARS_OFF
-+                     in PGSQL_SERVER_VARS
-+                     missing USES=pgsql ?
-+WHATSTHIS            in PGSQL_SERVER_VARS
+# Unknown variables in options helpers
+USE_GNOME             in PGSQL_SERVER_USE
+                      missing USES=gnome ?
+WANT_PGSQL            in A_VARS_OFF
+                      in PGSQL_SERVER_VARS
+                      missing USES=pgsql ?
+WHATSTHIS             in PGSQL_SERVER_VARS
