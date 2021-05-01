@@ -45,13 +45,19 @@
 #include "variable.h"
 
 static void
-check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Set *vars, const char *option, int optuse)
+check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Set *vars, const char *option, int optuse, int optoff)
 {
+	const char *suffix;
+	if (optoff) {
+		suffix = "_OFF";
+	} else {
+		suffix = "";
+	}
 	char *var;
 	if (optuse) {
-		var = str_printf("%s_USE", option);
+		var = str_printf("%s_USE%s", option, suffix);
 	} else {
-		var = str_printf("%s_VARS", option);
+		var = str_printf("%s_VARS%s", option, suffix);
 	}
 	struct Array *optvars;
 	if (!parser_lookup_variable_all(parser, var, &optvars, NULL)) {
@@ -129,8 +135,10 @@ PARSER_EDIT(output_unknown_variables)
 	}
 	struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
 	SET_FOREACH (options, const char *, option) {
-		check_opthelper(parser, param, vars, option, 1);
-		check_opthelper(parser, param, vars, option, 0);
+		check_opthelper(parser, param, vars, option, 1, 0);
+		check_opthelper(parser, param, vars, option, 0, 0);
+		check_opthelper(parser, param, vars, option, 1, 1);
+		check_opthelper(parser, param, vars, option, 0, 1);
 	}
 	set_free(vars);
 
