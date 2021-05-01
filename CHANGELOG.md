@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - portclippy, portscan: Make sure ports have the required `USES`
   before accepting variables as "known"
 - portclippy: provide hints which `USES` might be missing
+- portclippy: Check `opt_USE` and `opt_VARS` for unknowns too
 
 ### Changed
 

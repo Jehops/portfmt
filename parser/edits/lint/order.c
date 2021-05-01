@@ -87,6 +87,15 @@ row_compare(const void *ap, const void *bp, void *userdata)
 	return strcmp(a->name, b->name);
 }
 
+static void
+row_free(struct Row *row)
+{
+	if (row) {
+		free(row->name);
+		free(row->hint);
+	}
+}
+
 static enum SkipDeveloperState
 skip_developer_only(enum SkipDeveloperState state, struct Token *t)
 {
@@ -141,6 +150,38 @@ get_variables(struct Mempool *pool, struct Array *tokens)
 		}
 	}
 	return vars;
+}
+
+static void
+get_all_unknown_variables_helper(const char *key, const char *val, const char *hint, void *userdata)
+{
+	struct Set *unknowns = userdata;
+	struct Row rowkey = { .name = (char *)key, .hint = NULL };
+	if (!set_contains(unknowns, &rowkey)) {
+		struct Row *row = xmalloc(sizeof(struct Row));
+		row->name = xstrdup(key);
+		if (hint) {
+			row->hint = xstrdup(hint);
+		}
+		set_add(unknowns, row);
+	}
+}
+
+static int
+get_all_unknown_variables_filter(struct Parser *parser, const char *key, void *userdata)
+{
+	return *key != '_';
+}
+
+static struct Set *
+get_all_unknown_variables(struct Mempool *pool, struct Parser *parser)
+{
+	struct Set *unknowns = mempool_add(pool, set_new(row_compare, NULL, row_free), set_free);
+	struct ParserEditOutput param = { get_all_unknown_variables_filter, NULL, NULL, NULL, get_all_unknown_variables_helper, unknowns, 0 };
+	if (parser_edit(parser, output_unknown_variables, &param) != PARSER_ERROR_OK) {
+		return unknowns;
+	}
+	return unknowns;
 }
 
 static struct Array *
@@ -238,7 +279,14 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	}
 
 	array_sort(unknowns, str_compare, NULL);
-	if (array_len(vars) > 0 && array_len(unknowns) > 0) {
+
+	struct Set *all_unknown_variables = get_all_unknown_variables(pool, parser);
+	ARRAY_FOREACH(unknowns, char *, var) {
+		struct Row key = { .name = var, .hint = NULL };
+		set_remove(all_unknown_variables, &key);
+	}
+
+	if (array_len(vars) > 0 && (array_len(unknowns) > 0 || set_len(all_unknown_variables) > 0)) {
 		row(pool, target, xstrdup(""), NULL);
 		row(pool, target, str_printf("# %s", blocktype_tostring(BLOCK_UNKNOWN)), NULL);
 		row(pool, target, xstrdup("# WARNING:"), NULL);
@@ -270,6 +318,37 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 			set_free(uses_candidates);
 		}
 		row(pool, target, xstrdup(var), hint);
+	}
+
+	if (array_len(vars) > 0 && set_len(all_unknown_variables) > 0) {
+		row(pool, target, xstrdup(""), NULL);
+		row(pool, target, xstrdup("# ... in options helpers"), NULL);
+		SET_FOREACH(all_unknown_variables, struct Row *, var) {
+			struct Set *uses_candidates = NULL;
+			variable_order_block(parser, var->name, &uses_candidates);
+			if (uses_candidates) {
+				struct Array *uses = set_values(uses_candidates);
+				char *buf = str_join(uses, " ");
+				char *hint = NULL;
+				if (set_len(uses_candidates) > 1) {
+					hint = str_printf("missing one of USES=%s ?", buf);
+				} else {
+					hint = str_printf("missing USES=%s ?", buf);
+				}
+				if (var->hint) {
+					char *tmp = str_printf("in %s; %s", var->hint, hint);
+					free(hint);
+					hint = tmp;
+				}
+				free(buf);
+				set_free(uses_candidates);
+				row(pool, target, xstrdup(var->name), hint);
+			} else if (var->hint) {
+				row(pool, target, xstrdup(var->name), str_printf("in %s", var->hint));
+			} else {
+				row(pool, target, xstrdup(var->name), NULL);
+			}
+		}
 	}
 
 	return output_diff(parser, origin, target, no_color);
