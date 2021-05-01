@@ -39,6 +39,7 @@
 
 #include <libias/array.h>
 #include <libias/diff.h>
+#include <libias/map.h>
 #include <libias/mempool.h>
 #include <libias/set.h>
 #include <libias/util.h>
@@ -338,11 +339,22 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	}
 
 	if (array_len(vars) > 0 && set_len(all_unknown_variables) > 0) {
+		struct Map *group = map_new(str_compare, NULL, NULL, NULL);
+		SET_FOREACH(all_unknown_variables, struct Row *, var) {
+			struct Array *hints = map_get(group, var->name);
+			if (!hints) {
+				hints = mempool_add(pool, array_new(), array_free);
+				map_add(group, var->name, hints);
+			}
+			if (var->hint) {
+				array_append(hints, mempool_add(pool, str_printf("in %s", var->hint), free));
+			}
+		}
 		row(pool, target, xstrdup(""), NULL);
 		row(pool, target, xstrdup("# ... in options helpers"), NULL);
-		SET_FOREACH(all_unknown_variables, struct Row *, var) {
+		MAP_FOREACH(group, char *, name, struct Array *, hints) {
 			struct Set *uses_candidates = NULL;
-			variable_order_block(parser, var->name, &uses_candidates);
+			variable_order_block(parser, name, &uses_candidates);
 			if (uses_candidates) {
 				struct Array *uses = set_values(uses_candidates);
 				char *buf = str_join(uses, " ");
@@ -352,18 +364,20 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 				} else {
 					hint = str_printf("missing USES=%s ?", buf);
 				}
-				if (var->hint) {
-					char *tmp = str_printf("in %s; %s", var->hint, hint);
-					free(hint);
-					hint = tmp;
-				}
 				free(buf);
 				set_free(uses_candidates);
-				row(pool, target, xstrdup(var->name), hint);
-			} else if (var->hint) {
-				row(pool, target, xstrdup(var->name), str_printf("in %s", var->hint));
+				mempool_add(pool, hint, free);
+				array_append(hints, hint);
+			}
+			if (array_len(hints) > 0) {
+				row(pool, target, xstrdup(name), xstrdup(array_get(hints, 0)));
+				ARRAY_FOREACH(hints, char *, hint) {
+					if (hint_index > 0) {
+						row(pool, target, xstrdup(" "), xstrdup(hint));
+					}
+				}
 			} else {
-				row(pool, target, xstrdup(var->name), NULL);
+				row(pool, target, xstrdup(name), NULL);
 			}
 		}
 	}
