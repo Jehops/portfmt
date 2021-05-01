@@ -152,17 +152,34 @@ get_variables(struct Mempool *pool, struct Array *tokens)
 	return vars;
 }
 
+static int
+get_all_unknown_variables_row_compare(const void *ap, const void *bp, void *userdata)
+{
+	struct Row *a = *(struct Row **)ap;
+	struct Row *b = *(struct Row **)bp;
+	int retval = strcmp(a->name, b->name);
+	if (retval == 0) {
+		if (a->hint && b->hint) {
+			return strcmp(a->hint, b->hint);
+		} else if (a->hint) {
+			return -1;
+		} else {
+			return 1;
+		}
+	} else {
+		return retval;
+	}
+}
+
 static void
 get_all_unknown_variables_helper(const char *key, const char *val, const char *hint, void *userdata)
 {
 	struct Set *unknowns = userdata;
-	struct Row rowkey = { .name = (char *)key, .hint = NULL };
-	if (!set_contains(unknowns, &rowkey)) {
+	struct Row rowkey = { .name = (char *)key, .hint = (char *)hint };
+	if (key && hint && !set_contains(unknowns, &rowkey)) {
 		struct Row *row = xmalloc(sizeof(struct Row));
 		row->name = xstrdup(key);
-		if (hint) {
-			row->hint = xstrdup(hint);
-		}
+		row->hint = xstrdup(hint);
 		set_add(unknowns, row);
 	}
 }
@@ -176,7 +193,7 @@ get_all_unknown_variables_filter(struct Parser *parser, const char *key, void *u
 static struct Set *
 get_all_unknown_variables(struct Mempool *pool, struct Parser *parser)
 {
-	struct Set *unknowns = mempool_add(pool, set_new(row_compare, NULL, row_free), set_free);
+	struct Set *unknowns = mempool_add(pool, set_new(get_all_unknown_variables_row_compare, NULL, row_free), set_free);
 	struct ParserEditOutput param = { get_all_unknown_variables_filter, NULL, NULL, NULL, get_all_unknown_variables_helper, unknowns, 0 };
 	if (parser_edit(parser, output_unknown_variables, &param) != PARSER_ERROR_OK) {
 		return unknowns;

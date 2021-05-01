@@ -44,6 +44,50 @@
 #include "token.h"
 #include "variable.h"
 
+struct UnknownVariable {
+	char *name;
+	char *hint;
+};
+
+static struct UnknownVariable *
+var_new(const char *name, const char *hint)
+{
+	struct UnknownVariable *var = xmalloc(sizeof(struct UnknownVariable));
+	var->name = xstrdup(name);
+	if (hint) {
+		var->hint = xstrdup(hint);
+	}
+	return var;
+}
+
+static void
+var_free(struct UnknownVariable *var)
+{
+	if (var) {
+		free(var->name);
+		free(var->hint);
+	}
+}
+
+static int
+var_compare(const void *ap, const void *bp, void *userdata)
+{
+	struct UnknownVariable *a = *(struct UnknownVariable **)ap;
+	struct UnknownVariable *b = *(struct UnknownVariable **)bp;
+	int retval = strcmp(a->name, b->name);
+	if (retval == 0) {
+		if (a->hint && b->hint) {
+			return strcmp(a->hint, b->hint);
+		} else if (a->hint) {
+			return -1;
+		} else {
+			return 1;
+		}
+	} else {
+		return retval;
+	}
+}
+
 static void
 check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Set *vars, const char *option, int optuse, int optoff)
 {
@@ -84,16 +128,16 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 			name = str_printf("USE_%s", tmp);
 			free(tmp);
 		}
+		struct UnknownVariable varskey = { .name = name, .hint = var };
 		if (variable_order_block(parser, name, NULL) == BLOCK_UNKNOWN &&
-		    !set_contains(vars, name) &&
+		    !set_contains(vars, &varskey) &&
 		    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
-			set_add(vars, name);
+			set_add(vars, var_new(name, var));
 			if (param->callback) {
 				param->callback(name, name, var, param->callbackuserdata);
 			}
-		} else {
-			free(name);
 		}
+		free(name);
 	}
 	free(var);
 	array_free(optvars);
@@ -110,16 +154,17 @@ PARSER_EDIT(output_unknown_variables)
 
 	param->found = 0;
 
-	struct Set *vars = set_new(str_compare, NULL, free);
+	struct Set *vars = set_new(var_compare, NULL, var_free);
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
 		if (token_type(t) != VARIABLE_START) {
 			continue;
 		}
 		char *name = variable_name(token_variable(t));
+		struct UnknownVariable varskey = { .name = name, .hint = NULL };
 		if (variable_order_block(parser, name, NULL) == BLOCK_UNKNOWN &&
-		    !set_contains(vars, name) &&
+		    !set_contains(vars, &varskey) &&
 		    (param->keyfilter == NULL || param->keyfilter(parser, name, param->keyuserdata))) {
-			set_add(vars, xstrdup(name));
+			set_add(vars, var_new(name, NULL));
 			param->found = 1;
 			if (param->callback) {
 				param->callback(name, name, NULL, param->callbackuserdata);
