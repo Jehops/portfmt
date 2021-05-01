@@ -66,7 +66,7 @@ struct Row {
 
 static int check_target_order(struct Parser *, struct Array *, int, int);
 static int check_variable_order(struct Parser *, struct Array *, int);
-static int output_diff(struct Parser *, struct Array *, struct Array *, int, size_t *maxlen);
+static int output_diff(struct Parser *, struct Array *, struct Array *, int);
 static void output_row(struct Parser *, struct Row *, size_t);
 
 static void
@@ -339,13 +339,14 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 		row(pool, target, xstrdup(var), hint);
 	}
 
-	size_t maxlen = 0;
-	int retval = output_diff(parser, origin, target, no_color, &maxlen);
+	int retval = output_diff(parser, origin, target, no_color);
 
 	if (array_len(vars) > 0 && set_len(all_unknown_variables) > 0) {
 		struct Map *group = map_new(str_compare, NULL, NULL, NULL);
+		size_t maxlen = 0;
 		SET_FOREACH(all_unknown_variables, struct Row *, var) {
 			struct Array *hints = map_get(group, var->name);
+			maxlen = MAX(maxlen, strlen(var->name));
 			if (!hints) {
 				hints = mempool_add(pool, array_new(), array_free);
 				map_add(group, var->name, hints);
@@ -437,7 +438,7 @@ check_target_order(struct Parser *parser, struct Array *tokens, int no_color, in
 	}
 
 	int status_target = 0;
-	if ((status_target = output_diff(parser, origin, target, no_color, NULL)) == -1) {
+	if ((status_target = output_diff(parser, origin, target, no_color)) == -1) {
 		return status_target;
 	}
 
@@ -478,7 +479,7 @@ output_row(struct Parser *parser, struct Row *row, size_t maxlen)
 }
 
 static int
-output_diff(struct Parser *parser, struct Array *origin, struct Array *target, int no_color, size_t *maxlen_out)
+output_diff(struct Parser *parser, struct Array *origin, struct Array *target, int no_color)
 {
 	struct diff p;
 	int rc = array_diff(origin, target, &p, row_compare, NULL);
@@ -509,9 +510,6 @@ output_diff(struct Parser *parser, struct Array *origin, struct Array *target, i
 		if (row->name[0] != '#') {
 			maxlen = MAX(maxlen, strlen(row->name));
 		}
-	}
-	if (maxlen_out) {
-		*maxlen_out = maxlen;
 	}
 
 	for (size_t i = 0; i < p.sessz; i++) {
