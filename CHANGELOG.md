@@ -10,10 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - portscan: print progress reports on `SIGINFO` or `SIGUSR2` or in
-  regular intervals when requested with `-o progress`
+  regular intervals when requested with `--progress`
 - portscan: Report commented `PORTEPOCH` or `PORTREVISION` lines
   via new `lint.commented-portrevision` lint, selectable with
-  `-o comments`, enabled by default
+  `--comments`, enabled by default
 - portedit: `apply list` will now print a list of available edits
 - portclippy, portscan: Make sure ports have the required `USES`
   before accepting variables as "known"
@@ -35,6 +35,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   "`+=` groups".  Something like
   `portedit merge -e 'PATCHFILES+=deadbeef.patch:-p1 # https://github.com/t6/portfmt/pulls/1'`
   should work now as one would expect.
+- portscan: Replaced `-o <check>` with `--<check>`; `-o <check>`
+  will continue to work but is deprecated
 
 ### Fixed
 

@@ -25,7 +25,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd April 23, 2021
+.Dd May 4, 2021
 .Dt PORTSCAN 1
 .Os
 .Sh NAME
@@ -34,16 +34,24 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl l Ar logdir
-.Op Fl q Ar regexp
-.Op Fl o Ar flag
 .Op Fl p Ar portsdir
+.Op Fl q Ar regexp
+.Op Fl -all
+.Op Fl -categories
+.Op Fl -clones
+.Op Fl -comments
+.Op Fl -option-default-descriptions Ns Op Ns = Ns Ar editdist
+.Op Fl -options
+.Op Fl -progress Ns Op Ns = Ns Ar interval
+.Op Fl -unknown-targets
+.Op Fl -unknown-variables
+.Op Fl -variable-values Ns Op Ns = Ns Ar regex
 .Op Ar origin ...
 .Sh DESCRIPTION
 .Nm
 scans the
 .Fx
-Ports Collection for variable and target misspellings and other mistakes.
-At the moment it flags unknown variables and targets.
+Ports Collection for common mistakes.
 .Pp
 The entire collection is scanned if no port origins are given.
 .Pp
@@ -63,43 +71,39 @@ creates
 and
 .Pa portscan-previous.log
 symlinks to point to the latest or previous results.
+.It Fl p Ar portsdir
+The port directory to scan.
+If not specified defaults to
+.Pa /usr/ports
+or the value of
+.Ev PORTSDIR
+in the environment.
 .It Fl q Ar regexp
 Filter returned values based on the given regular expressions.
-.It Fl o Ar flag
-Select what to scan for.
-This flag can be specified multiple times.
-If it is not given
-.Nm
-will default to
-.Sy categories ,
-.Sy clones ,
-.Sy option-default-descriptions ,
-.Sy unknown-targets ,
-and
-.Sy unknown-variables .
-.It Fl o Sy all
-Enable all of the below scanners.
-.It Fl o Sy categories
+.It Fl -all
+Enable all of the below checks.
+.It Fl -categories
 Check categories for unhooked, wrong, or misordered entries.
-.It Fl o Sy clones
-Scan for variables that are set twice.
-.It Fl o Sy comments
+.It Fl -clones
+Check for variables that are set twice.
+.It Fl -comments
 Check comments for problems.
 Currently checks for commented PORTREVISION or PORTEPOCH lines.
-.It Fl o Sy option-default-descriptions Op Ar =editdist
-Report redundant option descriptions that match the default
-descriptions in
+.It Fl -option-default-descriptions Ns Op Ns = Ns Ar editdist
+Report redundant option descriptions.
+It checks them against the default descriptions in
 .Pa Mk/bsd.options.desc.mk .
-.Sy editdist
+.Ar editdist
 is the edit distance between the default and port option description.
 It defaults to 3.
-.It Fl o Sy options
+.It Fl -options
 Include port options and option groups in the result.
 Use
 .Fl q
 to filter the options.
-.It Fl o Sy progress Op Ar =interval
-Print a progress report to
+.It Fl -progress Ns Op Ns = Ns Ar interval
+Print regular progress reports.
+They are printed to
 .Va stderr
 every
 .Ar interval
@@ -112,27 +116,31 @@ will be silent and only print a progress report when it receives
 .Dv SIGINFO
 or
 .Dv SIGUSR2 .
-.It Fl o Sy unknown-targets
+.It Fl -unknown-targets
 Scan for unknown or unrecognized targets.
-.It Fl o Sy unknown-variables
+.It Fl -unknown-variables
 Scan for unknown or unrecognized variables.
-.It Fl o Sy variable-values Op Ar =regex
+.It Fl -variable-values Ns Op Ns = Ns Ar regex
 Output variable values.
 If unconstrained this will output the value of every variable one
 by one.
 Use
 .Fl q
 to filter the values and
-.Sy regex
+.Ar regex
 to select only a subset of all variables.
-.It Fl p Ar portsdir
-The port directory to scan.
-If not specified defaults to
-.Pa /usr/ports
-or the value of
-.Ev PORTSDIR
-in the environment.
 .El
+.Pp
+.Nm
+will default to
+.Fl -categories ,
+.Fl -clones ,
+.Fl -comments ,
+.Fl -option-default-descriptions ,
+.Fl -unknown-targets ,
+and
+.Fl -unknown-variables
+if no check was specified.
 .Sh OUTPUT
 The output is composed of whitespace delimited fields
 .Sy type ,
@@ -219,7 +227,7 @@ diff -u portscan-previous.log portscan-latest.log
 .Pp
 Scan category Makefiles for mistakes:
 .Bd -literal -offset indent
-portscan -o categories
+portscan --categories
 .Ed
 .Sh SEE ALSO
 .Xr portclippy 1 ,

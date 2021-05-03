@@ -40,6 +40,7 @@
 #endif
 #include <errno.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <pthread.h>
 #include <regex.h>
 #include <stdio.h>
@@ -76,6 +77,25 @@ enum ScanFlags {
 	SCAN_VARIABLE_VALUES = 1 << 6,
 	SCAN_PARTIAL = 1 << 7,
 	SCAN_COMMENTS = 1 << 8,
+};
+
+enum ScanLongopts {
+	SCAN_LONGOPT_ALL,
+	SCAN_LONGOPT_CATEGORIES,
+	SCAN_LONGOPT_CLONES,
+	SCAN_LONGOPT_COMMENTS,
+	SCAN_LONGOPT_OPTION_DEFAULT_DESCRIPTIONS,
+	SCAN_LONGOPT_OPTIONS,
+	SCAN_LONGOPT_PROGRESS,
+	SCAN_LONGOPT_UNKNOWN_TARGETS,
+	SCAN_LONGOPT_UNKNOWN_VARIABLES,
+	SCAN_LONGOPT_VARIABLE_VALUES,
+	SCAN_LONGOPT__N
+};
+
+struct ScanLongoptsState {
+	int flag;
+	const char *optarg;
 };
 
 struct ScanResult {
@@ -144,6 +164,19 @@ static void *scan_ports_worker(void *);
 static struct Array *lookup_origins(int, enum ScanFlags, struct PortscanLog *);
 static void scan_ports(int, struct Array *, enum ScanFlags, struct Regexp *, struct Regexp *, ssize_t, struct PortscanLog *);
 static void usage(void);
+
+static struct option longopts[SCAN_LONGOPT__N] = {
+	[SCAN_LONGOPT_ALL] = { "all", no_argument, NULL, 1 },
+	[SCAN_LONGOPT_CATEGORIES] = { "categories", no_argument, NULL, 1 },
+	[SCAN_LONGOPT_CLONES] = { "clones", no_argument, NULL, 1 },
+	[SCAN_LONGOPT_COMMENTS] = { "comments", no_argument, NULL, 1 },
+	[SCAN_LONGOPT_OPTION_DEFAULT_DESCRIPTIONS] = { "option-default-descriptions", optional_argument, NULL, 1 },
+	[SCAN_LONGOPT_OPTIONS] = { "options", no_argument, NULL, 1 },
+	[SCAN_LONGOPT_PROGRESS] = { "progress", optional_argument, NULL, 1 },
+	[SCAN_LONGOPT_UNKNOWN_TARGETS] = { "unknown-targets", no_argument, NULL, 1 },
+	[SCAN_LONGOPT_UNKNOWN_VARIABLES] = { "unknown-variables", no_argument, NULL, 1 },
+	[SCAN_LONGOPT_VARIABLE_VALUES] = { "variable-values", optional_argument, NULL, 1 },
+};
 
 static void
 add_error(struct Set *errors, char *msg)
@@ -934,7 +967,7 @@ scan_ports(int portsdir, struct Array *origins, enum ScanFlags flags, struct Reg
 void
 usage()
 {
-	fprintf(stderr, "usage: portscan [-l <logdir>] [-o <flag>] [-q <regexp>] [-p <portsdir>] [<origin1> ...]\n");
+	fprintf(stderr, "usage: portscan [-l <logdir>] [-p <portsdir>] [-q <regexp>] [--<check> ...] [<origin1> ...]\n");
 	exit(EX_USAGE);
 }
 
@@ -945,12 +978,17 @@ main(int argc, char *argv[])
 	const char *logdir_path = NULL;
 	const char *keyquery = NULL;
 	const char *query = NULL;
-	const char *editdiststr = NULL;
-	const char *progressintervalstr = NULL;
 	unsigned int progressinterval = 0;
-	int ch;
+
+	struct ScanLongoptsState opts[SCAN_LONGOPT__N] = {};
+	for (enum ScanLongopts i = 0; i < SCAN_LONGOPT__N; i++) {
+		longopts[i].flag = &opts[i].flag;
+	}
+
 	enum ScanFlags flags = SCAN_NOTHING;
-	while ((ch = getopt(argc, argv, "l:q:o:p:")) != -1) {
+	int ch;
+	int longindex;
+	while ((ch = getopt_long(argc, argv, "l:q:o:p:", longopts, &longindex)) != -1) {
 		switch (ch) {
 		case 'l':
 			logdir_path = optarg;
@@ -958,42 +996,38 @@ main(int argc, char *argv[])
 		case 'q':
 			query = optarg;
 			break;
-		case 'o':
-			if (strcasecmp(optarg, "all") == 0) {
-				flags = ~SCAN_NOTHING;
-			} else if (strcasecmp(optarg, "categories") == 0) {
-				flags |= SCAN_CATEGORIES;
-			} else if (strcasecmp(optarg, "clones") == 0) {
-				flags |= SCAN_CLONES;
-			} else if (strcasecmp(optarg, "comments") == 0) {
-				flags |= SCAN_COMMENTS;
-			} else if (strcasecmp(optarg, "option-default-descriptions") == 0) {
-				flags |= SCAN_OPTION_DEFAULT_DESCRIPTIONS;
-			} else if (strncasecmp(optarg, "option-default-descriptions=", strlen("option-default-descriptions=")) == 0) {
-				flags |= SCAN_OPTION_DEFAULT_DESCRIPTIONS;
-				editdiststr = optarg + strlen("option-default-descriptions=");
-			} else if (strcasecmp(optarg, "options") == 0) {
-				flags |= SCAN_OPTIONS;
-			} else if (strcasecmp(optarg, "progress") == 0) {
-				progressinterval = 5;
-			} else if (strncasecmp(optarg, "progress=", strlen("progress=")) == 0) {
-				progressintervalstr = optarg + strlen("progress=");
-			} else if (strcasecmp(optarg, "unknown-targets") == 0) {
-				flags |= SCAN_UNKNOWN_TARGETS;
-			} else if (strcasecmp(optarg, "unknown-variables") == 0) {
-				flags |= SCAN_UNKNOWN_VARIABLES;
-			} else if (strncasecmp(optarg, "variable-values=", strlen("variable-values=")) == 0) {
-				keyquery = optarg + strlen("variable-values=");
-				flags |= SCAN_VARIABLE_VALUES;
-			} else if (strcasecmp(optarg, "variable-values") == 0) {
-				flags |= SCAN_VARIABLE_VALUES;
+		case 'o': {
+			int found = 0;
+			const char *name = NULL;
+			for (enum ScanLongopts i = 0; !found && i < SCAN_LONGOPT__N; i++) {
+				name = longopts[i].name;
+				if (strcasecmp(optarg, name) == 0) {
+					opts[i].flag = 1;
+					opts[i].optarg = NULL;
+					found = 1;
+				} else if (longopts[i].has_arg != no_argument) {
+					char *buf = str_printf("%s=", name);
+					if (strncasecmp(optarg, buf, strlen(buf)) == 0) {
+						opts[i].flag = 1;
+						opts[i].optarg = optarg + strlen(buf);
+						found = 1;
+					}
+					free(buf);
+				}
+			}
+			if (found) {
+				warnx("`-o %s' is deprecated; use `--%s' instead", optarg, optarg);
 			} else {
-				warnx("unknown -o flag");
+				warnx("unrecognized option `--%s'", optarg);
 				usage();
 			}
 			break;
-		case 'p':
+		} case 'p':
 			portsdir_path = optarg;
+			break;
+		case 0:
+			opts[longindex].flag = 1;
+			opts[longindex].optarg = optarg;
 			break;
 		default:
 			usage();
@@ -1002,6 +1036,47 @@ main(int argc, char *argv[])
 	}
 	argc -= optind;
 	argv += optind;
+
+	for (enum ScanLongopts i = 0; i < SCAN_LONGOPT__N; i++) {
+		if (!opts[i].flag) {
+			continue;
+		}
+		switch (i) {
+		case SCAN_LONGOPT_ALL:
+			flags = ~SCAN_NOTHING;
+			break;
+		case SCAN_LONGOPT_CATEGORIES:
+			flags |= SCAN_CATEGORIES;
+			break;
+		case SCAN_LONGOPT_CLONES:
+			flags |= SCAN_CLONES;
+			break;
+		case SCAN_LONGOPT_COMMENTS:
+			flags |= SCAN_COMMENTS;
+			break;
+		case SCAN_LONGOPT_OPTION_DEFAULT_DESCRIPTIONS:
+			flags |= SCAN_OPTION_DEFAULT_DESCRIPTIONS;
+			break;
+		case SCAN_LONGOPT_OPTIONS:
+			flags |= SCAN_OPTIONS;
+			break;
+		case SCAN_LONGOPT_PROGRESS:
+			progressinterval = 5;
+			break;
+		case SCAN_LONGOPT_UNKNOWN_TARGETS:
+			flags |= SCAN_UNKNOWN_TARGETS;
+			break;
+		case SCAN_LONGOPT_UNKNOWN_VARIABLES:
+			flags |= SCAN_UNKNOWN_VARIABLES;
+			break;
+		case SCAN_LONGOPT_VARIABLE_VALUES:
+			flags |= SCAN_VARIABLE_VALUES;
+			keyquery = opts[i].optarg;
+			break;
+		case SCAN_LONGOPT__N:
+			break;
+		}
+	}
 
 	if (flags == SCAN_NOTHING) {
 		flags = SCAN_CATEGORIES | SCAN_CLONES | SCAN_COMMENTS |
@@ -1048,11 +1123,11 @@ main(int argc, char *argv[])
 	}
 #endif
 
-	if (progressintervalstr) {
+	if (opts[SCAN_LONGOPT_PROGRESS].optarg) {
 		const char *error;
-		progressinterval = strtonum(progressintervalstr, 1, 100000000, &error);
+		progressinterval = strtonum(opts[SCAN_LONGOPT_PROGRESS].optarg, 1, 100000000, &error);
 		if (error) {
-			errx(1, "-o progress=%s is %s (must be >=1)", progressintervalstr, error);
+			errx(1, "--progress=%s is %s (must be >=1)", opts[SCAN_LONGOPT_PROGRESS].optarg, error);
 		}
 	}
 	portscan_status_init(progressinterval);
@@ -1073,11 +1148,11 @@ main(int argc, char *argv[])
 	}
 
 	ssize_t editdist = 3;
-	if (editdiststr) {
+	if (opts[SCAN_LONGOPT_OPTION_DEFAULT_DESCRIPTIONS].optarg) {
 		const char *error;
-		editdist = strtonum(editdiststr, 0, INT_MAX, &error);
+		editdist = strtonum(opts[SCAN_LONGOPT_OPTION_DEFAULT_DESCRIPTIONS].optarg, 0, INT_MAX, &error);
 		if (error) {
-			errx(1, "-o option-default-descriptions=%s is %s (must be >=0)", editdiststr, error);
+			errx(1, "--option-default-descriptions=%s is %s (must be >=0)", opts[SCAN_LONGOPT_OPTION_DEFAULT_DESCRIPTIONS].optarg, error);
 		}
 	}
 
