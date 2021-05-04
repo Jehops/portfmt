@@ -52,6 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   is a FreeBSD Ports Makefile is flawed and is now also positive
   if `MASTERDIR` is set in it.
 - portclippy, portscan: Look up `opt_USES_OFF` and `opt_VARS_OFF` too
+- portedit set-version: Deal with `PORTREVISION?=` and reset it to 0
 
 ## [g20210321] - 2021-03-21
 

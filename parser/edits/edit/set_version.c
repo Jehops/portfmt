@@ -160,10 +160,13 @@ PARSER_EDIT(edit_set_version)
 
 	char *version;
 	int rev = 0;
+	int rev_opt = 0;
 	if (parser_lookup_variable_str(parser, ver, &version, NULL)) {
 		char *revision;
+		struct Variable *rev_var;
 		if (strcmp(version, newversion) != 0 &&
-		    parser_lookup_variable_str(parser, "PORTREVISION", &revision, NULL)) {
+		    (rev_var = parser_lookup_variable_str(parser, "PORTREVISION", &revision, NULL))) {
+			rev_opt = variable_modifier(rev_var) == MODIFIER_OPTIONAL;
 			const char *errstr = NULL;
 			rev = strtonum(revision, 0, INT_MAX, &errstr);
 			free(revision);
@@ -254,8 +257,13 @@ PARSER_EDIT(edit_set_version)
 	}
 
 	if (rev > 0) {
-		// Remove PORTREVISION
-		buf = str_printf("%s=%s\nPORTREVISION!=", ver, newversion);
+		if (rev_opt) {
+			// Reset PORTREVISION?= to 0
+			buf = str_printf("%s=%s\nPORTREVISION=0", ver, newversion);
+		} else {
+			// Remove PORTREVISION
+			buf = str_printf("%s=%s\nPORTREVISION!=", ver, newversion);
+		}
 	} else {
 		buf = str_printf("%s=%s", ver, newversion);
 	}
