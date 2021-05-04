@@ -85,7 +85,7 @@ conditional.o: config.h libias/util.h conditional.h regexp.h rules.h
 mainutils.o: config.h libias/array.h libias/util.h capsicum_helpers.h mainutils.h parser.h
 parser.o: config.h libias/array.h libias/diff.h libias/diffutil.h libias/map.h libias/mempool.h libias/set.h libias/util.h conditional.h parser.h parser/edits.h regexp.h rules.h target.h token.h variable.h parser/constants.h
 parser/edits/edit/bump_revision.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
-parser/edits/edit/merge.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
+parser/edits/edit/merge.o: config.h libias/array.h libias/util.h conditional.h parser.h parser/edits.h rules.h token.h variable.h
 parser/edits/edit/set_version.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h token.h variable.h
 parser/edits/kakoune/select_object_on_line.o: config.h libias/array.h libias/util.h parser.h parser/edits.h token.h
 parser/edits/lint/bsd_port.o: config.h libias/array.h libias/util.h parser.h parser/edits.h rules.h

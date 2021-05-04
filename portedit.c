@@ -397,7 +397,8 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 	}
 	error = parser_merge(parser, subparser,
 			     PARSER_MERGE_SHELL_IS_DELETE | PARSER_MERGE_COMMENTS |
-			     PARSER_MERGE_AFTER_LAST_IN_GROUP);
+			     PARSER_MERGE_AFTER_LAST_IN_GROUP |
+			     PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS);
 	if (error != PARSER_ERROR_OK) {
 		errx(1, "%s", parser_error_tostring(parser));
 	}

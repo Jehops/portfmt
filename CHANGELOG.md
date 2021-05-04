@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   should work now as one would expect.
 - portscan: Replaced `-o <check>` with `--<check>`; `-o <check>`
   will continue to work but is deprecated
+- portedit merge: Ignore variables in conditionals
 
 ### Fixed
 

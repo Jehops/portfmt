@@ -41,6 +41,7 @@
 #include <libias/array.h>
 #include <libias/util.h>
 
+#include "conditional.h"
 #include "parser.h"
 #include "parser/edits.h"
 #include "rules.h"
@@ -69,6 +70,7 @@ static void append_tokens(struct Parser *, struct Array *, struct Array *);
 static void append_values(struct Parser *, struct Array *, enum VariableModifier, struct VariableMergeParameter *);
 static void append_values_last(struct Parser *, struct Array *, enum VariableModifier, struct VariableMergeParameter *);
 static void assign_values(struct Parser *, struct Array *, enum VariableModifier, const struct VariableMergeParameter *);
+static int skip_conditional(struct Token *, enum ParserMergeBehavior, int *);
 
 PARSER_EDIT(extract_tokens)
 {
@@ -76,6 +78,43 @@ PARSER_EDIT(extract_tokens)
 	*tokens = ptokens;
 	return NULL;
 }
+
+static int
+skip_conditional(struct Token *t, enum ParserMergeBehavior behavior, int *ignore)
+{
+	if (!(behavior & PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS)) {
+		return 0;
+	}
+	if (*ignore > 0) {
+		if (token_type(t) == CONDITIONAL_END) {
+			switch (conditional_type(token_conditional(t))) {
+			case COND_ENDFOR:
+			case COND_ENDIF:
+				(*ignore)--;
+				break;
+			default:
+				break;
+			}
+		}
+		return 1;
+	}
+	if (token_type(t) == CONDITIONAL_START) {
+		switch (conditional_type(token_conditional(t))) {
+		case COND_IF:
+		case COND_IFDEF:
+		case COND_IFMAKE:
+		case COND_IFNDEF:
+		case COND_IFNMAKE:
+		case COND_FOR:
+			(*ignore)++;
+			break;
+		default:
+			break;
+		}
+	}
+	return 0;
+}
+
 
 void
 append_values(struct Parser *parser, struct Array *tokens, enum VariableModifier mod, struct VariableMergeParameter *params)
@@ -218,7 +257,6 @@ find_insert_point_generic(struct Parser *parser, struct Array *ptokens, struct V
 		enum BlockType block = variable_order_block(parser, a, NULL);
 		char *b = variable_name(var);
 		int cmp = compare_order(&a, &b, parser);
-		assert(cmp != 0);
 		if (cmp < 0) {
 			*block_before_var = block;
 			insert_after = t_index;
@@ -253,7 +291,6 @@ find_insert_point_same_block(struct Parser *parser, struct Array *ptokens, struc
 		}
 		char *b = variable_name(var);
 		int cmp = compare_order(&a, &b, parser);
-		assert(cmp != 0);
 		if (cmp < 0) {
 			*block_before_var = block;
 			insert_after = t_index;
@@ -404,14 +441,18 @@ PARSER_EDIT(insert_variable)
 }
 
 static size_t
-find_last_occurrence_of_var(struct Parser *parser, struct Array *tokens, struct Variable *var, size_t i)
+find_last_occurrence_of_var(struct Parser *parser, struct Array *tokens, struct VariableMergeParameter *params, size_t i)
 {
 	size_t index = array_len(tokens) + 1;
+	int ignore = 0;
 	for (; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
+		if (skip_conditional(t, params->behavior, &ignore)) {
+			continue;
+		}
 		switch (token_type(t)) {
 		case VARIABLE_END:
-			if (variable_cmp(var, token_variable(t)) == 0) {
+			if (variable_cmp(params->var, token_variable(t)) == 0) {
 				index = i;
 			} else {
 				return index;
@@ -432,11 +473,16 @@ PARSER_EDIT(merge_existent_var)
 	int found = 0;
 	enum VariableModifier mod = variable_modifier(params->var);
 	size_t last_occ = array_len(ptokens) + 1;
+	int ignore = 0;
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
+		if (skip_conditional(t, params->behavior, &ignore)) {
+			array_append(tokens, t);
+			continue;
+		}
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			if (variable_cmp(params->var, token_variable(t)) == 0) {
-				last_occ = find_last_occurrence_of_var(parser, ptokens, params->var, t_index);
+				last_occ = find_last_occurrence_of_var(parser, ptokens, params, t_index);
 				found = 1;
 				if (mod == MODIFIER_ASSIGN ||
 				    (mod == MODIFIER_OPTIONAL && (params->behavior & PARSER_MERGE_OPTIONAL_LIKE_ASSIGN))) {
@@ -538,8 +584,29 @@ PARSER_EDIT(edit_merge)
 				}
 				/* fallthrough */
 			case MODIFIER_APPEND:
-			case MODIFIER_ASSIGN:
-				if (!parser_lookup_variable(parser, variable_name(var), NULL, NULL)) {
+			case MODIFIER_ASSIGN: {
+				int found = 0;
+				int ignore = 0;
+				ARRAY_FOREACH(ptokens, struct Token *, s) {
+					if (skip_conditional(s, params->merge_behavior, &ignore)) {
+						continue;
+					}
+					switch (token_type(s)) {
+					case VARIABLE_START:
+					case VARIABLE_TOKEN:
+					case VARIABLE_END:
+						if (strcmp(variable_name(token_variable(s)), variable_name(var)) == 0) {
+							found = 1;
+						}
+						break;
+					default:
+						break;
+					}
+					if (found) {
+						break;
+					}
+				}
+				if (!found) {
 					*error = parser_edit(parser, insert_variable, var);
 					if (*error != PARSER_ERROR_OK) {
 						goto cleanup;
@@ -549,7 +616,7 @@ PARSER_EDIT(edit_merge)
 				merge = 1;
 				array_append(mergetokens, t);
 				break;
-			default:
+			} default:
 				merge = 0;
 				break;
 			}
