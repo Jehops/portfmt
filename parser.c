@@ -344,6 +344,12 @@ parser_new(struct ParserSettings *settings)
 		parser->settings.behavior &= ~PARSER_COLLAPSE_ADJACENT_VARIABLES;
 	}
 
+	if ((settings->behavior & PARSER_OUTPUT_DUMP_TOKENS) ||
+	    (settings->behavior & PARSER_OUTPUT_DIFF) ||
+	    (settings->behavior & PARSER_OUTPUT_RAWLINES)) {
+		settings->behavior &= ~PARSER_OUTPUT_INPLACE;
+	}
+
 	return parser;
 }
 

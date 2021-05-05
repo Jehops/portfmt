@@ -137,7 +137,9 @@ read_common_args(int *argc, char ***argv, struct ParserSettings *settings, const
 	*argc -= optind;
 	*argv += optind;
 
-	if (settings->behavior & PARSER_OUTPUT_DUMP_TOKENS) {
+	if ((settings->behavior & PARSER_OUTPUT_DUMP_TOKENS) ||
+	    (settings->behavior & PARSER_OUTPUT_DIFF) ||
+	    (settings->behavior & PARSER_OUTPUT_RAWLINES)) {
 		settings->behavior &= ~PARSER_OUTPUT_INPLACE;
 	}
 

@@ -161,14 +161,14 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 		errx(1, "%s not found. Use 'portedit apply list' to list all available edits.", apply_edit);
 	}
 
-	if (!read_common_args(&argc, &argv, settings, "D::diuUw:", NULL)) {
-		apply_usage();
-	}
-
 	if (str_startswith(apply_edit, "kakoune.") ||
 	    str_startswith(apply_edit, "lint.") ||
 	    str_startswith(apply_edit, "output.")) {
 		settings->behavior |= PARSER_OUTPUT_RAWLINES;
+	}
+
+	if (!read_common_args(&argc, &argv, settings, "D::diuUw:", NULL)) {
+		apply_usage();
 	}
 
 	FILE *fp_in = stdin;
