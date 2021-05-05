@@ -97,7 +97,6 @@ static size_t consume_var(const char *);
 static int is_empty_line(const char *);
 static void parser_append_token(struct Parser *, enum TokenType, const char *);
 static void parser_find_goalcols(struct Parser *);
-static struct Variable *parser_lookup_variable_internal(struct Parser *, const char *, struct Array **, struct Array **, int);
 static void parser_meta_values(struct Parser *, const char *, struct Set *);
 static void parser_metadata_alloc(struct Parser *);
 static void parser_metadata_free(struct Parser *);
@@ -1965,7 +1964,7 @@ void
 parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 {
 	struct Array *tmp = NULL;
-	if (parser_lookup_variable_all(parser, var, &tmp, NULL)) {
+	if (parser_lookup_variable(parser, var, PARSER_LOOKUP_DEFAULT, &tmp, NULL)) {
 		for (size_t i = 0; i < array_len(tmp); i++) {
 			parser_meta_values_helper(set, var, array_get(tmp, i));
 		}
@@ -1975,7 +1974,7 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 	struct Set *options = parser_metadata(parser, PARSER_METADATA_OPTIONS);
 	SET_FOREACH(options, const char *, opt) {
 		char *buf = str_printf("%s_VARS", opt);
-		if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
+		if (parser_lookup_variable(parser, buf, PARSER_LOOKUP_DEFAULT, &tmp, NULL)) {
 			for (size_t i = 0; i < array_len(tmp); i++) {
 				char *value = array_get(tmp, i);
 				char *buf = str_printf("%s+=", var);
@@ -1999,7 +1998,7 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 		free(buf);
 
 		buf = str_printf("%s_VARS_OFF", opt);
-		if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
+		if (parser_lookup_variable(parser, buf, PARSER_LOOKUP_DEFAULT, &tmp, NULL)) {
 			for (size_t i = 0; i < array_len(tmp); i++) {
 				char *value = array_get(tmp, i);
 				char *buf = str_printf("%s+=", var);
@@ -2028,7 +2027,7 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 		if (strcmp(var, "USES") == 0) {
 #endif
 			buf = str_printf("%s_%s", opt, var);
-			if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
+			if (parser_lookup_variable(parser, buf, PARSER_LOOKUP_DEFAULT, &tmp, NULL)) {
 				for (size_t i = 0; i < array_len(tmp); i++) {
 					parser_meta_values_helper(set, var, array_get(tmp, i));
 				}
@@ -2037,7 +2036,7 @@ parser_meta_values(struct Parser *parser, const char *var, struct Set *set)
 			free(buf);
 
 			buf = str_printf("%s_%s_OFF", opt, var);
-			if (parser_lookup_variable_all(parser, buf, &tmp, NULL)) {
+			if (parser_lookup_variable(parser, buf, PARSER_LOOKUP_DEFAULT, &tmp, NULL)) {
 				for (size_t i = 0; i < array_len(tmp); i++) {
 					parser_meta_values_helper(set, var, array_get(tmp, i));
 				}
@@ -2052,7 +2051,7 @@ static void
 parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 {
 	struct Array *optmulti = NULL;
-	if (parser_lookup_variable_all(parser, groupname, &optmulti, NULL)) {
+	if (parser_lookup_variable(parser, groupname, PARSER_LOOKUP_DEFAULT, &optmulti, NULL)) {
 		for (size_t i = 0; i < array_len(optmulti); i++) {
 			char *optgroupname = array_get(optmulti, i);
 			if (!set_contains(parser->metadata[PARSER_METADATA_OPTION_GROUPS], optgroupname)) {
@@ -2060,7 +2059,7 @@ parser_port_options_add_from_group(struct Parser *parser, const char *groupname)
 			}
 			char *optgroupvar = str_printf("%s_%s", groupname, optgroupname);
 			struct Array *opts = NULL;
-			if (parser_lookup_variable_all(parser, optgroupvar, &opts, NULL)) {
+			if (parser_lookup_variable(parser, optgroupvar, PARSER_LOOKUP_DEFAULT, &opts, NULL)) {
 				for (size_t i = 0; i < array_len(opts); i++) {
 					char *opt = array_get(opts, i);
 					if (!set_contains(parser->metadata[PARSER_METADATA_OPTIONS], opt)) {
@@ -2079,7 +2078,7 @@ static void
 parser_port_options_add_from_var(struct Parser *parser, const char *var)
 {
 	struct Array *optdefine = NULL;
-	if (parser_lookup_variable_all(parser, var, &optdefine, NULL)) {
+	if (parser_lookup_variable(parser, var, PARSER_LOOKUP_DEFAULT, &optdefine, NULL)) {
 		for (size_t i = 0; i < array_len(optdefine); i++) {
 			char *opt = array_get(optdefine, i);
 			if (!set_contains(parser->metadata[PARSER_METADATA_OPTIONS], opt)) {
@@ -2131,7 +2130,7 @@ parser_metadata_port_options(struct Parser *parser)
 			char *var = str_printf("%s_DESC", opt);
 			if (!map_contains(parser->metadata[PARSER_METADATA_OPTION_DESCRIPTIONS], var)) {
 				char *desc;
-				if (parser_lookup_variable_str(parser, var, &desc, NULL)) {
+				if (parser_lookup_variable_str(parser, var, PARSER_LOOKUP_FIRST, &desc, NULL)) {
 					map_add(parser->metadata[PARSER_METADATA_OPTION_DESCRIPTIONS], var, desc);
 				} else {
 					free(var);
@@ -2191,7 +2190,7 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 				parser_meta_values(parser, "EXECUTABLES", parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES]);
 				if (set_len(parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES]) == 0) {
 					char *portname;
-					if (parser_lookup_variable_str(parser, "PORTNAME", &portname, NULL)) {
+					if (parser_lookup_variable_str(parser, "PORTNAME", PARSER_LOOKUP_FIRST, &portname, NULL)) {
 						if (set_contains(parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES], portname)) {
 							free(portname);
 						} else {
@@ -2217,7 +2216,7 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 			break;
 		case PARSER_METADATA_MASTERDIR: {
 			struct Array *tokens = NULL;
-			if (parser_lookup_variable(parser, "MASTERDIR", &tokens, NULL)) {
+			if (parser_lookup_variable(parser, "MASTERDIR", PARSER_LOOKUP_FIRST, &tokens, NULL)) {
 				free(parser->metadata[meta]);
 				parser->metadata[meta] = str_join(tokens, " ");
 			}
@@ -2305,7 +2304,7 @@ found:
 }
 
 struct Variable *
-parser_lookup_variable_internal(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment, int cont)
+parser_lookup_variable(struct Parser *parser, const char *name, enum ParserLookupVariableBehavior behavior, struct Array **retval, struct Array **comment)
 {
 	struct Variable *var = NULL;
 	struct Array *tokens = array_new();
@@ -2314,7 +2313,7 @@ parser_lookup_variable_internal(struct Parser *parser, const char *name, struct 
 		struct Token *t = array_get(parser->tokens, i);
 		switch (token_type(t)) {
 		case VARIABLE_START:
-			if (!cont) {
+			if (behavior & PARSER_LOOKUP_FIRST) {
 				array_truncate(tokens);
 			}
 			break;
@@ -2330,7 +2329,7 @@ parser_lookup_variable_internal(struct Parser *parser, const char *name, struct 
 		case VARIABLE_END:
 			if (strcmp(variable_name(token_variable(t)), name) == 0) {
 				var = token_variable(t);
-				if (!cont) {
+				if (behavior & PARSER_LOOKUP_FIRST) {
 					goto found;
 				}
 			}
@@ -2372,24 +2371,12 @@ found:
 }
 
 struct Variable *
-parser_lookup_variable(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment)
-{
-	return parser_lookup_variable_internal(parser, name, retval, comment, 0);
-}
-
-struct Variable *
-parser_lookup_variable_all(struct Parser *parser, const char *name, struct Array **retval, struct Array **comment)
-{
-	return parser_lookup_variable_internal(parser, name, retval, comment, 1);
-}
-
-struct Variable *
-parser_lookup_variable_str(struct Parser *parser, const char *name, char **retval, char **comment)
+parser_lookup_variable_str(struct Parser *parser, const char *name, enum ParserLookupVariableBehavior behavior, char **retval, char **comment)
 {
 	struct Array *comments;
 	struct Array *tokens;
 	struct Variable *var;
-	if ((var = parser_lookup_variable(parser, name, &tokens, &comments)) == NULL) {
+	if ((var = parser_lookup_variable(parser, name, behavior, &tokens, &comments)) == NULL) {
 		return NULL;
 	}
 

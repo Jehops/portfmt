@@ -55,6 +55,11 @@ enum ParserMergeBehavior {
 	PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS = 1 << 5,
 };
 
+enum ParserLookupVariableBehavior {
+	PARSER_LOOKUP_DEFAULT = 0,
+	PARSER_LOOKUP_FIRST = 1 << 0,
+};
+
 enum ParserError {
 	PARSER_ERROR_OK = 0,
 	PARSER_ERROR_BUFFER_TOO_SMALL,
@@ -117,9 +122,8 @@ enum ParserError parser_output_write_to_file(struct Parser *, FILE *);
 enum ParserError parser_edit(struct Parser *, ParserEditFn, void *);
 void parser_enqueue_output(struct Parser *, const char *);
 struct Target *parser_lookup_target(struct Parser *, const char *, struct Array **);
-struct Variable *parser_lookup_variable(struct Parser *, const char *, struct Array **, struct Array **);
-struct Variable *parser_lookup_variable_all(struct Parser *, const char *, struct Array **, struct Array **);
-struct Variable *parser_lookup_variable_str(struct Parser *, const char *, char **, char **);
+struct Variable *parser_lookup_variable(struct Parser *, const char *, enum ParserLookupVariableBehavior, struct Array **, struct Array **);
+struct Variable *parser_lookup_variable_str(struct Parser *, const char *, enum ParserLookupVariableBehavior, char **, char **);
 void parser_mark_for_gc(struct Parser *, struct Token *);
 void parser_mark_edited(struct Parser *, struct Token *);
 void *parser_metadata(struct Parser *, enum ParserMetadata);

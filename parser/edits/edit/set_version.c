@@ -154,18 +154,18 @@ PARSER_EDIT(edit_set_version)
 	const char *newversion = newversion_buf;
 
 	const char *ver = "DISTVERSION";
-	if (parser_lookup_variable(parser, "PORTVERSION", NULL, NULL)) {
+	if (parser_lookup_variable(parser, "PORTVERSION", PARSER_LOOKUP_FIRST, NULL, NULL)) {
 		ver = "PORTVERSION";
 	}
 
 	char *version;
 	int rev = 0;
 	int rev_opt = 0;
-	if (parser_lookup_variable_str(parser, ver, &version, NULL)) {
+	if (parser_lookup_variable_str(parser, ver, PARSER_LOOKUP_FIRST, &version, NULL)) {
 		char *revision;
 		struct Variable *rev_var;
 		if (strcmp(version, newversion) != 0 &&
-		    (rev_var = parser_lookup_variable_str(parser, "PORTREVISION", &revision, NULL))) {
+		    (rev_var = parser_lookup_variable_str(parser, "PORTREVISION", PARSER_LOOKUP_FIRST, &revision, NULL))) {
 			rev_opt = variable_modifier(rev_var) == MODIFIER_OPTIONAL;
 			const char *errstr = NULL;
 			rev = strtonum(revision, 0, INT_MAX, &errstr);
@@ -187,7 +187,7 @@ PARSER_EDIT(edit_set_version)
 	char *prefix;
 	char *suffix;
 	if (!is_git_describe_version(newversion, &distversion, &prefix, &suffix)) {
-		if (parser_lookup_variable_str(parser, "DISTVERSIONSUFFIX", &suffix, NULL)) {
+		if (parser_lookup_variable_str(parser, "DISTVERSIONSUFFIX", PARSER_LOOKUP_FIRST, &suffix, NULL)) {
 			if (str_endswith(newversion, suffix)) {
 				newversion_buf[strlen(newversion) - strlen(suffix)] = 0;
 			} else {
@@ -196,7 +196,7 @@ PARSER_EDIT(edit_set_version)
 			free(suffix);
 			suffix = NULL;
 		}
-		if (parser_lookup_variable_str(parser, "DISTVERSIONPREFIX", &prefix, NULL)) {
+		if (parser_lookup_variable_str(parser, "DISTVERSIONPREFIX", PARSER_LOOKUP_FIRST, &prefix, NULL)) {
 			if (str_startswith(newversion, prefix)) {
 				newversion += strlen(prefix);
 			}

@@ -73,8 +73,8 @@ PARSER_EDIT(lint_commented_portrevision)
 		}
 
 		struct Array *revtokens = NULL;
-		if (parser_lookup_variable(subparser, "PORTEPOCH", &revtokens, NULL) ||
-		    parser_lookup_variable(subparser, "PORTREVISION", &revtokens, NULL)) {
+		if (parser_lookup_variable(subparser, "PORTEPOCH", PARSER_LOOKUP_FIRST, &revtokens, NULL) ||
+		    parser_lookup_variable(subparser, "PORTREVISION", PARSER_LOOKUP_FIRST, &revtokens, NULL)) {
 			if (array_len(revtokens) <= 1) {
 				if (set_contains(comments, comment)) {
 					free(comment);

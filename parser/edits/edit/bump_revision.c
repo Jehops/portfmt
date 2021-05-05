@@ -55,7 +55,7 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 	char *comment;
 	char *current_revision;
 	struct Variable *var;
-	if ((var = parser_lookup_variable_str(parser, variable, &current_revision, &comment)) != NULL) {
+	if ((var = parser_lookup_variable_str(parser, variable, PARSER_LOOKUP_FIRST, &current_revision, &comment)) != NULL) {
 		const char *errstr = NULL;
 		int rev = strtonum(current_revision, 0, INT_MAX, &errstr);
 		free(current_revision);
@@ -68,7 +68,7 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 			return NULL;
 		}
 		char *buf = variable_tostring(var);
-		if (parser_lookup_variable(parser, "MASTERDIR", NULL, NULL)) {
+		if (parser_lookup_variable(parser, "MASTERDIR", PARSER_LOOKUP_FIRST, NULL, NULL)) {
 			// In slave ports we do not delete the variable first since
 			// they have a non-uniform structure and edit_merge will probably
 			// insert it into a non-optimal position.

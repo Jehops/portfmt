@@ -104,7 +104,7 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 		var = str_printf("%s_VARS%s", option, suffix);
 	}
 	struct Array *optvars;
-	if (!parser_lookup_variable_all(parser, var, &optvars, NULL)) {
+	if (!parser_lookup_variable(parser, var, PARSER_LOOKUP_DEFAULT, &optvars, NULL)) {
 		free(var);
 		return;
 	}

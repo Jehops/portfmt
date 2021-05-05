@@ -260,7 +260,7 @@ lookup_subdirs(int portsdir, const char *category, const char *path, enum ScanFl
 	}
 
 	struct Array *tmp;
-	if (parser_lookup_variable_all(parser, "SUBDIR", &tmp, NULL) == NULL) {
+	if (parser_lookup_variable(parser, "SUBDIR", PARSER_LOOKUP_DEFAULT, &tmp, NULL) == NULL) {
 		goto cleanup;
 	}
 
