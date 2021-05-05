@@ -33,8 +33,8 @@ OBJS=		conditional.o \
 		parser/edits/refactor/sanitize_cmake_args.o \
 		parser/edits/refactor/sanitize_comments.o \
 		parser/edits/refactor/sanitize_eol_comments.o \
-		portscanlog.o \
-		portscanstatus.o \
+		portscan/log.o \
+		portscan/status.o \
 		regexp.o \
 		rules.o \
 		target.o \
@@ -80,18 +80,6 @@ bin/portscan: portscan.o libias/libias.a libportfmt.a
 	@mkdir -p bin
 	${CC} ${LDFLAGS} -o bin/portscan portscan.o libportfmt.a libias/libias.a ${LDADD} -lpthread
 
-portclippy.o: portclippy.c config.h mainutils.h parser.h
-	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
-
-portedit.o: portedit.c config.h libias/array.h mainutils.h parser.h regexp.h libias/set.h libias/util.h
-	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
-
-portfmt.o: portfmt.c config.h mainutils.h parser.h
-	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
-
-portscan.o: portscan.c config.h libias/array.h conditional.h libias/diff.h mainutils.h parser.h portscanlog.h regexp.h libias/set.h token.h libias/util.h
-	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
-
 #
 conditional.o: config.h libias/util.h conditional.h regexp.h rules.h
 mainutils.o: config.h libias/array.h libias/util.h capsicum_helpers.h mainutils.h parser.h
@@ -117,9 +105,9 @@ parser/edits/refactor/sanitize_eol_comments.o: config.h libias/array.h libias/ut
 portclippy.o: config.h mainutils.h parser.h parser/edits.h
 portedit.o: config.h libias/array.h libias/set.h libias/util.h mainutils.h parser.h parser/edits.h regexp.h
 portfmt.o: config.h mainutils.h parser.h
-portscan.o: config.h libias/array.h libias/diff.h libias/map.h libias/set.h libias/util.h capsicum_helpers.h conditional.h mainutils.h parser.h parser/edits.h portscanlog.h portscanstatus.h regexp.h token.h variable.h
-portscanlog.o: config.h libias/array.h libias/diff.h libias/set.h libias/util.h capsicum_helpers.h portscanlog.h
-portscanstatus.o: config.h portscanstatus.h
+portscan.o: config.h libias/array.h libias/diff.h libias/map.h libias/set.h libias/util.h capsicum_helpers.h conditional.h mainutils.h parser.h parser/edits.h portscan/log.h portscan/status.h regexp.h token.h variable.h
+portscan/log.o: config.h libias/array.h libias/diff.h libias/set.h libias/util.h capsicum_helpers.h portscan/log.h
+portscan/status.o: config.h portscan/status.h
 regexp.o: config.h libias/util.h regexp.h
 rules.o: config.h libias/array.h libias/set.h libias/util.h conditional.h regexp.h rules.h parser.h token.h variable.h generated_rules.h
 target.o: config.h libias/array.h libias/mempool.h libias/util.h target.h

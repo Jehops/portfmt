@@ -51,7 +51,7 @@
 #include <libias/util.h>
 
 #include "capsicum_helpers.h"
-#include "portscanlog.h"
+#include "portscan/log.h"
 
 struct PortscanLogDir {
 	int fd;

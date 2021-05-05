@@ -38,7 +38,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "portscanstatus.h"
+#include "portscan/status.h"
 
 static void portscan_status_signal_handler(int);
 
