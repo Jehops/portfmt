@@ -1,3 +1,5 @@
+.SUFFIXES: .test
+
 include Makefile.configure
 
 MKDIR?=		mkdir -p
@@ -38,6 +40,8 @@ OBJS=		conditional.o \
 		target.o \
 		token.o \
 		variable.o
+ALL_TESTS=	tests/run.sh
+TESTS?=		${ALL_TESTS}
 
 all: portclippy portedit portfmt portscan
 
@@ -55,6 +59,10 @@ libias/Makefile.configure: Makefile.configure
 
 libias/libias.a: libias libias/config.h libias/Makefile.configure
 	@${MAKE} -C libias libias.a
+
+${TESTS}: libportfmt.a
+.o.test:
+	${CC} ${LDFLAGS} -o $@ $< libportfmt.a libias/libias.a ${LDADD}
 
 portclippy: portclippy.o libias/libias.a libportfmt.a
 	${CC} ${LDFLAGS} -o portclippy portclippy.o libportfmt.a libias/libias.a ${LDADD}
@@ -140,7 +148,7 @@ regen-rules:
 clean:
 	@${MAKE} -C libias clean
 	@rm -f ${OBJS} *.o libportfmt.a portclippy portedit portfmt portscan \
-		config.*.old
+		config.*.old $$(echo ${ALL_TESTS} | sed 's,tests/run.sh,,')
 
 debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \
@@ -149,8 +157,8 @@ debug:
 lint: all
 	@${SH} tests/lint.sh
 
-test: all
-	@${SH} tests/run.sh
+test: all ${TESTS}
+	@${SH} libias/tests/run.sh ${TESTS}
 
 tag:
 	@date=$$(git log -1 --pretty=format:%cd --date=format:%Y-%m-%d $${tag}); \

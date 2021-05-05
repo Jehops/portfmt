@@ -12,6 +12,7 @@ Makefile.configure
 /portedit
 /portfmt
 /portscan
+/tests/log
 TODO
 RELNOTES.md
 portfmt-*.tar.lz
