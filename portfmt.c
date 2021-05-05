@@ -65,7 +65,11 @@ main(int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out, 0)) {
+	enum MainutilsOpenFileBehavior behavior = MAINUTILS_OPEN_FILE_DEFAULT;
+	if (settings.behavior & PARSER_OUTPUT_INPLACE) {
+		behavior |= MAINUTILS_OPEN_FILE_INPLACE;
+	}
+	if (!open_file(behavior, &argc, &argv, &fp_in, &fp_out, &settings.filename)) {
 		if (fp_in == NULL) {
 			err(1, "fopen");
 		} else {

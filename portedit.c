@@ -69,7 +69,7 @@ static void unknown_targets_usage(void);
 static void unknown_vars_usage(void);
 static void usage(void);
 
-static struct Parser *read_file(struct ParserSettings *, FILE **, FILE **, int *, char **[], int);
+static struct Parser *read_file(struct ParserSettings *, enum MainutilsOpenFileBehavior , FILE **, FILE **, int *, char **[]);
 
 struct PorteditCommand {
 	const char *name;
@@ -173,7 +173,7 @@ apply(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 1);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_KEEP_STDIN, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		apply_usage();
 	}
@@ -221,7 +221,7 @@ bump_epoch(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 0);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_DEFAULT, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		bump_epoch_usage();
 	}
@@ -264,7 +264,7 @@ bump_revision(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 0);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_DEFAULT, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		bump_revision_usage();
 	}
@@ -313,7 +313,7 @@ get_variable(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 0);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_DEFAULT, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		get_variable_usage();
 	}
@@ -367,7 +367,7 @@ merge(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 1);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_KEEP_STDIN, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		merge_usage();
 	}
@@ -438,7 +438,7 @@ sanitize_append(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 1);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_KEEP_STDIN, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		sanitize_append_usage();
 	}
@@ -487,7 +487,7 @@ set_version(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 1);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_KEEP_STDIN, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		set_version_usage();
 	}
@@ -525,7 +525,7 @@ unknown_targets(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 0);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_DEFAULT, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		unknown_targets_usage();
 	}
@@ -563,7 +563,7 @@ unknown_vars(struct ParserSettings *settings, int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	struct Parser *parser = read_file(settings, &fp_in, &fp_out, &argc, &argv, 0);
+	struct Parser *parser = read_file(settings, MAINUTILS_OPEN_FILE_DEFAULT, &fp_in, &fp_out, &argc, &argv);
 	if (parser == NULL) {
 		unknown_vars_usage();
 	}
@@ -673,9 +673,12 @@ usage()
 }
 
 struct Parser *
-read_file(struct ParserSettings *settings, FILE **fp_in, FILE **fp_out, int *argc, char **argv[], int keep_stdin_open)
+read_file(struct ParserSettings *settings, enum MainutilsOpenFileBehavior behavior, FILE **fp_in, FILE **fp_out, int *argc, char **argv[])
 {
-	if (!open_file(argc, argv, settings, fp_in, fp_out, keep_stdin_open)) {
+	if (settings->behavior & PARSER_OUTPUT_INPLACE) {
+		behavior |= MAINUTILS_OPEN_FILE_INPLACE;
+	}
+	if (!open_file(behavior, argc, argv, fp_in, fp_out, &settings->filename)) {
 		if (*fp_in == NULL) {
 			err(1, "fopen");
 		} else {

@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 
 	FILE *fp_in = stdin;
 	FILE *fp_out = stdout;
-	if (!open_file(&argc, &argv, &settings, &fp_in, &fp_out, 0)) {
+	if (!open_file(MAINUTILS_OPEN_FILE_DEFAULT, &argc, &argv, &fp_in, &fp_out, &settings.filename)) {
 		if (fp_in == NULL) {
 			err(1, "open_file");
 		} else {

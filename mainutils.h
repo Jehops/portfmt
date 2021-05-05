@@ -30,8 +30,13 @@
 struct Array;
 struct ParserSettings;
 
+enum MainutilsOpenFileBehavior {
+	MAINUTILS_OPEN_FILE_DEFAULT = 0,
+	MAINUTILS_OPEN_FILE_INPLACE = 1 << 0,
+	MAINUTILS_OPEN_FILE_KEEP_STDIN = 1 << 1,
+};
+
 int can_use_colors(FILE *);
 void enter_sandbox(void);
-void load_plugins(void);
-int open_file(int *, char ***, struct ParserSettings *, FILE **, FILE **, int);
+int open_file(enum MainutilsOpenFileBehavior, int *, char ***, FILE **, FILE **, char **filename);
 int read_common_args(int *, char ***, struct ParserSettings *, const char *, struct Array *);

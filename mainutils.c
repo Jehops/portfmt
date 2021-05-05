@@ -185,22 +185,22 @@ open_file_helper(const char *path, const char *mode, char **retval)
 }
 
 int
-open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in, FILE **fp_out, int keep_stdin_open)
+open_file(enum MainutilsOpenFileBehavior behavior, int *argc, char ***argv, FILE **fp_in, FILE **fp_out, char **filename)
 {
 #if HAVE_CAPSICUM
 	closefrom(STDERR_FILENO + 1);
 #endif
 
-	if (*argc > 1 || ((settings->behavior & PARSER_OUTPUT_INPLACE) && *argc == 0)) {
+	if (*argc > 1 || ((behavior & MAINUTILS_OPEN_FILE_INPLACE) && *argc == 0)) {
 		return 0;
 	} else if (*argc == 1) {
-		if (settings->behavior & PARSER_OUTPUT_INPLACE) {
-			if (!keep_stdin_open) {
+		if (behavior & MAINUTILS_OPEN_FILE_INPLACE) {
+			if (!(behavior & MAINUTILS_OPEN_FILE_KEEP_STDIN)) {
 				close(STDIN_FILENO);
 			}
 			close(STDOUT_FILENO);
 
-			*fp_in = open_file_helper(*argv[0], "r+", &settings->filename);
+			*fp_in = open_file_helper(*argv[0], "r+", filename);
 			*fp_out = *fp_in;
 			if (*fp_in == NULL) {
 				return 0;
@@ -211,10 +211,10 @@ open_file(int *argc, char ***argv, struct ParserSettings *settings, FILE **fp_in
 			}
 #endif
 		} else  {
-			if (!keep_stdin_open) {
+			if (!(behavior & MAINUTILS_OPEN_FILE_KEEP_STDIN)) {
 				close(STDIN_FILENO);
 			}
-			*fp_in = open_file_helper(*argv[0], "r", &settings->filename);
+			*fp_in = open_file_helper(*argv[0], "r", filename);
 			if (*fp_in == NULL) {
 				return 0;
 			}
