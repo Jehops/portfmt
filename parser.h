@@ -58,6 +58,7 @@ enum ParserMergeBehavior {
 enum ParserLookupVariableBehavior {
 	PARSER_LOOKUP_DEFAULT = 0,
 	PARSER_LOOKUP_FIRST = 1 << 0,
+	PARSER_LOOKUP_IGNORE_VARIABLES_IN_CONDITIIONALS = 1 << 1,
 };
 
 enum ParserError {

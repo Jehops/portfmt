@@ -2309,8 +2309,13 @@ parser_lookup_variable(struct Parser *parser, const char *name, enum ParserLooku
 	struct Variable *var = NULL;
 	struct Array *tokens = array_new();
 	struct Array *comments = array_new();
+	int skip = 0;
 	for (size_t i = 0; i < array_len(parser->tokens); i++) {
 		struct Token *t = array_get(parser->tokens, i);
+		if ((behavior & PARSER_LOOKUP_IGNORE_VARIABLES_IN_CONDITIIONALS) &&
+		    skip_conditional(t, &skip)) {
+			continue;
+		}
 		switch (token_type(t)) {
 		case VARIABLE_START:
 			if (behavior & PARSER_LOOKUP_FIRST) {

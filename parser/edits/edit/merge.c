@@ -549,29 +549,11 @@ PARSER_EDIT(edit_merge)
 				/* fallthrough */
 			case MODIFIER_APPEND:
 			case MODIFIER_ASSIGN: {
-				int found = 0;
-				int ignore = 0;
-				ARRAY_FOREACH(ptokens, struct Token *, s) {
-					if ((params->merge_behavior & PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS) &&
-					    skip_conditional(s, &ignore)) {
-						continue;
-					}
-					switch (token_type(s)) {
-					case VARIABLE_START:
-					case VARIABLE_TOKEN:
-					case VARIABLE_END:
-						if (strcmp(variable_name(token_variable(s)), variable_name(var)) == 0) {
-							found = 1;
-						}
-						break;
-					default:
-						break;
-					}
-					if (found) {
-						break;
-					}
+				enum ParserLookupVariableBehavior behavior = PARSER_LOOKUP_DEFAULT;
+				if (params->merge_behavior & PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS) {
+					behavior |= PARSER_LOOKUP_IGNORE_VARIABLES_IN_CONDITIIONALS;
 				}
-				if (!found) {
+				if (!parser_lookup_variable(parser, variable_name(var), behavior, NULL, NULL)) {
 					*error = parser_edit(parser, insert_variable, var);
 					if (*error != PARSER_ERROR_OK) {
 						goto cleanup;
