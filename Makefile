@@ -43,7 +43,7 @@ OBJS=		conditional.o \
 ALL_TESTS=	tests/run.sh
 TESTS?=		${ALL_TESTS}
 
-all: portclippy portedit portfmt portscan
+all: bin/portclippy bin/portedit bin/portfmt bin/portscan
 
 .c.o:
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
@@ -64,17 +64,21 @@ ${TESTS}: libportfmt.a
 .o.test:
 	${CC} ${LDFLAGS} -o $@ $< libportfmt.a libias/libias.a ${LDADD}
 
-portclippy: portclippy.o libias/libias.a libportfmt.a
-	${CC} ${LDFLAGS} -o portclippy portclippy.o libportfmt.a libias/libias.a ${LDADD}
+bin/portclippy: portclippy.o libias/libias.a libportfmt.a
+	@mkdir -p bin
+	${CC} ${LDFLAGS} -o bin/portclippy portclippy.o libportfmt.a libias/libias.a ${LDADD}
 
-portedit: portedit.o libias/libias.a libportfmt.a
-	${CC} ${LDFLAGS} -o portedit portedit.o libportfmt.a libias/libias.a ${LDADD}
+bin/portedit: portedit.o libias/libias.a libportfmt.a
+	@mkdir -p bin
+	${CC} ${LDFLAGS} -o bin/portedit portedit.o libportfmt.a libias/libias.a ${LDADD}
 
-portfmt: portfmt.o libias/libias.a libportfmt.a
-	${CC} ${LDFLAGS} -o portfmt portfmt.o libportfmt.a libias/libias.a ${LDADD}
+bin/portfmt: portfmt.o libias/libias.a libportfmt.a
+	@mkdir -p bin
+	${CC} ${LDFLAGS} -o bin/portfmt portfmt.o libportfmt.a libias/libias.a ${LDADD}
 
-portscan: portscan.o libias/libias.a libportfmt.a
-	${CC} ${LDFLAGS} -o portscan portscan.o libportfmt.a libias/libias.a ${LDADD} -lpthread
+bin/portscan: portscan.o libias/libias.a libportfmt.a
+	@mkdir -p bin
+	${CC} ${LDFLAGS} -o bin/portscan portscan.o libportfmt.a libias/libias.a ${LDADD} -lpthread
 
 portclippy.o: portclippy.c config.h mainutils.h parser.h
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ -c $<
@@ -135,7 +139,7 @@ deps:
 
 install: all
 	${MKDIR} ${DESTDIR}${BINDIR} ${DESTDIR}${MANDIR}/man1
-	${INSTALL_PROGRAM} portclippy portedit portfmt portscan ${DESTDIR}${BINDIR}
+	${INSTALL_PROGRAM} bin/portclippy bin/portedit bin/portfmt bin/portscan ${DESTDIR}${BINDIR}
 	${INSTALL_MAN} man/*.1 ${DESTDIR}${MANDIR}/man1
 
 install-symlinks:
@@ -147,8 +151,9 @@ regen-rules:
 
 clean:
 	@${MAKE} -C libias clean
-	@rm -f ${OBJS} *.o libportfmt.a portclippy portedit portfmt portscan \
-		config.*.old $$(echo ${ALL_TESTS} | sed 's,tests/run.sh,,')
+	@rm -f ${OBJS} *.o libportfmt.a bin/portclippy bin/portedit bin/portfmt \
+		bin/portscan config.*.old $$(echo ${ALL_TESTS} | sed 's,tests/run.sh,,')
+	@rmdir bin
 
 debug:
 	@${MAKE} CFLAGS="-Wall -std=c99 -O1 -g -fno-omit-frame-pointer" \

@@ -2,10 +2,10 @@
 set -u
 ROOT="${PWD}"
 LOG="${ROOT}/tests/log"
-PORTCLIPPY="${ROOT}/portclippy"
-PORTEDIT="${ROOT}/portedit"
-PORTFMT="${ROOT}/portfmt"
-PORTSCAN="${ROOT}/portscan"
+PORTCLIPPY="${ROOT}/bin/portclippy"
+PORTEDIT="${ROOT}/bin/portedit"
+PORTFMT="${ROOT}/bin/portfmt"
+PORTSCAN="${ROOT}/bin/portscan"
 : ${SH:=/bin/sh}
 
 export PORTCLIPPY

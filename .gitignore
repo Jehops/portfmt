@@ -8,10 +8,7 @@ config.log
 config.log.old
 libportfmt.a
 Makefile.configure
-/portclippy
-/portedit
-/portfmt
-/portscan
+/bin
 /tests/log
 TODO
 RELNOTES.md
