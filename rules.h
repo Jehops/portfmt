@@ -100,6 +100,7 @@ int matches(enum RegularExpression, const char *);
 int print_as_newlines(struct Parser *, struct Variable *);
 void rules_init(void);
 int should_sort(struct Parser *, struct Variable *);
+int skip_conditional(struct Token *, int *);
 int skip_dedup(struct Parser *, struct Variable *);
 int skip_goalcol(struct Parser *, struct Variable *);
 char *sub(enum RegularExpression, const char *, const char *);

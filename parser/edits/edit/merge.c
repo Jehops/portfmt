@@ -70,7 +70,6 @@ static void append_tokens(struct Parser *, struct Array *, struct Array *);
 static void append_values(struct Parser *, struct Array *, enum VariableModifier, struct VariableMergeParameter *);
 static void append_values_last(struct Parser *, struct Array *, enum VariableModifier, struct VariableMergeParameter *);
 static void assign_values(struct Parser *, struct Array *, enum VariableModifier, const struct VariableMergeParameter *);
-static int skip_conditional(struct Token *, enum ParserMergeBehavior, int *);
 
 PARSER_EDIT(extract_tokens)
 {
@@ -78,43 +77,6 @@ PARSER_EDIT(extract_tokens)
 	*tokens = ptokens;
 	return NULL;
 }
-
-static int
-skip_conditional(struct Token *t, enum ParserMergeBehavior behavior, int *ignore)
-{
-	if (!(behavior & PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS)) {
-		return 0;
-	}
-	if (*ignore > 0) {
-		if (token_type(t) == CONDITIONAL_END) {
-			switch (conditional_type(token_conditional(t))) {
-			case COND_ENDFOR:
-			case COND_ENDIF:
-				(*ignore)--;
-				break;
-			default:
-				break;
-			}
-		}
-		return 1;
-	}
-	if (token_type(t) == CONDITIONAL_START) {
-		switch (conditional_type(token_conditional(t))) {
-		case COND_IF:
-		case COND_IFDEF:
-		case COND_IFMAKE:
-		case COND_IFNDEF:
-		case COND_IFNMAKE:
-		case COND_FOR:
-			(*ignore)++;
-			break;
-		default:
-			break;
-		}
-	}
-	return 0;
-}
-
 
 void
 append_values(struct Parser *parser, struct Array *tokens, enum VariableModifier mod, struct VariableMergeParameter *params)
@@ -444,10 +406,11 @@ static size_t
 find_last_occurrence_of_var(struct Parser *parser, struct Array *tokens, struct VariableMergeParameter *params, size_t i)
 {
 	size_t index = array_len(tokens) + 1;
-	int ignore = 0;
+	int skip = 0;
 	for (; i < array_len(tokens); i++) {
 		struct Token *t = array_get(tokens, i);
-		if (skip_conditional(t, params->behavior, &ignore)) {
+		if ((params->behavior & PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS) &&
+		    skip_conditional(t, &skip)) {
 			continue;
 		}
 		switch (token_type(t)) {
@@ -473,9 +436,10 @@ PARSER_EDIT(merge_existent_var)
 	int found = 0;
 	enum VariableModifier mod = variable_modifier(params->var);
 	size_t last_occ = array_len(ptokens) + 1;
-	int ignore = 0;
+	int skip = 0;
 	ARRAY_FOREACH(ptokens, struct Token *, t) {
-		if (skip_conditional(t, params->behavior, &ignore)) {
+		if ((params->behavior & PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS) &&
+		    skip_conditional(t, &skip)) {
 			array_append(tokens, t);
 			continue;
 		}
@@ -588,7 +552,8 @@ PARSER_EDIT(edit_merge)
 				int found = 0;
 				int ignore = 0;
 				ARRAY_FOREACH(ptokens, struct Token *, s) {
-					if (skip_conditional(s, params->merge_behavior, &ignore)) {
+					if ((params->merge_behavior & PARSER_MERGE_IGNORE_VARIABLES_IN_CONDITIONALS) &&
+					    skip_conditional(s, &ignore)) {
 						continue;
 					}
 					switch (token_type(s)) {
