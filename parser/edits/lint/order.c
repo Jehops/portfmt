@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include <sys/param.h>
+#include <ctype.h>
 #if HAVE_ERR
 # include <err.h>
 #endif
@@ -203,6 +204,36 @@ get_all_unknown_variables(struct Mempool *pool, struct Parser *parser)
 	return unknowns;
 }
 
+static char *
+get_hint(struct Parser *parser, const char *var, enum BlockType block, struct Set *uses_candidates)
+{
+	char *hint = NULL;
+
+	if (uses_candidates) {
+		struct Array *uses = set_values(uses_candidates);
+		char *buf = str_join(uses, " ");
+		array_free(uses);
+		if (set_len(uses_candidates) > 1) {
+			hint = str_printf("missing one of USES=%s ?", buf);
+		} else {
+			hint = str_printf("missing USES=%s ?", buf);
+		}
+		free(buf);
+		set_free(uses_candidates);
+	} else if (block == BLOCK_UNKNOWN) {
+		char *uppervar = xstrdup(var);
+		for (size_t i = 0; uppervar[i] != 0; i++) {
+			uppervar[i] = toupper(uppervar[i]);
+		}
+		if (variable_order_block(parser, uppervar, NULL) != BLOCK_UNKNOWN) {
+			hint = str_printf("did you mean %s ?", uppervar);
+		}
+		free(uppervar);
+	}
+
+	return hint;
+}
+
 static struct Array *
 variable_list(struct Mempool *pool, struct Parser *parser, struct Array *tokens)
 {
@@ -222,19 +253,7 @@ variable_list(struct Mempool *pool, struct Parser *parser, struct Array *tokens)
 			row(pool, output, str_printf("# %s", blocktype_tostring(block)), NULL);
 		}
 		flag = 1;
-		char *hint = NULL;
-		if (uses_candidates) {
-			struct Array *uses = set_values(uses_candidates);
-			char *buf = str_join(uses, " ");
-			array_free(uses);
-			if (set_len(uses_candidates) > 1) {
-				hint = str_printf("missing one of USES=%s ?", buf);
-			} else {
-				hint = str_printf("missing USES=%s ?", buf);
-			}
-			free(buf);
-			set_free(uses_candidates);
-		}
+		char *hint = get_hint(parser, var, block, uses_candidates);
 		row(pool, output, xstrdup(var), hint);
 		last_block = block;
 	}
@@ -322,20 +341,8 @@ check_variable_order(struct Parser *parser, struct Array *tokens, int no_color)
 	}
 	ARRAY_FOREACH(unknowns, char *, var) {
 		struct Set *uses_candidates = NULL;
-		variable_order_block(parser, var, &uses_candidates);
-		char *hint = NULL;
-		if (uses_candidates) {
-			struct Array *uses = set_values(uses_candidates);
-			char *buf = str_join(uses, " ");
-			array_free(uses);
-			if (set_len(uses_candidates) > 1) {
-				hint = str_printf("missing one of USES=%s ?", buf);
-			} else {
-				hint = str_printf("missing USES=%s ?", buf);
-			}
-			free(buf);
-			set_free(uses_candidates);
-		}
+		enum BlockType block = variable_order_block(parser, var, &uses_candidates);
+		char *hint = get_hint(parser, var, block, uses_candidates);
 		row(pool, target, xstrdup(var), hint);
 	}
 

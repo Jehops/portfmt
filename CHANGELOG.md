@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   before accepting variables as "known"
 - portclippy: provide hints which `USES` might be missing
 - portclippy: Check `opt_USE` and `opt_VARS` for unknowns too
+- portclippy: provide hints for wrong case variable misspellings, e.g.,
+  for `license` it will suggest using `LICENSE` instead
 
 ### Changed
 
