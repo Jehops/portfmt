@@ -38,6 +38,7 @@
 #include <string.h>
 
 #include <libias/array.h>
+#include <libias/mempool.h>
 #include <libias/util.h>
 
 #include "parser.h"
@@ -46,62 +47,54 @@
 #include "token.h"
 #include "variable.h"
 
-static char *get_revision(struct Parser *, const char *, enum ParserError *, char **);
-
 static char *
-get_revision(struct Parser *parser, const char *variable, enum ParserError *error, char **error_msg)
+get_merge_script(struct Parser *parser, const char *variable, enum ParserError *error, char **error_msg)
 {
-	char *resetrevision;
+	SCOPE_MEMPOOL(pool);
+	struct Array *script = mempool_add(pool, array_new(), array_free);
+
+	struct Variable *var;
 	if (strcmp(variable, "PORTEPOCH") == 0) {
-		struct Variable *var;
-		if ((var = parser_lookup_variable(parser, "PORTREVISION", PARSER_LOOKUP_FIRST, NULL, NULL)) != NULL) {
-			if (variable_modifier(var) == MODIFIER_OPTIONAL) {
-				resetrevision = str_printf("PORTREVISION=0\n");
-			} else {
-				resetrevision = str_printf("PORTREVISION!=\n");
-			}
+		if ((var = parser_lookup_variable(parser, "PORTREVISION", PARSER_LOOKUP_FIRST, NULL, NULL)) &&
+		    variable_modifier(var) == MODIFIER_OPTIONAL) {
+			array_append(script, "PORTREVISION=0\n");
 		} else {
-			resetrevision = str_printf("PORTREVISION!=\n");
+			array_append(script, "PORTREVISION!=\n");
 		}
-	} else {
-		resetrevision = xstrdup("");
 	}
 
-	char *revision;
 	char *comment;
 	char *current_revision;
-	struct Variable *var;
 	if ((var = parser_lookup_variable_str(parser, variable, PARSER_LOOKUP_FIRST, &current_revision, &comment)) != NULL) {
+		mempool_add(pool, current_revision, free);
+		mempool_add(pool, comment, free);
 		const char *errstr = NULL;
 		int rev = strtonum(current_revision, 0, INT_MAX, &errstr);
-		free(current_revision);
 		if (errstr == NULL) {
 			rev++;
 		} else {
 			*error = PARSER_ERROR_EXPECTED_INT;
 			*error_msg = xstrdup(errstr);
-			free(resetrevision);
-			free(comment);
 			return NULL;
 		}
-		char *buf = variable_tostring(var);
-		if (parser_lookup_variable(parser, "MASTERDIR", PARSER_LOOKUP_FIRST, NULL, NULL)) {
+		if (parser_lookup_variable(parser, "MASTERDIR", PARSER_LOOKUP_FIRST, NULL, NULL) == NULL) {
 			// In slave ports we do not delete the variable first since
 			// they have a non-uniform structure and edit_merge will probably
 			// insert it into a non-optimal position.
-			revision = str_printf("%s%s%d %s\n", resetrevision, buf, rev, comment);
-		} else {
-			revision = str_printf("%s%s!=\n%s%d %s\n", resetrevision, variable, buf, rev, comment);
+			//
+			// In normal ports we can safely remove it.
+			array_append(script, variable);
+			array_append(script, "!=\n");
 		}
-		free(buf);
-		free(comment);
+		array_append(script, mempool_add(pool, variable_tostring(var), free));
+		char *buf = str_printf("%d %s\n", rev, comment);
+		array_append(script, mempool_add(pool, buf, free));
 	} else {
-		revision = str_printf("%s%s=1", resetrevision, variable);
+		array_append(script, variable);
+		array_append(script, "=1\n");
 	}
 
-	free(resetrevision);
-
-	return revision;
+	return str_join(script, "");
 }
 
 PARSER_EDIT(edit_bump_revision)
@@ -119,14 +112,10 @@ PARSER_EDIT(edit_bump_revision)
 		variable = "PORTREVISION";
 	}
 
-	char *revision = get_revision(parser, variable, error, error_msg);
-	if (revision == NULL) {
-		return NULL;
-	}
-
+	char *script = get_merge_script(parser, variable, error, error_msg);
 	struct ParserSettings settings = parser_settings(parser);
 	struct Parser *subparser = parser_new(&settings);
-	*error = parser_read_from_buffer(subparser, revision, strlen(revision));
+	*error = parser_read_from_buffer(subparser, script, strlen(script));
 	if (*error != PARSER_ERROR_OK) {
 		goto cleanup;
 	}
@@ -140,7 +129,7 @@ PARSER_EDIT(edit_bump_revision)
 	}
 
 cleanup:
-	free(revision);
+	free(script);
 	parser_free(subparser);
 
 	return NULL;
