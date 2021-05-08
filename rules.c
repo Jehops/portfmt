@@ -1279,7 +1279,7 @@ is_valid_license(struct Parser *parser, const char *license)
 		}
 		return i > 0;
 	} else {
-		return set_contains(parser_metadata(parser, PARSER_METADATA_LICENSES), (void*)license);
+		return set_contains(parser_metadata(parser, PARSER_METADATA_LICENSES), license);
 	}
 }
 
@@ -1985,7 +1985,7 @@ is_cabal_datadir_vars(struct Parser *parser, const char *var, char **prefix, cha
 	}
 
 	// Do we have USES=cabal?
-	if (!set_contains(parser_metadata(parser, PARSER_METADATA_USES), (void*)"cabal")) {
+	if (!set_contains(parser_metadata(parser, PARSER_METADATA_USES), "cabal")) {
 		return 0;
 	}
 
@@ -2055,7 +2055,7 @@ is_shebang_lang(struct Parser *parser, const char *var, char **prefix, char **su
 	}
 
 	// Do we have USES=shebangfix?
-	if (!set_contains(parser_metadata(parser, PARSER_METADATA_USES), (void*)"shebangfix")) {
+	if (!set_contains(parser_metadata(parser, PARSER_METADATA_USES), "shebangfix")) {
 		return 0;
 	}
 
@@ -2161,7 +2161,7 @@ variable_order_block(struct Parser *parser, const char *var, struct Set **uses_c
 					satisfies_uses = 0;
 					for (size_t j = 0; j < count; j++) {
 						const char *requses = variable_order_[i].uses[j];
-						if (set_contains(uses, (char *)requses)) {
+						if (set_contains(uses, requses)) {
 							satisfies_uses = 1;
 							break;
 						}
@@ -2176,7 +2176,7 @@ variable_order_block(struct Parser *parser, const char *var, struct Set **uses_c
 					*uses_candidates = set_new(str_compare, NULL, NULL);
 				}
 				for (size_t j = 0; j < count; j++) {
-					set_add(*uses_candidates, (char *)variable_order_[i].uses[j]);
+					set_add(*uses_candidates, variable_order_[i].uses[j]);
 				}
 			}
 		}

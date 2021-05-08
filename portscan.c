@@ -459,7 +459,7 @@ edit_distance(const char *a, const char *b)
 static void
 collect_output_unknowns(const char *key, const char *value, const char *hint, void *userdata)
 {
-	if (!set_contains(userdata, (char *)key)) {
+	if (!set_contains(userdata, key)) {
 		set_add(userdata, xstrdup(key));
 	}
 }

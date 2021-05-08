@@ -221,10 +221,7 @@ get_hint(struct Parser *parser, const char *var, enum BlockType block, struct Se
 		free(buf);
 		set_free(uses_candidates);
 	} else if (block == BLOCK_UNKNOWN) {
-		char *uppervar = xstrdup(var);
-		for (size_t i = 0; uppervar[i] != 0; i++) {
-			uppervar[i] = toupper(uppervar[i]);
-		}
+		char *uppervar = str_map(var, strlen(var), toupper);
 		if (variable_order_block(parser, uppervar, NULL) != BLOCK_UNKNOWN) {
 			hint = str_printf("did you mean %s ?", uppervar);
 		}

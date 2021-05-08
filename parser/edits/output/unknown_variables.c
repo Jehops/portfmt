@@ -119,10 +119,7 @@ check_opthelper(struct Parser *parser, struct ParserEditOutput *param, struct Se
 		} else if (*(suffix + 1) != '=') {
 			continue;
 		}
-		char *name = xstrndup(token, suffix - token);
-		for (char *p = name; *p != 0; p++) {
-			*p = toupper(*p);
-		}
+		char *name = str_map(token, suffix - token, toupper);
 		if (optuse) {
 			char *tmp = name;
 			name = str_printf("USE_%s", tmp);

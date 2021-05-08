@@ -1060,10 +1060,7 @@ parser_output_sort_opt_use(struct Parser *parser, struct Array *arr)
 		}
 		suffix++;
 
-		char *prefix = mempool_add(pool, xstrndup(token_data(t), suffix - token_data(t)), free);
-		for (char *prefixp = prefix; *prefixp != 0; prefixp++) {
-			*prefixp = toupper(*prefixp);
-		}
+		char *prefix = mempool_add(pool, str_map(token_data(t), suffix - token_data(t), toupper), free);
 		size_t bufsz = strlen(token_data(t)) + 1;
 		char *buf = mempool_add(pool, xmalloc(bufsz), free);
 		if (opt_use) {
@@ -2192,7 +2189,7 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 		switch (meta) {
 		case PARSER_METADATA_CABAL_EXECUTABLES: {
 			struct Set *uses = parser_metadata(parser, PARSER_METADATA_USES);
-			if (set_contains(uses, (void*)"cabal")) {
+			if (set_contains(uses, "cabal")) {
 				parser_meta_values(parser, "EXECUTABLES", parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES]);
 				if (set_len(parser->metadata[PARSER_METADATA_CABAL_EXECUTABLES]) == 0) {
 					char *portname;
@@ -2240,7 +2237,7 @@ parser_metadata(struct Parser *parser, enum ParserMetadata meta)
 			break;
 #if PORTFMT_SUBPACKAGES
 		case PARSER_METADATA_SUBPACKAGES:
-			if (!set_contains(parser->metadata[PARSER_METADATA_SUBPACKAGES], (char *)"main")) {
+			if (!set_contains(parser->metadata[PARSER_METADATA_SUBPACKAGES], "main")) {
 				// There is always a main subpackage
 				set_add(parser->metadata[PARSER_METADATA_SUBPACKAGES], xstrdup("main"));
 			}
