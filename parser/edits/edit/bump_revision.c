@@ -51,6 +51,22 @@ static char *get_revision(struct Parser *, const char *, enum ParserError *, cha
 static char *
 get_revision(struct Parser *parser, const char *variable, enum ParserError *error, char **error_msg)
 {
+	char *resetrevision;
+	if (strcmp(variable, "PORTEPOCH") == 0) {
+		struct Variable *var;
+		if ((var = parser_lookup_variable(parser, "PORTREVISION", PARSER_LOOKUP_FIRST, NULL, NULL)) != NULL) {
+			if (variable_modifier(var) == MODIFIER_OPTIONAL) {
+				resetrevision = str_printf("PORTREVISION=0\n");
+			} else {
+				resetrevision = str_printf("PORTREVISION!=\n");
+			}
+		} else {
+			resetrevision = str_printf("PORTREVISION!=\n");
+		}
+	} else {
+		resetrevision = xstrdup("");
+	}
+
 	char *revision;
 	char *comment;
 	char *current_revision;
@@ -64,6 +80,7 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 		} else {
 			*error = PARSER_ERROR_EXPECTED_INT;
 			*error_msg = xstrdup(errstr);
+			free(resetrevision);
 			free(comment);
 			return NULL;
 		}
@@ -72,15 +89,17 @@ get_revision(struct Parser *parser, const char *variable, enum ParserError *erro
 			// In slave ports we do not delete the variable first since
 			// they have a non-uniform structure and edit_merge will probably
 			// insert it into a non-optimal position.
-			revision = str_printf("%s%d %s\n", buf, rev, comment);
+			revision = str_printf("%s%s%d %s\n", resetrevision, buf, rev, comment);
 		} else {
-			revision = str_printf("%s!=\n%s%d %s\n", variable, buf, rev, comment);
+			revision = str_printf("%s%s!=\n%s%d %s\n", resetrevision, variable, buf, rev, comment);
 		}
 		free(buf);
 		free(comment);
 	} else {
-		revision = str_printf("%s=1", variable);
+		revision = str_printf("%s%s=1", resetrevision, variable);
 	}
+
+	free(resetrevision);
 
 	return revision;
 }
